@@ -1,0 +1,9 @@
+/* Style settings for Endless by Tom Genco */
+
+body {
+  margin: 0;
+}
+
+canvas {
+  position: absolute;
+}
