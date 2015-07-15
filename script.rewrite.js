@@ -17,7 +17,7 @@ function Endless() {
     // background hue is set to some random number, then will slowly move its
     // way along the spectrum
     var randomInitialHue = Math.floor(Math.random() * 360);
-    backgroundChangingColor = new Animation(randomInitialHue, randomInitialHue + 360, 6e4);
+    backgroundChangingColor = new Animation(randomInitialHue, randomInitialHue + 360, 3e5);
 
     // Menu object positions are described by a percentage of the canvas size
     // plus any pixel offset. e.g. MenuObject(0.5, 0.5, 0, 0, ...) is in the
@@ -31,6 +31,9 @@ function Endless() {
       new MenuObject(0, 1, 70, -20, "tomgenco.com", 16)
     ];
     if (animateMenu) {
+      // Animations are cool too, and are constructed with a start value, end
+      // value, duration, and optionally a delay. the current value is returned
+      // by .getVal() and starts on .start().
       menuAnimationGroup = new AnimationGroup([
         new Animation(0, 1, 2000),
         new Animation(0, 1, 2000),
@@ -101,9 +104,8 @@ function Endless() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // This is really fucking clunky but pretty self explanatory I think
   MenuObject = function(relativeX, relativeY, fixedOffsetX, fixedOffsetY,
-      text, fontSize, width, height, opacity, clickable) {
+      text, fontSize, width, height, clickable) {
     this.relativeX = relativeX;
     this.relativeY = relativeY;
     this.fixedOffsetX = fixedOffsetX;
@@ -112,7 +114,7 @@ function Endless() {
     this.fontSize = fontSize;
     this.width = width;
     this.height = height;
-    this.opacity = opacity === undefined ? 1 : opacity;
+    this.opacity = 1;
     this.clickable = clickable === undefined ? false : clickable;
 
     this.inRange = function(mousePosX, mousePosY) {
@@ -148,6 +150,8 @@ function Endless() {
     this.start = function() {
       this.started = true;
       this.finished = false;
+      var that = this;
+      setTimeout(function () { that.finished = true; }, that.delay + that.duration);
       initTime = Date.now();
     };
 
@@ -158,12 +162,7 @@ function Endless() {
         return this.startVal;
       else {
         delta = Date.now() - this.delay - initTime;
-        if (delta > this.duration) {
-          this.started = false;
-          this.finished = true;
-          return this.endVal;
-        } else
-          return delta < 0 ? this.startVal : delta / this.duration * (this.endVal - this.startVal) + this.startVal;
+        return delta < 0 ? this.startVal : delta / this.duration * (this.endVal - this.startVal) + this.startVal;
       }
     };
   };
@@ -174,6 +173,7 @@ function Endless() {
 
     this.start = function(mode, delay) {
       this.started = true;
+      delay = delay === undefined ? 100 : delay;
       switch (mode) {
         // Run all the animations at the same time
         case "parallel":
