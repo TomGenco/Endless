@@ -1,5 +1,5 @@
 function Endless() {
-  var canvas, ctx, centerX = 0, centerY = 0, playing = false; menuObjects = [], animateMenu = true, menuAnimationGroup = null, backgroundColor = "";
+  var canvas, ctx, centerX = 0, centerY = 0, playing = false; menuObjects = [], fadeInMenu = true, menuTransitionGroup = null, backgroundColor = "";
   window.showMenu = true;
 
   function setup() {
@@ -17,7 +17,7 @@ function Endless() {
     // background hue is set to some random number, then will slowly move its
     // way along the spectrum
     var randomInitialHue = Math.floor(Math.random() * 360);
-    backgroundChangingColor = new Animation(randomInitialHue, randomInitialHue + 360, 3e5);
+    backgroundChangingColor = new Transition(randomInitialHue, randomInitialHue + 360, 3e5);
 
     // Menu object positions are described by a percentage of the canvas size
     // plus any pixel offset. e.g. MenuObject(0.5, 0.5, 0, 0, ...) is in the
@@ -30,15 +30,15 @@ function Endless() {
       new MenuObject(0.5, 0.75, 0, 0, "Play", 64),
       new MenuObject(0, 1, 70, -20, "tomgenco.com", 16)
     ];
-    if (animateMenu) {
-      // Animations are cool too, and are constructed with a start value, end
+    if (fadeInMenu) {
+      // Transitions are cool too, and are constructed with a start value, end
       // value, duration, and optionally a delay. the current value is returned
       // by .getVal() and starts on .start().
-      menuAnimationGroup = new AnimationGroup([
-        new Animation(0, 1, 2000),
-        new Animation(0, 1, 2000),
-        new Animation(0, 1, 1000),
-        new Animation(0, .5, 4000, 4000)
+      menuTransitionGroup = new TransitionGroup([
+        new Transition(0, 1, 2000),
+        new Transition(0, 1, 2000),
+        new Transition(0, 1, 1000),
+        new Transition(0, .5, 4000, 4000)
       ]);
     }
 
@@ -84,12 +84,12 @@ function Endless() {
     drawBackground();
 
     if (showMenu) {
-      if (animateMenu) {
-        if (!menuAnimationGroup.started)
-          menuAnimationGroup.start("delay", 750);
-        if (!menuAnimationGroup.allFinished())
-          for (var i = 0; i < menuAnimationGroup.animations.length; i++)
-            menuObjects[i].opacity = menuAnimationGroup.animations[i].getVal();
+      if (fadeInMenu) {
+        if (!menuTransitionGroup.started)
+          menuTransitionGroup.start("delay", 750);
+        if (!menuTransitionGroup.allFinished())
+          for (var i = 0; i < menuTransitionGroup.transitions.length; i++)
+            menuObjects[i].opacity = menuTransitionGroup.transitions[i].getVal();
       }
       for (var i = 0; i < menuObjects.length; i++)
         menuObjects[i].draw();
@@ -138,7 +138,7 @@ function Endless() {
     };
   }
 
-  Animation = function(startVal, endVal, duration, delay) {
+  Transition = function(startVal, endVal, duration, delay) {
     this.startVal = startVal === undefined ? 0 : startVal;
     this.endVal = endVal === undefined ? 100 : endVal;
     this.duration = duration || 1000;
@@ -167,40 +167,40 @@ function Endless() {
     };
   };
 
-  AnimationGroup = function(animations) {
-    this.animations = animations;
+  TransitionGroup = function(transitions) {
+    this.transitions = transitions;
     this.started = false;
 
     this.start = function(mode, delay) {
       this.started = true;
       delay = delay === undefined ? 100 : delay;
       switch (mode) {
-        // Run all the animations at the same time
+        // Run all the transitions at the same time
         case "parallel":
-          for (var i = 0; i < animations.length; i++) {
-            animations[i].start();
+          for (var i = 0; i < transitions.length; i++) {
+            transitions[i].start();
           }
           break;
-        // Wait so many milliseconds before starting each animation
+        // Wait so many milliseconds before starting each transition
         case "delay":
-          for (var i = 0; i < animations.length; i++) {
-            animations[i].delay += (delay * i);
-            animations[i].start();
+          for (var i = 0; i < transitions.length; i++) {
+            transitions[i].delay += (delay * i);
+            transitions[i].start();
           }
           break;
-        // Wait until the previous animation ends
+        // Wait until the previous transition ends
         default: case "series":
-          for (var i = 0; i < animations.length; i++) {
+          for (var i = 0; i < transitions.length; i++) {
             if (i > 0)
-              animations[i].delay += (animations[i-1].duration) + (animations[i-1].delay);
-            animations[i].start();
+              transitions[i].delay += (transitions[i-1].duration) + (transitions[i-1].delay);
+            transitions[i].start();
           }
           break;
       }
     };
 
     this.allFinished = function() {
-      return animations[animations.length - 1].finished;
+      return transitions[transitions.length - 1].finished;
     }
   };
 
