@@ -111,11 +111,10 @@ function Endless() {
           (centerX - gridwidth / 2) + (col * dotSize * 2),
           (centerY - gridheight / 2) + (row * dotSize * 2));
         if (animateDots)
-          dotAnimationGroup.transitions[col * rows + rows - row - 1] =
-            new Transition((dots[col][row].y - centerY - gridheight / 2) * 5, dots[col][row].y, 200);
+          dotAnimationGroup.transitions[col * rows + row] =
+            new Transition(dots[col][row].y - centerY - gridheight / 2, dots[col][row].y, 1000, 0, "logistic");
       }
     }
-
   }
   // Calls each drawing function every frame, if needed.
   function draw() {
@@ -140,7 +139,7 @@ function Endless() {
     if (playing) {
       if (animateDots) {
         if (!dotAnimationGroup.started)
-          dotAnimationGroup.start("delay", 5);
+          dotAnimationGroup.start("delay", 2);
         if (!dotAnimationGroup.allFinished())
           for (var i = 0; i < dots.length; i++)
             for (var j = 0; j < dots[i].length; j++)
@@ -224,11 +223,12 @@ function Endless() {
     };
   }
 
-  Transition = function(startVal, endVal, duration, delay) {
+  Transition = function(startVal, endVal, duration, delay, motionType) {
     this.startVal = startVal === undefined ? 0 : startVal;
     this.endVal = endVal === undefined ? 100 : endVal;
     this.duration = duration || 1000;
     this.delay = delay === undefined ? 200 : delay;
+    this.motionType = motionType === undefined ? "linear" : motionType;
     this.finished = false;
     this.started = false;
     var initTime, delta;
@@ -248,7 +248,17 @@ function Endless() {
         return this.startVal;
       else {
         delta = Date.now() - this.delay - initTime;
-        return delta < 0 ? this.startVal : delta / this.duration * (this.endVal - this.startVal) + this.startVal;
+        if (delta < 0)
+          return this.startVal;
+
+        switch (this.motionType) {
+          default:
+            console.error("Should be unreachable");
+          case "linear":
+            return (delta / this.duration) * (this.endVal - this.startVal) + this.startVal;
+          case "logistic":
+            return (endVal - this.startVal) / (1 + Math.pow(Math.E, -15 * ((delta / this.duration)-0.4))) + this.startVal;
+        }
       }
     };
   };
