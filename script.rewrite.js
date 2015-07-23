@@ -1,8 +1,15 @@
 function Endless() {
-  var canvas, ctx, centerX = 0, centerY = 0, playing = false, menuObjects = [], fadeInMenu = true, menuObjectTransitionGroup = null, animateDots = true, dotAnimation = null, dotAnimationGroup = null, backgroundColor = "", colors = 6, hueShift = 70, dotSize = 20, rows = 20, cols = 30, dots = [];
-  window.showMenu = true;
+  this.Settings = {
+    Default: { acid: false, animateDots: true, backgroundColor: "rainbow", columns: 10, dotAnimationTime: 500, dotAnimationType: "logistic", dotColors: 10, dotSize: 40, fadeInMenu: true, hueShift: 70, rows: 10 }
+  };
+
+  var dotAnimationGroup = null, dots = [], canvas, centerX = 0, centerY = 0, ctx, menuObjects = [], menuObjectTransitionGroup = null, playing = false;
 
   function setup() {
+    for (var prop in Settings.Default) {
+      Settings[prop] = Settings.Default[prop];
+    }
+
     setupGraphics();
     setupEventListeners();
   }
@@ -14,10 +21,12 @@ function Endless() {
     ctx = canvas.getContext("2d");
     updateCanvasSize();
 
-    // background hue is set to some random number, then will slowly move its
+    // Background hue is set to some random number, then will slowly move its
     // way along the spectrum
-    var randomInitialHue = Math.floor(Math.random() * 360);
-    backgroundChangingColor = new Transition(randomInitialHue, randomInitialHue + 360, 9e5);
+    if (Settings.backgroundColor == "rainbow") {
+      var randomInitialHue = Math.floor(Math.random() * 360);
+      backgroundChangingColor = new Transition(randomInitialHue, randomInitialHue + 360, 9e5);
+    }
 
     // Menu object positions are described by a percentage of the canvas size
     // plus any pixel offset. e.g. MenuObject(0.5, 0.5, 0, 0, ...) is in the
@@ -25,26 +34,24 @@ function Endless() {
     // from the bottom, and 50 pixels from the right.
     // This is done so the actual x and y can adjust to varying screen sizes.
     menuObjects = [
-      new MenuObject(0.5, 0.25, 0, 0, "Endless", 128),
-      new MenuObject(0.5, 0.25, 118, 72, "By Tom Genco", 32),
-      new MenuObject(0.5, 0.75, 0, 0, "Play", 64, 140, 80, function() { play(); }),
-      new MenuObject(0, 1, 70, -20, "tomgenco.com", 16, 120, 20, function() {
+      new MenuObject(0.5, 0.25, 0, 0, "Endless", 256),
+      new MenuObject(0.5, 0.25, 200, 130, "By Tom Genco", 64),
+      new MenuObject(0.5, 0.75, 0, 0, "Play", 128, 280, 150, function() { play(); }),
+      new MenuObject(0, 1, 130, -40, "tomgenco.com", 32, 220, 40, function() {
         window.location.href = "http://tomgenco.com/";
       })
     ];
-    if (fadeInMenu) {
-      // Transitions are cool too, and are constructed with a start value, end
-      // value, duration, and optionally a delay. the current value is returned
-      // by .getVal() and starts on .start().
+
+    if (Settings.fadeInMenu) {
       menuObjectTransitionGroup = new TransitionGroup([
         new Transition(0, 1, 2000),
         new Transition(0, 1, 2000),
         new Transition(0, 1, 1000),
-        new Transition(0, .75, 4000, 4000)
+        new Transition(0, 1, 2000, 2000)
       ]);
     }
 
-    if (animateDots)
+    if (Settings.animateDots)
       dotAnimationGroup = new TransitionGroup([]);
 
     requestAnimationFrame(draw);
@@ -99,23 +106,24 @@ function Endless() {
   }
 
   function generateDots() {
-    var gridwidth = cols * dotSize * 2 - dotSize;
-    var gridheight = rows * dotSize * 2 - dotSize;
+    var gridWidth = Settings.columns * Settings.dotSize * 2 - Settings.dotSize;
+    var gridHeight = Settings.rows * Settings.dotSize * 2 - Settings.dotSize;
 
-    for (var col = 0; col < cols; col++) {
+    for (var col = 0; col < Settings.columns; col++) {
       dots[col] = [];
-      for (var row = 0; row < rows; row++) {
+      for (var row = 0; row < Settings.rows; row++) {
         dots[col][row] = new Dot(
-          (Math.floor(Math.random() * colors) * (360 / colors) + hueShift) % 360,
+          (Math.floor(Math.random() * Settings.dotColors) * (360 / Settings.dotColors) + Settings.hueShift) % 360,
           col, row,
-          (centerX - gridwidth / 2) + (col * dotSize * 2) - centerX,
-          (centerY - gridheight / 2) + (row * dotSize * 2) - centerY);
-        if (animateDots)
-          dotAnimationGroup.transitions[col * rows + row] =
-            new Transition(dots[col][row].y - centerY - gridheight / 2, dots[col][row].y, 500, 0, "logistic");
+          (centerX - gridWidth / 2) + (col * Settings.dotSize * 2) - centerX,
+          (centerY - gridHeight / 2) + (row * Settings.dotSize * 2) - centerY);
+        if (Settings.animateDots)
+          dotAnimationGroup.transitions[col * Settings.rows + row] =
+            new Transition(dots[col][row].y - centerY - gridheight / 2, dots[col][row].y, Settings.dotAnimationTime, 0, Settings.dotAnimationType);
       }
     }
   }
+
   // Calls each drawing function every frame, if needed.
   function draw() {
     drawBackground();
@@ -129,40 +137,42 @@ function Endless() {
 
   // Fills the canvas with whatever backgroundColor is set to
   function drawBackground() {
-    if (!backgroundChangingColor.started || backgroundChangingColor.finished)
-      backgroundChangingColor.start();
-    ctx.fillStyle = "hsl(" + backgroundChangingColor.getVal() % 360 + ", 50%, 25%)";
+    if (Settings.acid)
+      ctx.globalAlpha = 0.2;
+    if (Settings.backgroundColor == "rainbow") {
+      if (!backgroundChangingColor.started || backgroundChangingColor.finished)
+        backgroundChangingColor.start();
+      ctx.fillStyle = "hsl(" + backgroundChangingColor.getVal() % 360 + ", 50%, 25%)";
+    } else {
+      ctx.fillStyle = Settings.backgroundColor;
+    }
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (Settings.acid)
+      ctx.globalAlpha = 1;
   }
 
+  // Updates each dot's position if it's still animating, and tells them to draw
   function drawDots() {
     if (playing) {
-      if (animateDots) {
+      if (!Settings.animateDots || dotAnimationGroup.allFinished())
+        for (var i = 0; i < dots.length; i++)
+          for (var j = 0; j < dots[i].length; j++)
+            dots[i][j].draw();
+      else {
         if (!dotAnimationGroup.started)
           dotAnimationGroup.start("delay", 1);
-        if (!dotAnimationGroup.allFinished())
-          for (var i = 0; i < dots.length; i++)
-            for (var j = 0; j < dots[i].length; j++)
-              dots[i][j].y = dotAnimationGroup.transitions[i * rows + j].getVal();
-        else {
-          // HACK - For some reason a TransitionGroup reports allFinished before
-          // the last transition's getVal returns endVal, so this grabs endVal
-          // one last time for each dot
-          for (var i = 0; i < dots.length; i++)
-            for (var j = 0; j < dots[i].length; j++)
-              dots[i][j].y = dotAnimationGroup.transitions[i * rows + j].endVal;
-          animateDots = false;
-        }
+        for (var i = 0; i < dots.length; i++)
+          for (var j = 0; j < dots[i].length; j++) {
+            dots[i][j].y = dotAnimationGroup.transitions[i * Settings.rows + j].getVal();
+            dots[i][j].draw();
+          }
       }
-      for (var i = 0; i < dots.length; i++)
-        for (var j = 0; j < dots[i].length; j++)
-          dots[i][j].draw();
     }
   }
 
   function drawMenuObjects() {
-    if (showMenu) {
-      if (fadeInMenu) {
+    if (!playing) {
+      if (Settings.fadeInMenu) {
         if (!menuObjectTransitionGroup.started)
           menuObjectTransitionGroup.start("delay", 750);
         if (!menuObjectTransitionGroup.allFinished())
@@ -184,7 +194,7 @@ function Endless() {
     this.draw = function () {
       ctx.fillStyle = "hsl(" + this.color + ", 100%, 50%)";
       ctx.beginPath();
-      ctx.arc(this.x + centerX, this.y + centerY, dotSize / 2, 0, Math.PI * 2, false);
+      ctx.arc(this.x + centerX, this.y + centerY, Settings.dotSize / 2, 0, Math.PI * 2, false);
       ctx.fill();
     }
   }
@@ -216,7 +226,7 @@ function Endless() {
       ctx.textBaseline = "middle";
       ctx.font = this.fontSize + "px sans-serif";
       ctx.fillStyle = "rgba(255, 255, 255, " + this.opacity + ")";
-      ctx.lineWidth = this.fontSize / 14 + 3;
+      ctx.lineWidth = this.fontSize / 12 + 3;
       ctx.strokeStyle = "rgba(0, 0, 0, " + this.opacity + ")";
       ctx.strokeText(this.text, canvas.width * relativeX + fixedOffsetX, canvas.height * relativeY + fixedOffsetY);
       ctx.fillText(this.text, canvas.width * relativeX + fixedOffsetX, canvas.height * relativeY + fixedOffsetY);
@@ -242,6 +252,7 @@ function Endless() {
     };
 
     this.getVal = function() {
+      var value;
       if (this.finished)
         return this.endVal;
       else if (!this.started)
@@ -255,7 +266,8 @@ function Endless() {
           default:
             console.error("Should be unreachable");
           case "linear":
-            return (delta / this.duration) * (this.endVal - this.startVal) + this.startVal;
+            value = ((delta + 5 / this.duration + 100) / this.duration) * (this.endVal - this.startVal) + this.startVal;
+            return value > endVal ? endVal : value;
           case "logistic":
             return (endVal - this.startVal) / (1 + Math.pow(Math.E, -10 * (delta / this.duration) + 2.5)) + this.startVal;
         }
