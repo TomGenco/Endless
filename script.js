@@ -1,331 +1,318 @@
-// Script for Endless by Tom Genco
-
-// Things you might want to change
-var rows = 20,
-    cols = 30,
-    dotSize = 20,
-    hueShift = 0, // Set colors to 1 to see what this is
-    colors = 2, // A number between 1 and 360 inclusive
-    backgroundColor = "black";
-
-// Things you might not want to change
-var canvas = $("canvas")[0], ctx = canvas.getContext("2d"), cursorX, cursorY,
-  grid, gridWidth, gridHeight, setupTime, delta, square = false,
-  initialized = true, playing = false, mouseDown = false, selection = [];
-
-canvas.onmousemove = function(e) {
-  cursorX = e.clientX;
-  cursorY = e.clientY;
-  var thisDot;
-  if (playing) {
-    var thisDot;
-    if (thisDot = onADot(e.clientX, e.clientY)) {
-      canvas.style.cursor = "pointer";
-      if (mouseDown && selection[0] !== undefined) {
-        if (selection.length > 1 && thisDot.row == selection[selection.length - 2].row && thisDot.col == selection[selection.length - 2].col) {
-          console.log(selection);
-          selection[selection.length - 2].disconnectFrom(selection[selection.length - 1]);
-        }
-        else if ((direction = selection[selection.length - 1].canConnectTo(thisDot, false)) != null) {
-          selection[selection.length - 1].connectTo(thisDot, direction);
-        }
-      }
-    } else
-      canvas.removeAttribute("style");
-  }
-  else
-    if (initialized && e.clientX > centerX - 50 && e.clientX < centerX + 50
-        && e.clientY > (centerY * 1.25) - 25 && e.clientY < (centerY * 1.25) + 25)
-      canvas.style.cursor = "pointer";
-    else
-      canvas.removeAttribute("style");
-}
-
-canvas.onmousedown = function(e) {
-  mouseDown = true;
-  if (playing && onADot(e.clientX, e.clientY))
-    selection[0] = grid.dots[posXToCol(e.clientX)][posYToRow(e.clientY)];
-  else
-    if (initialized && !playing && e.clientX > centerX - 50 && e.clientX < centerX + 50
-        && e.clientY > (centerY * 1.25) - 25 && e.clientY < (centerY * 1.25) + 25) {
-      canvas.removeAttribute("style");
-      setupGame();
-    }
-};
-
-canvas.onmouseup = function() {
-  mouseDown = false;
-  for (var i = 0; i < selection.length; i++) {
-    selection[i].connected.left = false;
-    selection[i].connected.right = false;
-    selection[i].connected.top = false;
-    selection[i].connected.bottom = false;
-    selection[i].selected = false;
-    square = false;
-  }
-  selection = [];
-};
-
-function setup() {
-  setupCanvas();
-  window.onresize = setupCanvas;
-  setupTime = Date.now();
-  requestAnimationFrame(draw);
-}
-
-function setupCanvas() {
-  $("canvas").attr("width", window.innerWidth);
-  $("canvas").attr("height", window.innerHeight);
-
-  centerX = canvas.width / 2;
-  centerY = canvas.height / 2;
-}
-
-function setupGame() {
-  grid = new Grid(generateDotArray(cols, rows));
-  playing = true;
-}
-
-function draw() {
-  ctx.fillStyle = backgroundColor;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  if (square) {
-    ctx.fillStyle = "hsla(" + selection[0].hue + ", 100%, 50%, .25)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-
-  if (!initialized) {
-    // delta is the time elapsed in seconds
-    delta = (Date.now() - setupTime) / 1000;
-    if (delta < .5)
-      ;
-    else if (delta < 1.5)
-      drawGameTitle(delta - .5, 0);
-    else if (delta < 3)
-      drawGameTitle(1, 0);
-    else if (delta < 4)
-      drawGameTitle(1, delta - 3);
-    else if (delta < 5)
-      drawGameTitle(1, 1);
-    else if (delta < 6) {
-      drawGameTitle(1, 1);
-      drawButtons(delta - 5);
-    } else {
-      drawGameTitle(1, 1);
-      drawButtons(1);
-      initialized = true;
-    }
-  } else if (!playing) {
-    drawGameTitle(1, 1);
-    drawButtons(1);
-  } else {
-    grid.draw();
-  }
-
-  for (var i = 1; i < selection.length; i++) {
-    ctx.strokeStyle = "hsl(" + selection[0].hue + ", 100%, 50%)";
-    ctx.lineWidth = dotSize * .5;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(selection[i - 1].x, selection[i - 1].y);
-    ctx.lineTo(selection[i].x, selection[i].y);
-    ctx.stroke();
-  }
-
-  if (selection.length) {
-    ctx.strokeStyle = "hsl(" + selection[0].hue + ", 100%, 50%)";
-    ctx.lineWidth = dotSize * .5;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(selection[selection.length - 1].x, selection[selection.length - 1].y);
-    ctx.lineTo(cursorX, cursorY);
-    ctx.stroke();
-  }
-
-  requestAnimationFrame(draw);
-}
-
-function onADot(posX, posY) {
-  if (posX > centerX - gridWidth / 2 && posX < centerX + gridWidth / 2
-      && posY > centerY - gridHeight / 2 && posY < centerY + gridHeight / 2
-      && (posX - (centerX - gridWidth / 2)) % (dotSize * 2) < dotSize
-      && (posY - (centerY - gridHeight / 2)) % (dotSize * 2) < dotSize)
-    return grid.dots[posXToCol(posX)][posYToRow(posY)];
-  else
-    return false;
-}
-
-function posXToCol(posX) {
-  return Math.floor((posX - (centerX - gridWidth / 2)) / (dotSize * 2));
-}
-
-function posYToRow(posY) {
-  return Math.floor((posY - (centerY - gridHeight / 2)) / (dotSize * 2));
-}
-
-function generateDotArray(cols, rows) {
-  var dotArray = [];
-
-  for (var x = 0; x < cols; x++)
-    dotArray[x] = [];
-  for (var x = 0; x < cols; x++)
-    for (var y = 0; y < rows; y++)
-      dotArray[x][y] = new Dot((Math.floor(Math.random() * colors) * (360 / colors) + hueShift) % 360);
-
-  return dotArray;
-}
-
-function drawGameTitle(tOpacity, sOpacity) {
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-
-  ctx.font = "128px sans-serif";
-  ctx.fillStyle = "rgba(255, 255, 255, " + tOpacity + ")";
-  ctx.lineWidth = 8;
-  ctx.strokeStyle = "rgba(0, 0, 0, " + tOpacity + ")";
-  ctx.strokeText("Endless", centerX, centerY / 2);
-  ctx.fillText("Endless", centerX, centerY / 2);
-
-  if (sOpacity != 0) {
-    ctx.font = "32px sans-serif";
-    ctx.fillStyle = "rgba(255, 255, 255, " + sOpacity + ")";
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = "rgba(0, 0, 0, " + sOpacity + ")";
-    ctx.strokeText("By Tom Genco", centerX + 118, (centerY / 2) + 64)
-    ctx.fillText("By Tom Genco", centerX + 118, (centerY / 2) + 64);
-  }
-}
-
-function drawButtons(opacity) {
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-
-  ctx.font = "48px sans-serif";
-  ctx.fillStyle = "rgba(255, 255, 255, " + opacity + ")";
-  ctx.lineWidth = 6;
-  ctx.strokeStyle = "rgba(0, 0, 0, " + opacity + ")";
-  ctx.strokeText("Play", centerX, centerY * 1.25);
-  ctx.fillText("Play", centerX, centerY * 1.25);
-}
-
-function Dot(hue) {
-  this.hue = hue;
-  this.x;
-  this.y;
-  this.col;
-  this.row;
-  this.connected = {
-    top: false,
-    left: false,
-    right: false,
-    bottom: false
+function Endless() {
+  this.Settings = {
+    Default: { acid: false, animateDots: true, backgroundColor: "rainbow", columns: 10, dotAnimationTime: 500, dotAnimationType: "logistic", dotColors: 10, dotSize: 40, fadeInMenu: true, hueShift: 70, rows: 10 }
   };
-}
 
-Dot.prototype.canConnectTo = function(dot, disconnecting) {
-  if (dot.hue != this.hue)
-    return null;
-  console.log(this.row, this.col, dot.row, dot.col);
-  if (dot.col - this.col == 1 && dot.row == this.row && disconnecting ? true : !dot.connected.left)
-    return 0;
-  else if (dot.col - this.col == -1 && dot.row == this.row && disconnecting ? true : !dot.connected.right)
-    return 1;
-  else if (dot.row - this.row == 1 && dot.col == this.col && disconnecting ? true : !dot.connected.top)
-    return 2;
-  else if (dot.row - this.row == -1 && dot.col == this.col && disconnecting ? true : !dot.connected.bottom)
-    return 3;
-  else return null;
-};
+  var dotAnimationGroup = null, dots = [], canvas, centerX = 0, centerY = 0, ctx, menuObjects = [], menuObjectTransitionGroup = null, playing = false;
 
-Dot.prototype.connectTo = function(dot, direction) {
-  selection[selection.length] = dot;
-  if (dot.selected)
-    square = true;
-  switch (direction) {
-    case 0:
-      this.connected.right = true;
-      dot.connected.left = true;
-      this.selected = true;
-      dot.selected = true;
-      break;
-    case 1:
-      this.connected.left = true;
-      dot.connected.right = true;
-      this.selected = true;
-      dot.selected = true;
-      break;
-    case 2:
-      this.connected.bottom = true;
-      dot.connected.top = true;
-      this.selected = true;
-      dot.selected = true;
-      break;
-    case 3:
-      this.connected.top = true;
-      dot.connected.bottom = true;
-      this.selected = true;
-      dot.selected = true;
-      break;
-  }
-};
+  function setup() {
+    for (var prop in Settings.Default) {
+      Settings[prop] = Settings.Default[prop];
+    }
 
-Dot.prototype.disconnectFrom = function(dot) {
-  var direction = this.canConnectTo(dot, true);
-  console.log(this, dot, direction);
-  switch (direction) {
-    case 0:
-      dot.connected.left = false;
-      this.connected.right = false;
-      break;
-    case 1:
-      dot.connected.right = false;
-      this.connected.left = false;
-      break;
-    case 2:
-      dot.connected.top = false;
-      this.connected.bottom = false;
-      break;
-    case 3:
-      dot.connected.bottom = false;
-      this.connected.top = false;
-      break;
-    default:
-      console.error("dot is not adjacent to other dot");
-      break;
+    setupGraphics();
+    setupEventListeners();
   }
 
-  if (dot.connected.left == false && dot.connected.right == false &&
-      dot.connected.top == false && dot.connected.bottom == false)
-    dot.selected = false;
-  selection.length--;
-};
+  // Grabs canvas element and context, sets canvas to to size of the
+  // window, and begins the drawing loop.
+  function setupGraphics() {
+    canvas = document.getElementsByTagName("canvas")[0];
+    ctx = canvas.getContext("2d");
+    updateCanvasSize();
 
-function Grid(dots) {
-  for (var i = 0; i < dots.length; i++) {
-    for (var j = 0; j < dots[i].length; j++) {
-      dots[i][j].col = i;
-      dots[i][j].row = j;
+    // Background hue is set to some random number, then will slowly move its
+    // way along the spectrum
+    if (Settings.backgroundColor == "rainbow") {
+      var randomInitialHue = Math.floor(Math.random() * 360);
+      backgroundChangingColor = new Transition(randomInitialHue, randomInitialHue + 360, 9e5);
+    }
+
+    // Menu object positions are described by a percentage of the canvas size
+    // plus any pixel offset. e.g. MenuObject(0.5, 0.5, 0, 0, ...) is in the
+    // middle of the canvas, and MenuObject(1, 1, -50, -50, ...) is 50 pixels
+    // from the bottom, and 50 pixels from the right.
+    // This is done so the actual x and y can adjust to varying screen sizes.
+    menuObjects = [
+      new MenuObject(0.5, 0.25, 0, 0, "Endless", 256),
+      new MenuObject(0.5, 0.25, 200, 130, "By Tom Genco", 64),
+      new MenuObject(0.5, 0.75, 0, 0, "Play", 128, 280, 150, function() { play(); }),
+      new MenuObject(0, 1, 130, -40, "tomgenco.com", 32, 220, 40, function() {
+        window.location.href = "http://tomgenco.com/";
+      })
+    ];
+
+    if (Settings.fadeInMenu) {
+      menuObjectTransitionGroup = new TransitionGroup([
+        new Transition(0, 1, 2000),
+        new Transition(0, 1, 2000),
+        new Transition(0, 1, 1000),
+        new Transition(0, 1, 2000, 2000)
+      ]);
+    }
+
+    if (Settings.animateDots)
+      dotAnimationGroup = new TransitionGroup([]);
+
+    requestAnimationFrame(draw);
+  }
+
+  // Attaches all of the event handlers to their events.
+  function setupEventListeners() {
+    canvas.onmousemove = function(e) { handleMouseMove(e.clientX, e.clientY) };
+    canvas.onmousedown = function(e) { handleMouseDown(e.clientX, e.clientY) };
+    canvas.onmouseup = function(e) { handleMouseUp(e.clientX, e.clientY) };
+    canvas.onblur = function(e) { handleMouseUp(e.clientX, e.clientY) };
+    window.onresize = updateCanvasSize;
+  }
+
+  function handleMouseMove(posX, posY) {
+    if (!playing) {
+      var inARange = false;
+      for (var i = 0; i < menuObjects.length; i++)
+        if (menuObjects[i].width && menuObjects[i].height && menuObjects[i].inRange(posX, posY)) {
+          canvas.style.cursor = "pointer";
+          inARange = true;
+        }
+      if (!inARange)
+        canvas.removeAttribute("style");
     }
   }
 
-  this.dots = dots;
-}
+  function handleMouseDown(posX, posY) {
+    if (!playing)
+      for (var i = 0; i < menuObjects.length; i++)
+        if (menuObjects[i].width && menuObjects[i].height && menuObjects[i].inRange(posX, posY)) {
+          menuObjects[i].click();
+        }
+  }
 
-Grid.prototype.draw = function() {
-  gridWidth = (cols * dotSize * 2) - dotSize;
-  gridHeight = (rows * dotSize * 2) - dotSize;
+  function handleMouseUp(posX, posY) {
+    canvas.removeAttribute("style");
+  }
 
-  for (var x = 0; x < this.dots.length; x++)
-    for (var y = 0; y < this.dots[x].length; y++) {
-      this.dots[x][y].x = centerX - (gridWidth / 2) + (x * dotSize * 2) + dotSize / 2;
-      this.dots[x][y].y = centerY - (gridHeight / 2) + (y * dotSize * 2) + dotSize / 2;
+  // Sets the canvas element's height and width to that of the window's
+  function updateCanvasSize() {
+    canvas.setAttribute("width", window.innerWidth);
+    canvas.setAttribute("height", window.innerHeight);
 
-      ctx.fillStyle = "hsl(" + this.dots[x][y].hue + ", 100%, 50%)";
+    centerX = window.innerWidth / 2;
+    centerY = window.innerHeight / 2;
+  }
+
+  function play() {
+    generateDots();
+    playing = true;
+  }
+
+  function generateDots() {
+    var gridWidth = Settings.columns * Settings.dotSize * 2 - Settings.dotSize;
+    var gridHeight = Settings.rows * Settings.dotSize * 2 - Settings.dotSize;
+
+    for (var col = 0; col < Settings.columns; col++) {
+      dots[col] = [];
+      for (var row = 0; row < Settings.rows; row++) {
+        dots[col][row] = new Dot(
+          (Math.floor(Math.random() * Settings.dotColors) * (360 / Settings.dotColors) + Settings.hueShift) % 360,
+          col, row,
+          (centerX - gridWidth / 2) + (col * Settings.dotSize * 2) - centerX,
+          (centerY - gridHeight / 2) + (row * Settings.dotSize * 2) - centerY);
+        if (Settings.animateDots)
+          dotAnimationGroup.transitions[col * Settings.rows + row] =
+            new Transition(dots[col][row].y - centerY - gridHeight / 2, dots[col][row].y, Settings.dotAnimationTime, 0, Settings.dotAnimationType);
+      }
+    }
+  }
+
+  // Calls each drawing function every frame, if needed.
+  function draw() {
+    drawBackground();
+    if (playing)
+      drawDots();
+    else
+      drawMenuObjects();
+
+    requestAnimationFrame(draw);
+  }
+
+  // Fills the canvas with whatever backgroundColor is set to
+  function drawBackground() {
+    if (Settings.acid)
+      ctx.globalAlpha = 0.2;
+    if (Settings.backgroundColor == "rainbow") {
+      if (!backgroundChangingColor.started || backgroundChangingColor.finished)
+        backgroundChangingColor.start();
+      ctx.fillStyle = "hsl(" + backgroundChangingColor.getVal() % 360 + ", 50%, 25%)";
+    } else {
+      ctx.fillStyle = Settings.backgroundColor;
+    }
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (Settings.acid)
+      ctx.globalAlpha = 1;
+  }
+
+  // Updates each dot's position if it's still animating, and tells them to draw
+  function drawDots() {
+    if (playing) {
+      if (!Settings.animateDots || dotAnimationGroup.allFinished())
+        for (var i = 0; i < dots.length; i++)
+          for (var j = 0; j < dots[i].length; j++)
+            dots[i][j].draw();
+      else {
+        if (!dotAnimationGroup.started)
+          dotAnimationGroup.start("delay", 1);
+        for (var i = 0; i < dots.length; i++)
+          for (var j = 0; j < dots[i].length; j++) {
+            dots[i][j].y = dotAnimationGroup.transitions[i * Settings.rows + j].getVal();
+            dots[i][j].draw();
+          }
+      }
+    }
+  }
+
+  function drawMenuObjects() {
+    if (!playing) {
+      if (Settings.fadeInMenu) {
+        if (!menuObjectTransitionGroup.started)
+          menuObjectTransitionGroup.start("delay", 750);
+        if (!menuObjectTransitionGroup.allFinished())
+          for (var i = 0; i < menuObjectTransitionGroup.transitions.length; i++)
+            menuObjects[i].opacity = menuObjectTransitionGroup.transitions[i].getVal();
+      }
+      for (var i = 0; i < menuObjects.length; i++)
+        menuObjects[i].draw();
+    }
+  }
+
+  Dot = function (color, column, row, x, y) {
+    this.color = color || 0;
+    this.col = column;
+    this.row = row;
+    this.x = x;
+    this.y = y;
+
+    this.draw = function () {
+      ctx.fillStyle = "hsl(" + this.color + ", 100%, 50%)";
       ctx.beginPath();
-      ctx.arc(this.dots[x][y].x, this.dots[x][y].y, dotSize / 2, 0, Math.PI * 2, false);
+      ctx.arc(this.x + centerX, this.y + centerY, Settings.dotSize / 2, 0, Math.PI * 2, false);
       ctx.fill();
     }
-};
+  }
 
-setup();
+  MenuObject = function(relativeX, relativeY, fixedOffsetX, fixedOffsetY,
+      text, fontSize, width, height, click) {
+    this.relativeX = relativeX;
+    this.relativeY = relativeY;
+    this.fixedOffsetX = fixedOffsetX;
+    this.fixedOffsetY = fixedOffsetY;
+    this.text = text;
+    this.fontSize = fontSize;
+    this.width = width;
+    this.height = height;
+    this.click = click;
+    this.opacity = 1;
+
+    this.inRange = function(mousePosX, mousePosY) {
+      if (mousePosX > (canvas.width * relativeX + fixedOffsetX) - this.width / 2 &&
+          mousePosX < (canvas.width * relativeX + fixedOffsetX) + this.width / 2 &&
+          mousePosY > (canvas.height * relativeY + fixedOffsetY) - this.height / 2 &&
+          mousePosY < (canvas.height * relativeY + fixedOffsetY) + this.height / 2)
+        return true;
+      return false;
+    };
+
+    this.draw = function() {
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = this.fontSize + "px sans-serif";
+      ctx.fillStyle = "rgba(255, 255, 255, " + this.opacity + ")";
+      ctx.lineWidth = this.fontSize / 12 + 3;
+      ctx.strokeStyle = "rgba(0, 0, 0, " + this.opacity + ")";
+      ctx.strokeText(this.text, canvas.width * relativeX + fixedOffsetX, canvas.height * relativeY + fixedOffsetY);
+      ctx.fillText(this.text, canvas.width * relativeX + fixedOffsetX, canvas.height * relativeY + fixedOffsetY);
+    };
+  }
+
+  Transition = function(startVal, endVal, duration, delay, motionType) {
+    this.startVal = startVal === undefined ? 0 : startVal;
+    this.endVal = endVal === undefined ? 100 : endVal;
+    this.duration = duration || 1000;
+    this.delay = delay === undefined ? 200 : delay;
+    this.motionType = motionType === undefined ? "linear" : motionType;
+    this.finished = false;
+    this.started = false;
+    var initTime, delta;
+
+    this.start = function() {
+      this.started = true;
+      this.finished = false;
+      var that = this;
+      setTimeout(function () { that.finished = true; }, that.delay + that.duration);
+      initTime = Date.now();
+    };
+
+    this.getVal = function() {
+      var value;
+      if (this.finished)
+        return this.endVal;
+      else if (!this.started)
+        return this.startVal;
+      else {
+        delta = Date.now() - this.delay - initTime;
+        if (delta < 0)
+          return this.startVal;
+
+        switch (this.motionType) {
+          default:
+            console.error("Should be unreachable");
+          case "linear":
+            value = ((delta + 5 / this.duration + 100) / this.duration) * (this.endVal - this.startVal) + this.startVal;
+            return value > endVal ? endVal : value;
+          case "logistic":
+            return (endVal - this.startVal) / (1 + Math.pow(Math.E, -10 * (delta / this.duration) + 2.5)) + this.startVal;
+        }
+      }
+    };
+  };
+
+  TransitionGroup = function(transitions) {
+    this.transitions = transitions;
+    this.started = false;
+
+    this.start = function(mode, delay) {
+      this.started = true;
+      delay = delay === undefined ? 100 : delay;
+      switch (mode) {
+        // Run all the transitions at the same time
+        case "parallel":
+          for (var i = 0; i < this.transitions.length; i++) {
+            this.transitions[i].start();
+          }
+          break;
+        // Wait so many milliseconds before starting each transition
+        case "delay":
+          for (var i = 0; i < this.transitions.length; i++) {
+            this.transitions[i].delay += (delay * i);
+            this.transitions[i].start();
+          }
+          break;
+        // Wait until the previous transition ends
+        default: case "series":
+          for (var i = 0; i < this.transitions.length; i++) {
+            if (i > 0)
+              this.transitions[i].delay += (this.transitions[i-1].duration) + (this.transitions[i-1].delay);
+            this.transitions[i].start();
+          }
+          break;
+      }
+    };
+
+    this.allFinished = function() {
+      return this.transitions[this.transitions.length - 1].finished;
+    }
+  };
+
+  setup();
+}
+
+window.onload = Endless;
