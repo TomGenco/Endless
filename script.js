@@ -1,6 +1,6 @@
 function Endless() {
   this.Settings = {
-    Default: { acid: false, animateDots: true, backgroundColor: "rainbow", columns: 10, dotAnimationTime: 500, dotAnimationType: "logistic", dotColors: 10, dotSize: 40, fadeInMenu: true, hueShift: 70, rows: 10 }
+    Default: { acid: false, animateDots: true, backgroundColor: "rainbow", columns: 10, dotAnimationTime: 1000, dotAnimationType: "logistic", dotColors: 10, dotSize: 40, fadeInMenu: true, hueShift: 70, rows: 10 }
   };
 
   var dotAnimationGroup = null, dots = [], canvas, centerX = 0, centerY = 0, ctx, menuObjects = [], menuObjectTransitionGroup = null, playing = false;
@@ -48,11 +48,12 @@ function Endless() {
         new Transition(0, 1, 2000),
         new Transition(0, 1, 1000),
         new Transition(0, 1, 2000, 2000)
-      ]);
+      ], "delay", 750);
     }
 
+    console.log(Math.pow(2, -0.004 * (Settings.rows * Settings.columns - 500)) * 4);
     if (Settings.animateDots)
-      dotAnimationGroup = new TransitionGroup([]);
+      dotAnimationGroup = new TransitionGroup([], "delay", 2);
 
     requestAnimationFrame(draw);
   }
@@ -115,11 +116,11 @@ function Endless() {
         dots[col][row] = new Dot(
           (Math.floor(Math.random() * Settings.dotColors) * (360 / Settings.dotColors) + Settings.hueShift) % 360,
           col, row,
-          (centerX - gridWidth / 2) + (col * Settings.dotSize * 2) - centerX,
-          (centerY - gridHeight / 2) + (row * Settings.dotSize * 2) - centerY);
+          (centerX - gridWidth / 2 + Settings.dotSize / 2) + (col * Settings.dotSize * 2) - centerX,
+          (centerY - gridHeight / 2 + Settings.dotSize / 2) + (row * Settings.dotSize * 2) - centerY);
         if (Settings.animateDots)
-          dotAnimationGroup.transitions[col * Settings.rows + row] =
-            new Transition(dots[col][row].y - centerY - gridHeight / 2, dots[col][row].y, Settings.dotAnimationTime, 0, Settings.dotAnimationType);
+          dotAnimationGroup.transitions[col * Settings.rows + Settings.rows - row - 1] =
+            new Transition(dots[col][row].y - centerY - gridHeight / 2 - Settings.dotSize / 2, dots[col][row].y, Settings.dotAnimationTime, 0, Settings.dotAnimationType);
       }
     }
   }
@@ -160,7 +161,7 @@ function Endless() {
             dots[i][j].draw();
       else {
         if (!dotAnimationGroup.started)
-          dotAnimationGroup.start("delay", 1);
+          dotAnimationGroup.start();
         for (var i = 0; i < dots.length; i++)
           for (var j = 0; j < dots[i].length; j++) {
             dots[i][j].y = dotAnimationGroup.transitions[i * Settings.rows + j].getVal();
@@ -174,7 +175,7 @@ function Endless() {
     if (!playing) {
       if (Settings.fadeInMenu) {
         if (!menuObjectTransitionGroup.started)
-          menuObjectTransitionGroup.start("delay", 750);
+          menuObjectTransitionGroup.start();
         if (!menuObjectTransitionGroup.allFinished())
           for (var i = 0; i < menuObjectTransitionGroup.transitions.length; i++)
             menuObjects[i].opacity = menuObjectTransitionGroup.transitions[i].getVal();
@@ -269,17 +270,17 @@ function Endless() {
             value = ((delta + 5 / this.duration + 100) / this.duration) * (this.endVal - this.startVal) + this.startVal;
             return value > endVal ? endVal : value;
           case "logistic":
-            return (endVal - this.startVal) / (1 + Math.pow(Math.E, -10 * (delta / this.duration) + 2.5)) + this.startVal;
+            return  (1 / (1 + Math.pow(Math.E, -10 * (2 * (delta / this.duration) - 1)))) * (this.endVal - this.startVal) + this.startVal;
         }
       }
     };
   };
 
-  TransitionGroup = function(transitions) {
+  TransitionGroup = function(transitions, mode, delay) {
     this.transitions = transitions;
     this.started = false;
 
-    this.start = function(mode, delay) {
+    this.start = function() {
       this.started = true;
       delay = delay === undefined ? 100 : delay;
       switch (mode) {
