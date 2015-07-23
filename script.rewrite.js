@@ -119,7 +119,7 @@ function Endless() {
           (centerY - gridHeight / 2) + (row * Settings.dotSize * 2) - centerY);
         if (Settings.animateDots)
           dotAnimationGroup.transitions[col * Settings.rows + row] =
-            new Transition(dots[col][row].y - centerY - gridheight / 2, dots[col][row].y, Settings.dotAnimationTime, 0, Settings.dotAnimationType);
+            new Transition(dots[col][row].y - centerY - gridHeight / 2, dots[col][row].y, Settings.dotAnimationTime, 0, Settings.dotAnimationType);
       }
     }
   }
