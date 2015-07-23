@@ -108,11 +108,11 @@ function Endless() {
         dots[col][row] = new Dot(
           (Math.floor(Math.random() * colors) * (360 / colors) + hueShift) % 360,
           col, row,
-          (centerX - gridwidth / 2) + (col * dotSize * 2),
-          (centerY - gridheight / 2) + (row * dotSize * 2));
+          (centerX - gridwidth / 2) + (col * dotSize * 2) - centerX,
+          (centerY - gridheight / 2) + (row * dotSize * 2) - centerY);
         if (animateDots)
           dotAnimationGroup.transitions[col * rows + row] =
-            new Transition(dots[col][row].y - centerY - gridheight / 2, dots[col][row].y, 1000, 0, "logistic");
+            new Transition(dots[col][row].y - centerY - gridheight / 2, dots[col][row].y, 500, 0, "logistic");
       }
     }
   }
@@ -139,7 +139,7 @@ function Endless() {
     if (playing) {
       if (animateDots) {
         if (!dotAnimationGroup.started)
-          dotAnimationGroup.start("delay", 2);
+          dotAnimationGroup.start("delay", 1);
         if (!dotAnimationGroup.allFinished())
           for (var i = 0; i < dots.length; i++)
             for (var j = 0; j < dots[i].length; j++)
@@ -184,7 +184,7 @@ function Endless() {
     this.draw = function () {
       ctx.fillStyle = "hsl(" + this.color + ", 100%, 50%)";
       ctx.beginPath();
-      ctx.arc(this.x, this.y, dotSize / 2, 0, Math.PI * 2, false);
+      ctx.arc(this.x + centerX, this.y + centerY, dotSize / 2, 0, Math.PI * 2, false);
       ctx.fill();
     }
   }
@@ -257,7 +257,7 @@ function Endless() {
           case "linear":
             return (delta / this.duration) * (this.endVal - this.startVal) + this.startVal;
           case "logistic":
-            return (endVal - this.startVal) / (1 + Math.pow(Math.E, -15 * ((delta / this.duration)-0.4))) + this.startVal;
+            return (endVal - this.startVal) / (1 + Math.pow(Math.E, -10 * (delta / this.duration) + 2.5)) + this.startVal;
         }
       }
     };
