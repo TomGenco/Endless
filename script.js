@@ -51,7 +51,6 @@ function Endless() {
       ], "delay", 750);
     }
 
-    console.log(Math.pow(2, -0.004 * (Settings.rows * Settings.columns - 500)) * 4);
     if (Settings.animateDots)
       dotAnimationGroup = new TransitionGroup([], "delay", 2);
 
