@@ -75,7 +75,7 @@ function Endless() {
     menuObjectGroups = [mainMenu, bottomMenu, inGameMenu];
 
     if (Settings.animateDots)
-      dotAnimationGroup = new TransitionGroup([], "delay", 2);
+      dotAnimationGroup = new TransitionGroup([], "delay", Settings.dotAnimationTime / (Settings.columns * Settings.rows));
 
     gridWidth = Settings.columns * Settings.dotSize * 2 - Settings.dotSize;
     gridHeight = Settings.rows * Settings.dotSize * 2 - Settings.dotSize;
@@ -203,20 +203,20 @@ function Endless() {
 
   // Updates each dot's position if it's still animating, and tells them to draw
   function drawDots() {
-    if (playing) {
-      if (!Settings.animateDots || dotAnimationGroup.allFinished())
-        for (var i = 0; i < dots.length; i++)
-          for (var j = 0; j < dots[i].length; j++)
-            dots[i][j].draw();
-      else {
-        if (!dotAnimationGroup.started)
-          dotAnimationGroup.start();
-        for (var i = 0; i < dots.length; i++)
-          for (var j = 0; j < dots[i].length; j++) {
-            dots[i][j].y = dotAnimationGroup.transitions[i * Settings.rows + j].getVal();
-            dots[i][j].draw();
-          }
-      }
+    if (!Settings.animateDots || drawDots.finishedTransition)
+      for (var i = 0; i < dots.length; i++)
+        for (var j = 0; j < dots[i].length; j++)
+          dots[i][j].draw();
+    else {
+      if (!dotAnimationGroup.started)
+        dotAnimationGroup.start();
+      for (var i = 0; i < dots.length; i++)
+        for (var j = 0; j < dots[i].length; j++) {
+          dots[i][j].y = dotAnimationGroup.transitions[i * Settings.rows + j].getVal();
+          dots[i][j].draw();
+        }
+      if (dotAnimationGroup.allFinished())
+         drawDots.finishedTransition = true;
     }
   }
 
@@ -359,7 +359,7 @@ function Endless() {
     this.motionType = motionType === undefined ? "linear" : motionType;
     this.finished = false;
     this.started = false;
-    var initTime, delta;
+    var initTime, delta, distance = this.endVal - this.startVal;
 
     this.start = function() {
       this.started = true;
@@ -384,10 +384,10 @@ function Endless() {
           default:
             console.error("Should be unreachable");
           case "linear":
-            value = ((delta + 5 / this.duration + 100) / this.duration) * (this.endVal - this.startVal) + this.startVal;
+            value = (delta / this.duration) * distance + this.startVal;
             return value > endVal ? endVal : value;
           case "logistic":
-            return  (1 / (1 + Math.pow(Math.E, -10 * (2 * (delta / this.duration) - 1)))) * (this.endVal - this.startVal) + this.startVal;
+            return  1 / (1 + Math.pow(Math.E, -12 * (delta / this.duration - .5))) * distance + this.startVal + 2;
         }
       }
     };
