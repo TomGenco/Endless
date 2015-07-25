@@ -1,9 +1,11 @@
 function Endless() {
+  "use strict";
+
   this.Settings = {
-    Default: { acid: false, animateDots: true, backgroundColor: "rainbow", columns: 10, dotAnimationTime: 1000, dotAnimationType: "logistic", dotColors: 10, dotSize: 40, fadeInMenu: true, hueShift: 70, rows: 10 }
+    Default: { acid: false, animateDots: true, animateMenuObjects: true, backgroundColor: "rainbow", columns: 10, dotAnimationTime: 1000, dotAnimationType: "logistic", dotColors: 10, dotSize: 40, hueShift: 70, rows: 10 }
   };
 
-  var dotAnimationGroup = null, dots = [], canvas, centerX = 0, centerY = 0, ctx, menuObjects = [], menuObjectTransitionGroup = null, playing = false;
+  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, dotAnimationGroup, dots = [], gridHeight, gridWidth, inGameMenu, mainMenu, menuObjectGroups, playing, showOverlay;
 
   function setup() {
     for (var prop in Settings.Default) {
@@ -33,26 +35,50 @@ function Endless() {
     // middle of the canvas, and MenuObject(1, 1, -50, -50, ...) is 50 pixels
     // from the bottom, and 50 pixels from the right.
     // This is done so the actual x and y can adjust to varying screen sizes.
-    menuObjects = [
+    mainMenu = new MenuObjectGroup([
       new MenuObject(0.5, 0.25, 0, 0, "Endless", 256),
       new MenuObject(0.5, 0.25, 200, 130, "By Tom Genco", 64),
-      new MenuObject(0.5, 0.75, 0, 0, "Play", 128, 280, 150, function() { play(); }),
-      new MenuObject(0, 1, 130, -40, "tomgenco.com", 32, 220, 40, function() {
+      new MenuObject(0.5, 0.75, 0, 0, "Play", 128, 280, 150, play)
+    ], true);
+
+    bottomMenu = new MenuObjectGroup([
+      new MenuObject(0, 1, 5, -5, "tomgenco.com", 32, 220, 40, function() {
         window.location.href = "http://tomgenco.com/";
       })
-    ];
+    ], true);
+    bottomMenu.menuObjects[0].align = "left", bottomMenu.menuObjects[0].baseline = "bottom";
 
-    if (Settings.fadeInMenu) {
-      menuObjectTransitionGroup = new TransitionGroup([
+    inGameMenu = new MenuObjectGroup([
+      new MenuObject(0, 0, 15, 5, "Menu", 64, 170, 70, showMenu),
+      new MenuObject(1, 0, -15, 5, "Score: 0", 64)
+    ], false);
+    inGameMenu.menuObjects[0].align = "left", inGameMenu.menuObjects[0].baseline = "top";
+    inGameMenu.menuObjects[1].align = "right", inGameMenu.menuObjects[1].baseline = "top";
+
+    if (Settings.animateMenuObjects) {
+      mainMenu.transitionGroup = new TransitionGroup([
         new Transition(0, 1, 2000),
         new Transition(0, 1, 2000),
-        new Transition(0, 1, 1000),
+        new Transition(0, 1, 1000)
+      ], "delay", 750, "opacity");
+
+      bottomMenu.transitionGroup = new TransitionGroup([
         new Transition(0, 1, 2000, 2000)
-      ], "delay", 750);
+      ], "parallel", 0, "opacity");
+
+      inGameMenu.transitionGroup = new TransitionGroup([
+        new Transition(-100, inGameMenu.menuObjects[0].fixedOffsetY, 1000, Settings.animateDots ? 500 : 0, "logistic"),
+        new Transition(-100, inGameMenu.menuObjects[1].fixedOffsetY, 1000, Settings.animateDots ? 600 : 100, "logistic")
+      ], "parallel", 0, "fixedOffsetY");
     }
+
+    menuObjectGroups = [mainMenu, bottomMenu, inGameMenu];
 
     if (Settings.animateDots)
       dotAnimationGroup = new TransitionGroup([], "delay", 2);
+
+    gridWidth = Settings.columns * Settings.dotSize * 2 - Settings.dotSize;
+    gridHeight = Settings.rows * Settings.dotSize * 2 - Settings.dotSize;
 
     requestAnimationFrame(draw);
   }
@@ -67,24 +93,30 @@ function Endless() {
   }
 
   function handleMouseMove(posX, posY) {
-    if (!playing) {
-      var inARange = false;
-      for (var i = 0; i < menuObjects.length; i++)
-        if (menuObjects[i].width && menuObjects[i].height && menuObjects[i].inRange(posX, posY)) {
-          canvas.style.cursor = "pointer";
+    var inARange = false;
+
+    for (var i = 0; i < menuObjectGroups.length; i++)
+      for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
+        if (menuObjectGroups[i].visibility && menuObjectGroups[i].menuObjects[j].onClick &&
+            menuObjectGroups[i].menuObjects[j].inRange(posX, posY))
           inARange = true;
-        }
-      if (!inARange)
-        canvas.removeAttribute("style");
-    }
+
+    if (inARange || (playing && !mainMenu.visible &&
+        posX > centerX - gridWidth / 2 && posX < centerX + gridWidth / 2 &&
+        posY > centerY - gridHeight / 2 && posY < centerY + gridHeight / 2 &&
+        (posX - centerX + gridWidth / 2) / Settings.dotSize % 2 <= 1 &&
+        (posY - centerY + gridHeight / 2) / Settings.dotSize % 2 <= 1))
+      canvas.style.cursor = "pointer";
+    else
+      canvas.removeAttribute("style");
   }
 
   function handleMouseDown(posX, posY) {
-    if (!playing)
-      for (var i = 0; i < menuObjects.length; i++)
-        if (menuObjects[i].width && menuObjects[i].height && menuObjects[i].inRange(posX, posY)) {
-          menuObjects[i].click();
-        }
+    for (var i = 0; i < menuObjectGroups.length; i++)
+      for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
+        if (menuObjectGroups[i].visibility && menuObjectGroups[i].menuObjects[j].onClick &&
+            menuObjectGroups[i].menuObjects[j].inRange(posX, posY))
+          menuObjectGroups[i].menuObjects[j].onClick();
   }
 
   function handleMouseUp(posX, posY) {
@@ -101,14 +133,21 @@ function Endless() {
   }
 
   function play() {
-    generateDots();
-    playing = true;
+    if (!playing) {
+      generateDots();
+      playing = true;
+      inGameMenu.visibility = true;
+    }
+    showOverlay = false;
+    mainMenu.visibility = false;
+  }
+
+  function showMenu() {
+    showOverlay = true;
+    mainMenu.visibility = true;
   }
 
   function generateDots() {
-    var gridWidth = Settings.columns * Settings.dotSize * 2 - Settings.dotSize;
-    var gridHeight = Settings.rows * Settings.dotSize * 2 - Settings.dotSize;
-
     for (var col = 0; col < Settings.columns; col++) {
       dots[col] = [];
       for (var row = 0; row < Settings.rows; row++) {
@@ -127,10 +166,16 @@ function Endless() {
   // Calls each drawing function every frame, if needed.
   function draw() {
     drawBackground();
+
     if (playing)
       drawDots();
-    else
-      drawMenuObjects();
+
+    for (var i = 0; i < menuObjectGroups.length; i++)
+      if (menuObjectGroups[i].visibility) {
+        if (showOverlay && menuObjectGroups[i] == mainMenu)
+          drawOverlay();
+        menuObjectGroups[i].draw();
+      }
 
     requestAnimationFrame(draw);
   }
@@ -138,7 +183,7 @@ function Endless() {
   // Fills the canvas with whatever backgroundColor is set to
   function drawBackground() {
     if (Settings.acid)
-      ctx.globalAlpha = 0.2;
+      ctx.globalAlpha = 0.09;
     if (Settings.backgroundColor == "rainbow") {
       if (!backgroundChangingColor.started || backgroundChangingColor.finished)
         backgroundChangingColor.start();
@@ -149,6 +194,11 @@ function Endless() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (Settings.acid)
       ctx.globalAlpha = 1;
+  }
+
+  function drawOverlay() {
+    ctx.fillStyle = "rgba(0,0,0,.75)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   // Updates each dot's position if it's still animating, and tells them to draw
@@ -170,21 +220,7 @@ function Endless() {
     }
   }
 
-  function drawMenuObjects() {
-    if (!playing) {
-      if (Settings.fadeInMenu) {
-        if (!menuObjectTransitionGroup.started)
-          menuObjectTransitionGroup.start();
-        if (!menuObjectTransitionGroup.allFinished())
-          for (var i = 0; i < menuObjectTransitionGroup.transitions.length; i++)
-            menuObjects[i].opacity = menuObjectTransitionGroup.transitions[i].getVal();
-      }
-      for (var i = 0; i < menuObjects.length; i++)
-        menuObjects[i].draw();
-    }
-  }
-
-  Dot = function (color, column, row, x, y) {
+  var Dot = function (color, column, row, x, y) {
     this.color = color || 0;
     this.col = column;
     this.row = row;
@@ -199,8 +235,8 @@ function Endless() {
     }
   }
 
-  MenuObject = function(relativeX, relativeY, fixedOffsetX, fixedOffsetY,
-      text, fontSize, width, height, click) {
+  var MenuObject = function(relativeX, relativeY, fixedOffsetX, fixedOffsetY,
+      text, fontSize, width, height, onClick) {
     this.relativeX = relativeX;
     this.relativeY = relativeY;
     this.fixedOffsetX = fixedOffsetX;
@@ -209,31 +245,113 @@ function Endless() {
     this.fontSize = fontSize;
     this.width = width;
     this.height = height;
-    this.click = click;
+    this.onClick = onClick;
+    this.align = "center";
+    this.baseline = "middle";
     this.opacity = 1;
 
     this.inRange = function(mousePosX, mousePosY) {
-      if (mousePosX > (canvas.width * relativeX + fixedOffsetX) - this.width / 2 &&
-          mousePosX < (canvas.width * relativeX + fixedOffsetX) + this.width / 2 &&
-          mousePosY > (canvas.height * relativeY + fixedOffsetY) - this.height / 2 &&
-          mousePosY < (canvas.height * relativeY + fixedOffsetY) + this.height / 2)
-        return true;
-      return false;
+      // TODO: Simplify this somehow
+
+      var realX = (canvas.width * relativeX + fixedOffsetX),
+          realY = (canvas.height * relativeY + fixedOffsetY);
+      switch (this.align) {
+        default: console.error("invalid align for MenuObject " + this.text + ", using center");
+        case "center":
+          switch (this.baseline) {
+            default: console.error("invalid baseline for MenuObject " + this.text + ", using middle");
+            case "middle":
+              if (mousePosX > realX - this.width / 2 && mousePosX < realX + this.width / 2 &&
+                  mousePosY > realY - this.height / 2 && mousePosY < realY + this.height / 2)
+                return true;
+              return false;
+            case "bottom":
+              if (mousePosX > realX - this.width / 2 && mousePosX < realX + this.width / 2 &&
+                  mousePosY > realY - this.height && mousePosY < realY)
+                return true;
+              return false;
+            case "top":
+              if (mousePosX > realX - this.width / 2 && mousePosX < realX + this.width / 2 &&
+                  mousePosY > realY && mousePosY < realY + this.height)
+                return true;
+              return false;
+          }
+        case "left":
+          switch (this.baseline) {
+            default: console.error("invalid baseline for MenuObject " + this.text + ", using middle");
+            case "middle":
+              if (mousePosX > realX && mousePosX < realX + this.width &&
+                  mousePosY > realY - this.height / 2 && mousePosY < realY + this.height / 2)
+                return true;
+              return false;
+            case "bottom":
+              if (mousePosX > realX && mousePosX < realX + this.width &&
+                  mousePosY > realY - this.height && mousePosY < realY)
+                return true;
+              return false;
+            case "top":
+              if (mousePosX > realX && mousePosX < realX + this.width &&
+                  mousePosY > realY && mousePosY < realY + this.height)
+                return true;
+              return false;
+          }
+        case "right":
+          switch (this.baseline) {
+            default: console.error("invalid baseline for MenuObject " + this.text + ", using middle");
+            case "middle":
+              if (mousePosX > realX - this.width && mousePosX < realX &&
+                  mousePosY > realY - this.height / 2 && mousePosY < realY + this.height / 2)
+                return true;
+              return false;
+            case "bottom":
+              if (mousePosX > realX - this.width && mousePosX < realX &&
+                  mousePosY > realY - this.height && mousePosY < realY)
+                return true;
+              return false;
+            case "top":
+              if (mousePosX > realX - this.width && mousePosX < realX &&
+                  mousePosY > realY && mousePosY < realY + this.height)
+                return true;
+              return false;
+          }
+      }
     };
 
     this.draw = function() {
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
+      ctx.textAlign = this.align;
+      ctx.textBaseline = this.baseline;
       ctx.font = this.fontSize + "px sans-serif";
+      ctx.lineJoin = "round";
       ctx.fillStyle = "rgba(255, 255, 255, " + this.opacity + ")";
       ctx.lineWidth = this.fontSize / 12 + 3;
       ctx.strokeStyle = "rgba(0, 0, 0, " + this.opacity + ")";
-      ctx.strokeText(this.text, canvas.width * relativeX + fixedOffsetX, canvas.height * relativeY + fixedOffsetY);
-      ctx.fillText(this.text, canvas.width * relativeX + fixedOffsetX, canvas.height * relativeY + fixedOffsetY);
+      ctx.strokeText(this.text, canvas.width * this.relativeX + this.fixedOffsetX, canvas.height * this.relativeY + this.fixedOffsetY);
+      ctx.fillText(this.text, canvas.width * this.relativeX + this.fixedOffsetX, canvas.height * this.relativeY + this.fixedOffsetY);
     };
   }
 
-  Transition = function(startVal, endVal, duration, delay, motionType) {
+  var MenuObjectGroup = function(menuObjects, visibility) {
+    this.menuObjects = menuObjects;
+    this.visibility = visibility;
+    this.transitionGroup = null;
+
+    this.draw = function() {
+      if (Settings.animateMenuObjects) {
+        if (!this.transitionGroup.started)
+          this.transitionGroup.start();
+        if (!this.draw.finishedTransition) {
+          for (var i = 0; i < this.transitionGroup.transitions.length; i++)
+            this.menuObjects[i][this.transitionGroup.property] = this.transitionGroup.transitions[i].getVal();
+          if (this.transitionGroup.allFinished())
+            this.draw.finishedTransition = true;
+        }
+      }
+      for (var i = 0; i < this.menuObjects.length; i++)
+        this.menuObjects[i].draw();
+    }
+  }
+
+  var Transition = function(startVal, endVal, duration, delay, motionType) {
     this.startVal = startVal === undefined ? 0 : startVal;
     this.endVal = endVal === undefined ? 100 : endVal;
     this.duration = duration || 1000;
@@ -275,9 +393,10 @@ function Endless() {
     };
   };
 
-  TransitionGroup = function(transitions, mode, delay) {
+  var TransitionGroup = function(transitions, mode, delay, property) {
     this.transitions = transitions;
     this.started = false;
+    this.property = property;
 
     this.start = function() {
       this.started = true;
