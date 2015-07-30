@@ -72,6 +72,9 @@ function Endless() {
   var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, currentDotSize, dots = [], gridHeight, gridWidth, inGameMenu, mainMenu, menuObjectGroups, playing, showOverlay, supportsStorage;
 
   function setup() {
+    var loading = document.getElementsByTagName("h1")[0];
+    loading.removeAttribute("style");
+
     for (var setting in Settings.DefaultEntries) {
       Settings.Entries[setting] = Settings.DefaultEntries[setting];
     }
@@ -85,8 +88,12 @@ function Endless() {
       Settings.loadFromStorage();
     }
 
-    setupGraphics();
-    setupEventListeners();
+    setTimeout(function () {
+      setupGraphics();
+      setupEventListeners();
+      
+      loading.setAttribute("style", "display:none;");
+    }, 300);
   }
 
   // Grabs canvas element and context, sets canvas to to size of the
