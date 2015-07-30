@@ -1,15 +1,83 @@
-function Endless() {
-  "use strict";
+"use strict";
 
+function Endless() {
   this.Settings = {
-    Default: { acid: false, animateDots: true, animateMenuObjects: true, backgroundColor: "rainbow", columns: 10, dotAnimationTime: 1000, dotAnimationType: "logistic", dotColors: 10, dotSize: 40, hueShift: 70, rows: 10 }
+    DefaultEntries: { acid: false, animateDots: true, animateMenuObjects: true, backgroundColor: "rainbow", columns: 10, dotAnimationTime: 1000, dotAnimationType: "logistic", dotColors: 10, dotSize: 40, hueShift: 70, rows: 10 },
+    Entries: {},
+    saveToStorage: function() {
+      for (var setting in this.Entries)
+        if (setting != "DefaultEntries" && this.Entries[setting] != this.DefaultEntries[setting])
+          localStorage.setItem("ESett--" + setting, this.Entries[setting]);
+    },
+    loadFromStorage: function() {
+      var storage = window.localStorage, value;
+
+      for (var i = 0; i < storage.length; i++)
+        if (/^ESett--/.test(storage.key(i))) {
+          value = storage.getItem(storage.key(i));
+          switch (value) {
+            case "true":
+              value = true;
+              break;
+            case "false":
+              value = false;
+              break;
+            case "null":
+              value = null;
+              break;
+            default:
+              value = isNaN(parseFloat(value)) ? value : parseFloat(value);
+          }
+          // Clean up any stored settings that are already the default
+          if (this.DefaultEntries[storage.key(i).substr(7)] == value)
+            localStorage.removeItem(storage.key(i));
+          else
+            this.Entries[storage.key(i).substr(7)] = value;
+        }
+    },
+    toString: function() {
+      var string = "";
+      for (var setting in this.Entries)
+        if (setting != "DefaultEntries" && this.Entries[setting] != this.DefaultEntries[setting])
+          string += setting + ':' + this.Entries[setting] + ';';
+      return string.trim();
+    },
+    loadFromString: function(string) {
+      var pairs = string.split(';'), value;
+      for (var i = 0; i < pairs.length - 1; i++) {
+        value = pairs[i].split(':')[1];
+        switch (value) {
+          case "true":
+            value = true;
+            break;
+          case "false":
+            value = false;
+            break;
+          case "null":
+            value = null;
+            break;
+          default:
+            value = isNaN(parseFloat(value)) ? value : parseFloat(value);
+        }
+        Settings.Entries[pairs[i].split(':')[0]] = value;
+      }
+    }
   };
 
-  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, dotAnimationGroup, dots = [], gridHeight, gridWidth, inGameMenu, mainMenu, menuObjectGroups, playing, showOverlay;
+  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, dotAnimationGroup, dots = [], gridHeight, gridWidth, inGameMenu, mainMenu, menuObjectGroups, playing, showOverlay, supportsStorage;
 
   function setup() {
-    for (var prop in Settings.Default) {
-      Settings[prop] = Settings.Default[prop];
+    for (var setting in Settings.DefaultEntries) {
+      Settings.Entries[setting] = Settings.DefaultEntries[setting];
+    }
+
+    if (!window.localStorage) {
+      console.error("This browser doesn't support Web Storage, so settings and " +
+                    "statistics cannot be saved to browser.");
+      supportsStorage = false;
+    } else {
+      supportsStorage = true;
+      Settings.loadFromStorage();
     }
 
     setupGraphics();
@@ -25,7 +93,7 @@ function Endless() {
 
     // Background hue is set to some random number, then will slowly move its
     // way along the spectrum
-    if (Settings.backgroundColor == "rainbow") {
+    if (Settings.Entries.backgroundColor == "rainbow") {
       var randomInitialHue = Math.floor(Math.random() * 360);
       backgroundChangingColor = new Transition(randomInitialHue, randomInitialHue + 360, 9e5);
     }
@@ -55,7 +123,7 @@ function Endless() {
     inGameMenu.menuObjects[0].align = "left", inGameMenu.menuObjects[0].baseline = "top";
     inGameMenu.menuObjects[1].align = "right", inGameMenu.menuObjects[1].baseline = "top";
 
-    if (Settings.animateMenuObjects) {
+    if (Settings.Entries.animateMenuObjects) {
       mainMenu.transitionGroup = new TransitionGroup([
         new Transition(0, 1, 2000),
         new Transition(0, 1, 2000),
@@ -67,18 +135,18 @@ function Endless() {
       ], "parallel", 0, "opacity");
 
       inGameMenu.transitionGroup = new TransitionGroup([
-        new Transition(-100, inGameMenu.menuObjects[0].fixedOffsetY, 1000, Settings.animateDots ? 500 : 0, "logistic"),
-        new Transition(-100, inGameMenu.menuObjects[1].fixedOffsetY, 1000, Settings.animateDots ? 600 : 100, "logistic")
+        new Transition(-100, inGameMenu.menuObjects[0].fixedOffsetY, 1000, Settings.Entries.animateDots ? 500 : 0, "logistic"),
+        new Transition(-100, inGameMenu.menuObjects[1].fixedOffsetY, 1000, Settings.Entries.animateDots ? 600 : 100, "logistic")
       ], "parallel", 0, "fixedOffsetY");
     }
 
     menuObjectGroups = [mainMenu, bottomMenu, inGameMenu];
 
-    if (Settings.animateDots)
-      dotAnimationGroup = new TransitionGroup([], "delay", Settings.dotAnimationTime / (Settings.columns * Settings.rows));
+    if (Settings.Entries.animateDots)
+      dotAnimationGroup = new TransitionGroup([], "delay", Settings.Entries.dotAnimationTime / (Settings.Entries.columns * Settings.Entries.rows));
 
-    gridWidth = Settings.columns * Settings.dotSize * 2 - Settings.dotSize;
-    gridHeight = Settings.rows * Settings.dotSize * 2 - Settings.dotSize;
+    gridWidth = Settings.Entries.columns * Settings.Entries.dotSize * 2 - Settings.Entries.dotSize;
+    gridHeight = Settings.Entries.rows * Settings.Entries.dotSize * 2 - Settings.Entries.dotSize;
 
     requestAnimationFrame(draw);
   }
@@ -104,8 +172,8 @@ function Endless() {
     if (inARange || (playing && !mainMenu.visible &&
         posX > centerX - gridWidth / 2 && posX < centerX + gridWidth / 2 &&
         posY > centerY - gridHeight / 2 && posY < centerY + gridHeight / 2 &&
-        (posX - centerX + gridWidth / 2) / Settings.dotSize % 2 <= 1 &&
-        (posY - centerY + gridHeight / 2) / Settings.dotSize % 2 <= 1))
+        (posX - centerX + gridWidth / 2) / Settings.Entries.dotSize % 2 <= 1 &&
+        (posY - centerY + gridHeight / 2) / Settings.Entries.dotSize % 2 <= 1))
       canvas.style.cursor = "pointer";
     else
       canvas.removeAttribute("style");
@@ -148,17 +216,17 @@ function Endless() {
   }
 
   function generateDots() {
-    for (var col = 0; col < Settings.columns; col++) {
+    for (var col = 0; col < Settings.Entries.columns; col++) {
       dots[col] = [];
-      for (var row = 0; row < Settings.rows; row++) {
+      for (var row = 0; row < Settings.Entries.rows; row++) {
         dots[col][row] = new Dot(
-          (Math.floor(Math.random() * Settings.dotColors) * (360 / Settings.dotColors) + Settings.hueShift) % 360,
+          (Math.floor(Math.random() * Settings.Entries.dotColors) * (360 / Settings.Entries.dotColors) + Settings.Entries.hueShift) % 360,
           col, row,
-          (centerX - gridWidth / 2 + Settings.dotSize / 2) + (col * Settings.dotSize * 2) - centerX,
-          (centerY - gridHeight / 2 + Settings.dotSize / 2) + (row * Settings.dotSize * 2) - centerY);
-        if (Settings.animateDots)
-          dotAnimationGroup.transitions[col * Settings.rows + Settings.rows - row - 1] =
-            new Transition(dots[col][row].y - centerY - gridHeight / 2 - Settings.dotSize / 2, dots[col][row].y, Settings.dotAnimationTime, 0, Settings.dotAnimationType);
+          (centerX - gridWidth / 2 + Settings.Entries.dotSize / 2) + (col * Settings.Entries.dotSize * 2) - centerX,
+          (centerY - gridHeight / 2 + Settings.Entries.dotSize / 2) + (row * Settings.Entries.dotSize * 2) - centerY);
+        if (Settings.Entries.animateDots)
+          dotAnimationGroup.transitions[col * Settings.Entries.rows + Settings.Entries.rows - row - 1] =
+            new Transition(dots[col][row].y - centerY - gridHeight / 2 - Settings.Entries.dotSize / 2, dots[col][row].y, Settings.Entries.dotAnimationTime, 0, Settings.Entries.dotAnimationType);
       }
     }
   }
@@ -182,17 +250,17 @@ function Endless() {
 
   // Fills the canvas with whatever backgroundColor is set to
   function drawBackground() {
-    if (Settings.acid)
+    if (Settings.Entries.acid)
       ctx.globalAlpha = 0.09;
-    if (Settings.backgroundColor == "rainbow") {
+    if (Settings.Entries.backgroundColor == "rainbow") {
       if (!backgroundChangingColor.started || backgroundChangingColor.finished)
         backgroundChangingColor.start();
       ctx.fillStyle = "hsl(" + backgroundChangingColor.getVal() % 360 + ", 50%, 25%)";
     } else {
-      ctx.fillStyle = Settings.backgroundColor;
+      ctx.fillStyle = Settings.Entries.backgroundColor;
     }
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    if (Settings.acid)
+    if (Settings.Entries.acid)
       ctx.globalAlpha = 1;
   }
 
@@ -203,7 +271,7 @@ function Endless() {
 
   // Updates each dot's position if it's still animating, and tells them to draw
   function drawDots() {
-    if (!Settings.animateDots || drawDots.finishedTransition)
+    if (!Settings.Entries.animateDots || drawDots.finishedTransition)
       for (var i = 0; i < dots.length; i++)
         for (var j = 0; j < dots[i].length; j++)
           dots[i][j].draw();
@@ -212,7 +280,7 @@ function Endless() {
         dotAnimationGroup.start();
       for (var i = 0; i < dots.length; i++)
         for (var j = 0; j < dots[i].length; j++) {
-          dots[i][j].y = dotAnimationGroup.transitions[i * Settings.rows + j].getVal();
+          dots[i][j].y = dotAnimationGroup.transitions[i * Settings.Entries.rows + j].getVal();
           dots[i][j].draw();
         }
       if (dotAnimationGroup.allFinished())
@@ -230,7 +298,7 @@ function Endless() {
     this.draw = function () {
       ctx.fillStyle = "hsl(" + this.color + ", 100%, 50%)";
       ctx.beginPath();
-      ctx.arc(this.x + centerX, this.y + centerY, Settings.dotSize / 2, 0, Math.PI * 2, false);
+      ctx.arc(this.x + centerX, this.y + centerY, Settings.Entries.dotSize / 2, 0, Math.PI * 2, false);
       ctx.fill();
     }
   }
@@ -336,7 +404,7 @@ function Endless() {
     this.transitionGroup = null;
 
     this.draw = function() {
-      if (Settings.animateMenuObjects) {
+      if (Settings.Entries.animateMenuObjects) {
         if (!this.transitionGroup.started)
           this.transitionGroup.start();
         if (!this.draw.finishedTransition) {
