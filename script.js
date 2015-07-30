@@ -106,18 +106,18 @@ function Endless() {
     mainMenu = new MenuObjectGroup([
       new MenuObject(0.5, 0.25, 0, 0, "Endless", 256),
       new MenuObject(0.5, 0.25, 200, 130, "By Tom Genco", 64),
-      new MenuObject(0.5, 0.75, 0, 0, "Play", 128, 280, 150, play)
+      new MenuObject(0.5, 0.75, 0, 0, "Play", 128, 210, 140, play)
     ], true);
 
     bottomMenu = new MenuObjectGroup([
-      new MenuObject(0, 1, 5, -5, "tomgenco.com", 32, 220, 40, function() {
+      new MenuObject(0, 1, 5, -5, "tomgenco.com", 32, 180, 40, function() {
         window.location.href = "http://tomgenco.com/";
       })
     ], true);
     bottomMenu.menuObjects[0].align = "left", bottomMenu.menuObjects[0].baseline = "bottom";
 
     inGameMenu = new MenuObjectGroup([
-      new MenuObject(0, 0, 15, 5, "Menu", 64, 170, 70, showMenu),
+      new MenuObject(0, 0, 15, 5, "Menu", 64, 140, 70, showMenu),
       new MenuObject(1, 0, -15, 5, "Score: 0", 64)
     ], false);
     inGameMenu.menuObjects[0].align = "left", inGameMenu.menuObjects[0].baseline = "top";
@@ -298,6 +298,7 @@ function Endless() {
     this.draw = function () {
       ctx.fillStyle = "hsl(" + this.color + ", 100%, 50%)";
       ctx.beginPath();
+      ctx.shadowColor = "rgba(0,0,0,0)";
       ctx.arc(this.x + centerX, this.y + centerY, Settings.Entries.dotSize / 2, 0, Math.PI * 2, false);
       ctx.fill();
     }
@@ -386,14 +387,15 @@ function Endless() {
     };
 
     this.draw = function() {
+      var blur = this.fontSize / 32 + 2;
       ctx.textAlign = this.align;
       ctx.textBaseline = this.baseline;
-      ctx.font = this.fontSize + "px sans-serif";
-      ctx.lineJoin = "round";
+      ctx.font = (this.fontSize >= 64 ? "100 " : "300 ") + this.fontSize + "px Josefin Sans";
+      ctx.shadowColor = "black";
+      ctx.shadowOffsetY = blur;
+      ctx.shadowOffsetX = blur;
+      ctx.shadowBlur = blur;
       ctx.fillStyle = "rgba(255, 255, 255, " + this.opacity + ")";
-      ctx.lineWidth = this.fontSize / 12 + 3;
-      ctx.strokeStyle = "rgba(0, 0, 0, " + this.opacity + ")";
-      ctx.strokeText(this.text, canvas.width * this.relativeX + this.fixedOffsetX, canvas.height * this.relativeY + this.fixedOffsetY);
       ctx.fillText(this.text, canvas.width * this.relativeX + this.fixedOffsetX, canvas.height * this.relativeY + this.fixedOffsetY);
     };
   }
