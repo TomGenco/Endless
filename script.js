@@ -91,7 +91,7 @@ function Endless() {
     setTimeout(function () {
       setupGraphics();
       setupEventListeners();
-      
+
       loading.setAttribute("style", "display:none;");
     }, 300);
   }
@@ -270,7 +270,7 @@ function Endless() {
     if (Settings.Entries.backgroundColor == "rainbow") {
       if (!backgroundChangingColor.started || backgroundChangingColor.finished)
         backgroundChangingColor.start();
-      ctx.fillStyle = "hsl(" + backgroundChangingColor.getVal() % 360 + ", 50%, 25%)";
+      ctx.fillStyle = "hsl(" + backgroundChangingColor.value % 360 + ", 50%, 25%)";
     } else {
       ctx.fillStyle = Settings.Entries.backgroundColor;
     }
@@ -321,7 +321,7 @@ function Endless() {
         if (!this.transitions[i].started)
           this.transitions[i].start();
         if (this.transitions[i].started && !this.draw["finished" + this.transitions[i].property]) {
-          this[this.transitions[i].property] = this.transitions[i].getVal();
+          this[this.transitions[i].property] = this.transitions[i].value;
           if (this.transitions[i].finished)
             this.draw["finished" + this.transitions[i].property] = true;
         }
@@ -422,7 +422,7 @@ function Endless() {
       if (Settings.Entries.animateMenuObjects)
         for (var i = 0; i < this.transitions.length; i++)
           if (this.transitions[i].started && !this.draw["finished" + this.transitions[i].property]) {
-            this[this.transitions[i].property] = this.transitions[i].getVal();
+            this[this.transitions[i].property] = this.transitions[i].value;
             if (this.transitions[i].finished)
               this.draw["finished" + this.transitions[i].property] = true;
           }
@@ -465,39 +465,43 @@ function Endless() {
     this.motionType = motionType === undefined ? "linear" : motionType;
     this.finished = false;
     this.started = false;
-    var initTime, delta, distance = this.endVal - this.startVal;
+    this.initTime = null;
+    this.delta = null;
+    this.distance = this.endVal - this.startVal;
 
     this.start = function() {
       this.started = true;
       this.finished = false;
       var that = this;
       setTimeout(function () { that.finished = true; }, that.delay + that.duration);
-      initTime = Date.now();
+      this.initTime = Date.now();
     };
+  };
 
-    this.getVal = function() {
+  Object.defineProperty(Transition.prototype, "value", {
+    get: function() {
       var value;
       if (this.finished)
         return this.endVal;
       else if (!this.started)
         return this.startVal;
       else {
-        delta = Date.now() - this.delay - initTime;
-        if (delta < 0)
+        this.delta = Date.now() - this.delay - this.initTime;
+        if (this.delta < 0)
           return this.startVal;
 
         switch (this.motionType) {
           default:
             console.error("Should be unreachable");
           case "linear":
-            value = (delta / this.duration) * distance + this.startVal;
-            return value > endVal ? endVal : value;
+            value = (this.delta / this.duration) * this.distance + this.startVal;
+            return value > this.endVal ? this.endVal : value;
           case "logistic":
-            return  1 / (1 + Math.pow(Math.E, -15 * (delta / this.duration - .5))) * distance + this.startVal;
+            return  1 / (1 + Math.pow(Math.E, -15 * (this.delta / this.duration - .5))) * this.distance + this.startVal;
         }
       }
-    };
-  };
+    }
+  });
 
   setup();
 }
