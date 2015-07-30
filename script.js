@@ -1,83 +1,25 @@
 "use strict";
 
 function Endless() {
-  this.Settings = {
-    DefaultEntries: { acid: false, animateDots: true, animateMenuObjects: true, backgroundColor: "rainbow", columns: 10, dotAnimationTime: 1000, dotAnimationType: "logistic", dotColors: 10, dotSize: 40, hueShift: 70, rows: 10 },
-    Entries: {},
-
-    saveToStorage: function() {
-      for (var setting in this.Entries)
-        if (setting != "DefaultEntries") {
-          if (this.Entries[setting] == this.DefaultEntries[setting])
-            localStorage.removeItem("ESett--" + setting);
-          else
-            localStorage.setItem("ESett--" + setting, this.Entries[setting]);
-        }
-    },
-    loadFromStorage: function() {
-      var storage = window.localStorage, value;
-
-      for (var i = 0; i < storage.length; i++)
-        if (/^ESett--/.test(storage.key(i))) {
-          value = storage.getItem(storage.key(i));
-          switch (value) {
-            case "true":
-              value = true;
-              break;
-            case "false":
-              value = false;
-              break;
-            case "null":
-              value = null;
-              break;
-            default:
-              value = isNaN(parseFloat(value)) ? value : parseFloat(value);
-          }
-          // Clean up any stored settings that are already the default
-          if (this.DefaultEntries[storage.key(i).substr(7)] == value)
-            localStorage.removeItem(storage.key(i));
-          else
-            this.Entries[storage.key(i).substr(7)] = value;
-        }
-    },
-    toString: function() {
-      var string = "";
-      for (var setting in this.Entries)
-        if (setting != "DefaultEntries" && this.Entries[setting] != this.DefaultEntries[setting])
-          string += setting + ':' + this.Entries[setting] + ';';
-      return string.trim();
-    },
-    loadFromString: function(string) {
-      var pairs = string.split(';'), value;
-      for (var i = 0; i < pairs.length - 1; i++) {
-        value = pairs[i].split(':')[1];
-        switch (value) {
-          case "true":
-            value = true;
-            break;
-          case "false":
-            value = false;
-            break;
-          case "null":
-            value = null;
-            break;
-          default:
-            value = isNaN(parseFloat(value)) ? value : parseFloat(value);
-        }
-        Settings.Entries[pairs[i].split(':')[0]] = value;
-      }
-    }
-  };
-
   var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, currentDotSize, dots = [], gridHeight, gridWidth, inGameMenu, mainMenu, menuObjectGroups, playing, showOverlay, supportsStorage;
 
   function setup() {
     var loading = document.getElementsByTagName("h1")[0];
     loading.removeAttribute("style");
 
-    for (var setting in Settings.DefaultEntries) {
-      Settings.Entries[setting] = Settings.DefaultEntries[setting];
-    }
+    Settings.Entries = {
+      acid: new Setting(false),
+      animateDots: new Setting(true),
+      animateMenuObjects: new Setting(true),
+      backgroundColor: new Setting("rainbow"),
+      columns: new Setting(10),
+      dotAnimationTime: new Setting(1000),
+      dotAnimationType: new Setting("logistic"),
+      dotColors: new Setting(10),
+      dotSize: new Setting(40),
+      hueShift: new Setting(70),
+      rows: new Setting(10)
+    };
 
     if (!window.localStorage) {
       console.error("This browser doesn't support Web Storage, so settings and " +
@@ -101,12 +43,12 @@ function Endless() {
   function setupGraphics() {
     canvas = document.getElementsByTagName("canvas")[0];
     ctx = canvas.getContext("2d");
-    currentDotSize = Settings.Entries.dotSize;
+    currentDotSize = Settings.Entries.dotSize.value;
     updateCanvasSize();
 
     // Background hue is set to some random number, then will slowly move its
     // way along the spectrum
-    if (Settings.Entries.backgroundColor == "rainbow") {
+    if (Settings.Entries.backgroundColor.value == "rainbow") {
       var randomInitialHue = Math.floor(Math.random() * 360);
       backgroundChangingColor = new Transition(randomInitialHue, randomInitialHue + 360, 9e5);
     }
@@ -134,20 +76,20 @@ function Endless() {
       new MenuObject(1, 0, -15, 5, "Score: 0", 64)
     ], false);
 
-    if (Settings.Entries.animateMenuObjects) {
+    if (Settings.Entries.animateMenuObjects.value) {
       mainMenu.menuObjects[0].transitions = [new Transition(0, 1, 2000, 0, "opacity")];
       mainMenu.menuObjects[1].transitions = [new Transition(0, 1, 2000, 500, "opacity")];
       mainMenu.menuObjects[2].transitions = [new Transition(0, 1, 2000, 1000, "opacity")];
       bottomMenu.menuObjects[0].transitions = [new Transition(0, 1, 2000, 2000, "opacity")];
       bottomMenu.menuObjects[1].transitions = [new Transition(0, 1, 2000, 2000, "opacity")];
-      inGameMenu.menuObjects[0].transitions = [new Transition(-100, inGameMenu.menuObjects[0].fixedOffsetY, 1000, Settings.Entries.animateDots ? 1000 : 0, "fixedOffsetY", "logistic")];
-      inGameMenu.menuObjects[1].transitions = [new Transition(-100, inGameMenu.menuObjects[1].fixedOffsetY, 1000, Settings.Entries.animateDots ? 1100 : 100, "fixedOffsetY", "logistic")];
+      inGameMenu.menuObjects[0].transitions = [new Transition(-100, inGameMenu.menuObjects[0].fixedOffsetY, 1000, Settings.Entries.animateDots.value ? 1000 : 0, "fixedOffsetY", "logistic")];
+      inGameMenu.menuObjects[1].transitions = [new Transition(-100, inGameMenu.menuObjects[1].fixedOffsetY, 1000, Settings.Entries.animateDots.value ? 1100 : 100, "fixedOffsetY", "logistic")];
     }
 
     menuObjectGroups = [mainMenu, bottomMenu, inGameMenu];
 
-    gridWidth = Settings.Entries.columns * currentDotSize * 2 - currentDotSize;
-    gridHeight = Settings.Entries.rows * currentDotSize * 2 - currentDotSize;
+    gridWidth = Settings.Entries.columns.value * currentDotSize * 2 - currentDotSize;
+    gridHeight = Settings.Entries.rows.value * currentDotSize * 2 - currentDotSize;
 
     mainMenu.startTransitions();
     bottomMenu.startTransitions();
@@ -220,28 +162,28 @@ function Endless() {
   }
 
   function generateDots() {
-    for (var col = 0; col < Settings.Entries.columns; col++) {
+    for (var col = 0; col < Settings.Entries.columns.value; col++) {
       dots[col] = [];
-      for (var row = 0; row < Settings.Entries.rows; row++) {
+      for (var row = 0; row < Settings.Entries.rows.value; row++) {
         dots[col][row] = new Dot(
-          (Math.floor(Math.random() * Settings.Entries.dotColors) * (360 / Settings.Entries.dotColors) + Settings.Entries.hueShift) % 360,
+          (Math.floor(Math.random() * Settings.Entries.dotColors.value) * (360 / Settings.Entries.dotColors.value) + Settings.Entries.hueShift.value) % 360,
           col, row,
           (centerX - gridWidth / 2 + currentDotSize / 2) + (col * currentDotSize * 2) - centerX,
           (centerY - gridHeight / 2 + currentDotSize / 2) + (row * currentDotSize * 2) - centerY);
-        if (Settings.Entries.animateDots)
+        if (Settings.Entries.animateDots.value)
           dots[col][row].transitions = [
             new Transition(
               dots[col][row].y - centerY - gridHeight / 2 - currentDotSize / 2,
               dots[col][row].y,
-              Settings.Entries.dotAnimationTime,
-              col * (Settings.Entries.dotAnimationTime / 20),
-              "y", Settings.Entries.dotAnimationType),
+              Settings.Entries.dotAnimationTime.value,
+              col * (Settings.Entries.dotAnimationTime.value / 20),
+              "y", Settings.Entries.dotAnimationType.value),
             new Transition(
               dots[col][row].x - centerX - gridWidth / 2 - currentDotSize / 2,
               dots[col][row].x,
-              Settings.Entries.dotAnimationTime,
-              (Settings.Entries.rows - row - 1) * (Settings.Entries.dotAnimationTime / 20),
-              "x", Settings.Entries.dotAnimationType)];
+              Settings.Entries.dotAnimationTime.value,
+              (Settings.Entries.rows.value - row - 1) * (Settings.Entries.dotAnimationTime.value / 20),
+              "x", Settings.Entries.dotAnimationType.value)];
       }
     }
   }
@@ -265,17 +207,17 @@ function Endless() {
 
   // Fills the canvas with whatever backgroundColor is set to
   function drawBackground() {
-    if (Settings.Entries.acid)
+    if (Settings.Entries.acid.value)
       ctx.globalAlpha = 0.09;
-    if (Settings.Entries.backgroundColor == "rainbow") {
+    if (Settings.Entries.backgroundColor.value == "rainbow") {
       if (!backgroundChangingColor.started || backgroundChangingColor.finished)
         backgroundChangingColor.start();
       ctx.fillStyle = "hsl(" + backgroundChangingColor.value % 360 + ", 50%, 25%)";
     } else {
-      ctx.fillStyle = Settings.Entries.backgroundColor;
+      ctx.fillStyle = Settings.Entries.backgroundColor.value;
     }
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    if (Settings.Entries.acid)
+    if (Settings.Entries.acid.value)
       ctx.globalAlpha = 1;
   }
 
@@ -289,8 +231,8 @@ function Endless() {
     // Run each dot's transitions if needed
     for (var i = 0; i < dots.length; i++)
       for (var j = 0; j < dots[i].length; j++) {
-        if (Settings.Entries.dotSize != currentDotSize) {
-          currentDotSize = Settings.Entries.dotSize;
+        if (Settings.Entries.dotSize.value != currentDotSize) {
+          currentDotSize = Settings.Entries.dotSize.value;
           for (var k = 0; k < dots.length; k++)
             for (var l = 0; l < dots[k].length; l++)
               dots[k][l].recalculatePosition();
@@ -298,6 +240,103 @@ function Endless() {
         dots[i][j].draw();
       }
   }
+
+  var Setting = function (value, onChange) {
+    this._value = value;
+    this.onChange = onChange;
+    this.defaultValue = value;
+
+    this.reset = function() {
+      this._value = this.defaultValue;
+    };
+  };
+
+  Object.defineProperty(Setting.prototype, "value", {
+    get: function() {
+      return this._value;
+    },
+    set: function(val) {
+      this._value = val;
+      if (this.onChange !== undefined)
+        this.onChange(val);
+    }
+  });
+
+  this.Settings = {
+    Entries: {},
+
+    saveToStorage: function() {
+      for (var setting in this.Entries) {
+        if (this.Entries[setting].value == this.Entries[setting].defaultValue)
+          localStorage.removeItem("ESett--" + setting);
+        else
+          localStorage.setItem("ESett--" + setting, this.Entries[setting].value);
+        }
+    },
+    loadFromStorage: function() {
+      var storage = window.localStorage, value;
+
+      for (var i = 0; i < storage.length; i++)
+        if (/^ESett--/.test(storage.key(i))) {
+          value = storage.getItem(storage.key(i));
+          switch (value) {
+            case "true":
+              value = true;
+              break;
+            case "false":
+              value = false;
+              break;
+            case "null":
+              value = null;
+              break;
+            default:
+              value = isNaN(parseFloat(value)) ? value : parseFloat(value);
+          }
+          try {
+            // Clean up any stored settings that are already the default
+            if (this.Entries[storage.key(i).substr(7)].defaultValue == value)
+              localStorage.removeItem(storage.key(i));
+            else
+              this.Entries[storage.key(i).substr(7)].value = value;
+          } catch (e) {
+            console.warn("Setting \"" + storage.key(i).substr(7) + "\" from Local Storage doesn't exist");
+          }
+        }
+    },
+    toString: function() {
+      var string = "";
+      for (var setting in this.Entries)
+      //  if (this.Entries[setting].value != this.Entries[setting].defaultValue)
+          string += setting + ':' + this.Entries[setting].value + ';';
+      return string.slice(0,-1);
+    },
+    loadFromString: function(string) {
+      var pairs = string.split(';'), value;
+      for (var i = 0; i < pairs.length; i++) {
+        if (pairs == "")
+          continue;
+        value = pairs[i].split(':')[1];
+        switch (value) {
+          case "true":
+            value = true;
+            break;
+          case "false":
+            value = false;
+            break;
+          case "null":
+            value = null;
+            break;
+          default:
+            value = isNaN(parseFloat(value)) ? value : parseFloat(value);
+        }
+        try {
+          Settings.Entries[pairs[i].split(':')[0]].value = value;
+        } catch (e) {
+          console.warn("Setting \"" + pairs[i].split(':')[0] + "\" from string doesn't exist");
+        }
+      }
+    }
+  };
 
   var Dot = function (color, column, row, x, y) {
     this.color = color || 0;
@@ -309,8 +348,8 @@ function Endless() {
     this.transitions = [];
 
     this.recalculatePosition = function() {
-      gridWidth = Settings.Entries.columns * currentDotSize * 2 - currentDotSize;
-      gridHeight = Settings.Entries.rows * currentDotSize * 2 - currentDotSize;
+      gridWidth = Settings.Entries.columns.value * currentDotSize * 2 - currentDotSize;
+      gridHeight = Settings.Entries.rows.value * currentDotSize * 2 - currentDotSize;
 
       this.x = (centerX - gridWidth / 2 + currentDotSize / 2) + (this.col * currentDotSize * 2) - centerX,
       this.y = (centerY - gridHeight / 2 + currentDotSize / 2) + (this.row * currentDotSize * 2) - centerY;
@@ -419,7 +458,7 @@ function Endless() {
     };
 
     this.draw = function() {
-      if (Settings.Entries.animateMenuObjects)
+      if (Settings.Entries.animateMenuObjects.value)
         for (var i = 0; i < this.transitions.length; i++)
           if (this.transitions[i].started && !this.draw["finished" + this.transitions[i].property]) {
             this[this.transitions[i].property] = this.transitions[i].value;
