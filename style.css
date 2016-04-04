@@ -7,15 +7,6 @@ body {
   height: 100%;
 }
 
-h1 {
-  margin: 0;
-  position: fixed;
-  top: 50%;
-  width: 100%;
-  text-align: center;
-  font: 8em sans-serif;
-}
-
 canvas {
   position: absolute;
 }
