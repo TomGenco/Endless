@@ -288,47 +288,6 @@ function Endless() {
       }
   }
 
-  function handleMouseMove(posX, posY) {
-    var onAMenuObject = false, dotMo;
-
-    if (!selectingDots) {
-      for (var i = 0; i < menuObjectGroups.length; i++)
-        for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
-          if (menuObjectGroups[i].menuObjects[j].inRange(posX, posY) &&
-              menuObjectGroups[i].visibility) {
-            menuObjectMouseover = menuObjectGroups[i].menuObjects[j];
-            dotMouseover = null;
-            onAMenuObject = true;
-            canvas.style.cursor = "pointer";
-            return;
-          }
-
-      menuObjectMouseover = null;
-    }
-
-    // If the user has started playing, doesn't have the game paused, and the last dot has finished its animation
-    if (playing && !showOverlay) {
-      if (selectingDots) {
-        mousePosX = posX;
-        mousePosY = posY;
-      }
-      if (checkForADot(posX, posY)) {
-        dotMouseover = dotAtPosition(posX, posY);
-        if (selectingDots) {
-          if (checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
-            dotMouseover.selected = true;
-            dotSelection[dotSelection.length] = dotMouseover;
-          }
-        }
-        canvas.style.cursor = "pointer";
-        return;
-      }
-    }
-
-    dotMouseover = null;
-    canvas.removeAttribute("style");
-  }
-
   function handleMouseDown(posX, posY) {
     if (menuObjectMouseover)
       menuObjectMouseover.onClick();
@@ -361,6 +320,120 @@ function Endless() {
       dotSelection = [];
     }
     handleMouseMove(posX, posY);
+  }
+
+  function handleMouseMove(posX, posY) {
+    var onAMenuObject = false, dotMo;
+
+    if (!selectingDots) {
+      for (var i = 0; i < menuObjectGroups.length; i++)
+        for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
+          if (menuObjectGroups[i].menuObjects[j].inRange(posX, posY) &&
+              menuObjectGroups[i].visibility) {
+            menuObjectMouseover = menuObjectGroups[i].menuObjects[j];
+            dotMouseover = null;
+            onAMenuObject = true;
+            canvas.style.cursor = "pointer";
+            return;
+          }
+
+      menuObjectMouseover = null;
+    }
+
+    // If the user has started playing, doesn't have the game paused, and the last dot has finished its animation
+    if (playing && !showOverlay) {
+      if (selectingDots) {
+        mousePosX = posX;
+        mousePosY = posY;
+      }
+      if (checkForADot(posX, posY)) {
+        dotMouseover = dotAtPosition(posX, posY);
+        if (selectingDots && checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
+          dotMouseover.selected = true;
+          dotSelection[dotSelection.length] = dotMouseover;
+        }
+        canvas.style.cursor = "pointer";
+        return;
+      }
+    }
+
+    dotMouseover = null;
+    canvas.removeAttribute("style");
+  }
+
+  function handleTouchStart(event) {
+    event.preventDefault();
+
+    var touches = event.changedTouches;
+
+    for (var i = 0; i < menuObjectGroups.length; i++)
+      for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
+        if (menuObjectGroups[i].menuObjects[j].inRange(touches[0].pageX, touches[0].pageY) &&
+            menuObjectGroups[i].visibility) {
+          menuObjectGroups[i].menuObjects[j].onClick();
+          return;
+        }
+
+    if (playing && !showOverlay && checkForADot(touches[0].pageX, touches[0].pageY)) {
+      mousePosX = touches[0].pageX;
+      mousePosY = touches[0].pageY;
+      dotSelection[0] = dotAtPosition(touches[0].pageX, touches[0].pageY);
+      dotSelection[0].selected = true;
+      selectingDots = true;
+    }
+  }
+
+  function handleTouchEnd(event) {
+    event.preventDefault();
+
+    var touches = event.changedTouches;
+
+    if (selectingDots) {
+      selectingDots = false;
+      if (dotSelection.length > 1) {
+        var pointsEarned = 0;
+        for (var dot of dotSelection) {
+          dots[dot.col][dot.row] = null;
+          //dot.selected = false;
+          pointsEarned++;
+        }
+        score += pointsEarned;
+        inGameMenu.menuObjects[1].text = "Score: " + score;
+        fillGridNulls();
+      } else
+        dotSelection[0].selected = false;
+      dotSelection = [];
+    }
+  }
+
+  function handleTouchMove(event) {
+    event.preventDefault();
+
+    var touches = event.changedTouches;
+
+    if (selectingDots) {
+      mousePosX = touches[0].pageX;
+      mousePosY = touches[0].pageY;
+      if (checkForADot(touches[0].pageX, touches[0].pageY)) {
+        dotMouseover = dotAtPosition(touches[0].pageX, touches[0].pageY);
+        if (checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
+          dotMouseover.selected = true;
+          dotSelection[dotSelection.length] = dotMouseover;
+        }
+      }
+    }
+  }
+
+  // Attaches all of the event handlers to their events.
+  function setupEventListeners() {
+    canvas.onmousedown =  function(e) { handleMouseDown(e.clientX, e.clientY) };
+    canvas.onmouseup =    function(e) { handleMouseUp(e.clientX, e.clientY) };
+    canvas.onmousemove =  function(e) { handleMouseMove(e.clientX, e.clientY) };
+    canvas.onblur =       function(e) { handleMouseUp(e.clientX, e.clientY) };
+    canvas.addEventListener("touchstart", handleTouchStart, false);
+    canvas.addEventListener("touchend", handleTouchEnd, false);
+    canvas.addEventListener("touchmove", handleTouchMove, false);
+    window.onresize = updateCanvasSize;
   }
 
   function checkForADot(posX, posY) {
@@ -519,15 +592,6 @@ function Endless() {
       ctx.lineTo(dotSelection[i].x  + centerX, dotSelection[i].y + centerY)
     ctx.lineTo(mousePosX, mousePosY);
     ctx.stroke();
-  }
-
-  // Attaches all of the event handlers to their events.
-  function setupEventListeners() {
-    canvas.onmousemove = function(e) { handleMouseMove(e.clientX, e.clientY) };
-    canvas.onmousedown = function(e) { handleMouseDown(e.clientX, e.clientY) };
-    canvas.onmouseup = function(e) { handleMouseUp(e.clientX, e.clientY) };
-    canvas.onblur = function(e) { handleMouseUp(e.clientX, e.clientY) };
-    window.onresize = updateCanvasSize;
   }
 
   // Grabs canvas element and context, sets canvas to to size of the
