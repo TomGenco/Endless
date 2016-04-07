@@ -26,7 +26,7 @@ function Endless() {
     animateDots: new Setting(true),
     animateMenuObjects: new Setting(true),
     backgroundColor: new Setting("rainbow"),
-    columns: new Setting(10, function () {
+    columns: new Setting(6, function () {
       updateGridDimensions();
       if (playing)
         generateDots();
@@ -37,7 +37,7 @@ function Endless() {
       if (playing)
         generateDots();
     }),
-    dotSize: new Setting(40, function () {
+    dotSize: new Setting(70, function () {
       if (playing) {
         updateGridDimensions();
         for (var i = 0; i < dots.length; i++)
@@ -48,7 +48,7 @@ function Endless() {
       }
     }),
     hueShift: new Setting(70),
-    rows: new Setting(10, function () {
+    rows: new Setting(6, function () {
       updateGridDimensions();
       if (playing)
         generateDots();
@@ -616,15 +616,15 @@ function Endless() {
     ], true);
 
     bottomMenu = new MenuObjectGroup([
-      new MenuObject(0, 1, 15, -15, "tomgenco.com", 32, 180, 40, function() {
+      new MenuObject(0, 1, 15, -15, "tomgenco.com", 64, 360, 70, function() {
         window.location.href = "http://tomgenco.com/"; }),
-      new MenuObject(1, 1, -15, -15, "source code", 32, 160, 40, function() {
+      new MenuObject(1, 1, -15, -15, "source code", 64, 300, 70, function() {
         window.location.href = "http://github.com/TomGenco/Endless"; })
     ], true);
 
     inGameMenu = new MenuObjectGroup([
-      new MenuObject(0, 0, 15, 15, "Menu", 64, 140, 70, showMenu),
-      new MenuObject(1, 0, -15, 15, "Score: " + score, 64)
+      new MenuObject(0, 0, 15, 15, "Menu", 128, 300, 130, showMenu),
+      new MenuObject(1, 0, -15, 15, "Score: " + score, 128)
     ], false);
 
     if (Settings.animateMenuObjects.val) {
