@@ -26,7 +26,7 @@ function Endless() {
     animateDots: new Setting(true),
     animateMenuObjects: new Setting(true),
     backgroundColor: new Setting("rainbow"),
-    columns: new Setting(10, function () {
+    columns: new Setting(6, function () {
       updateGridDimensions();
       if (playing)
         generateDots();
@@ -37,7 +37,7 @@ function Endless() {
       if (playing)
         generateDots();
     }),
-    dotSize: new Setting(40, function () {
+    dotSize: new Setting(70, function () {
       if (playing) {
         updateGridDimensions();
         for (var i = 0; i < dots.length; i++)
@@ -48,7 +48,7 @@ function Endless() {
       }
     }),
     hueShift: new Setting(70),
-    rows: new Setting(10, function () {
+    rows: new Setting(6, function () {
       updateGridDimensions();
       if (playing)
         generateDots();
@@ -288,47 +288,6 @@ function Endless() {
       }
   }
 
-  function handleMouseMove(posX, posY) {
-    var onAMenuObject = false, dotMo;
-
-    if (!selectingDots) {
-      for (var i = 0; i < menuObjectGroups.length; i++)
-        for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
-          if (menuObjectGroups[i].menuObjects[j].inRange(posX, posY) &&
-              menuObjectGroups[i].visibility) {
-            menuObjectMouseover = menuObjectGroups[i].menuObjects[j];
-            dotMouseover = null;
-            onAMenuObject = true;
-            canvas.style.cursor = "pointer";
-            return;
-          }
-
-      menuObjectMouseover = null;
-    }
-
-    // If the user has started playing, doesn't have the game paused, and the last dot has finished its animation
-    if (playing && !showOverlay) {
-      if (selectingDots) {
-        mousePosX = posX;
-        mousePosY = posY;
-      }
-      if (checkForADot(posX, posY)) {
-        dotMouseover = dotAtPosition(posX, posY);
-        if (selectingDots) {
-          if (checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
-            dotMouseover.selected = true;
-            dotSelection[dotSelection.length] = dotMouseover;
-          }
-        }
-        canvas.style.cursor = "pointer";
-        return;
-      }
-    }
-
-    dotMouseover = null;
-    canvas.removeAttribute("style");
-  }
-
   function handleMouseDown(posX, posY) {
     if (menuObjectMouseover)
       menuObjectMouseover.onClick();
@@ -363,6 +322,120 @@ function Endless() {
     handleMouseMove(posX, posY);
   }
 
+  function handleMouseMove(posX, posY) {
+    var onAMenuObject = false, dotMo;
+
+    if (!selectingDots) {
+      for (var i = 0; i < menuObjectGroups.length; i++)
+        for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
+          if (menuObjectGroups[i].menuObjects[j].inRange(posX, posY) &&
+              menuObjectGroups[i].visibility) {
+            menuObjectMouseover = menuObjectGroups[i].menuObjects[j];
+            dotMouseover = null;
+            onAMenuObject = true;
+            canvas.style.cursor = "pointer";
+            return;
+          }
+
+      menuObjectMouseover = null;
+    }
+
+    // If the user has started playing, doesn't have the game paused, and the last dot has finished its animation
+    if (playing && !showOverlay) {
+      if (selectingDots) {
+        mousePosX = posX;
+        mousePosY = posY;
+      }
+      if (checkForADot(posX, posY)) {
+        dotMouseover = dotAtPosition(posX, posY);
+        if (selectingDots && checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
+          dotMouseover.selected = true;
+          dotSelection[dotSelection.length] = dotMouseover;
+        }
+        canvas.style.cursor = "pointer";
+        return;
+      }
+    }
+
+    dotMouseover = null;
+    canvas.removeAttribute("style");
+  }
+
+  function handleTouchStart(event) {
+    event.preventDefault();
+
+    var touches = event.changedTouches;
+
+    for (var i = 0; i < menuObjectGroups.length; i++)
+      for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
+        if (menuObjectGroups[i].menuObjects[j].inRange(touches[0].pageX, touches[0].pageY) &&
+            menuObjectGroups[i].visibility) {
+          menuObjectGroups[i].menuObjects[j].onClick();
+          return;
+        }
+
+    if (playing && !showOverlay && checkForADot(touches[0].pageX, touches[0].pageY)) {
+      mousePosX = touches[0].pageX;
+      mousePosY = touches[0].pageY;
+      dotSelection[0] = dotAtPosition(touches[0].pageX, touches[0].pageY);
+      dotSelection[0].selected = true;
+      selectingDots = true;
+    }
+  }
+
+  function handleTouchEnd(event) {
+    event.preventDefault();
+
+    var touches = event.changedTouches;
+
+    if (selectingDots) {
+      selectingDots = false;
+      if (dotSelection.length > 1) {
+        var pointsEarned = 0;
+        for (var dot of dotSelection) {
+          dots[dot.col][dot.row] = null;
+          //dot.selected = false;
+          pointsEarned++;
+        }
+        score += pointsEarned;
+        inGameMenu.menuObjects[1].text = "Score: " + score;
+        fillGridNulls();
+      } else
+        dotSelection[0].selected = false;
+      dotSelection = [];
+    }
+  }
+
+  function handleTouchMove(event) {
+    event.preventDefault();
+
+    var touches = event.changedTouches;
+
+    if (selectingDots) {
+      mousePosX = touches[0].pageX;
+      mousePosY = touches[0].pageY;
+      if (checkForADot(touches[0].pageX, touches[0].pageY)) {
+        dotMouseover = dotAtPosition(touches[0].pageX, touches[0].pageY);
+        if (checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
+          dotMouseover.selected = true;
+          dotSelection[dotSelection.length] = dotMouseover;
+        }
+      }
+    }
+  }
+
+  // Attaches all of the event handlers to their events.
+  function setupEventListeners() {
+    canvas.onmousedown =  function(e) { handleMouseDown(e.clientX, e.clientY) };
+    canvas.onmouseup =    function(e) { handleMouseUp(e.clientX, e.clientY) };
+    canvas.onmousemove =  function(e) { handleMouseMove(e.clientX, e.clientY) };
+    canvas.onblur =       function(e) { handleMouseUp(e.clientX, e.clientY) };
+    canvas.addEventListener("touchstart", handleTouchStart, false);
+    canvas.addEventListener("touchend", handleTouchEnd, false);
+    canvas.addEventListener("touchmove", handleTouchMove, false);
+    window.onresize = updateCanvasSize;
+  }
+
   function checkForADot(posX, posY) {
     return posX > centerX - gridWidth / 2 && posX < centerX + gridWidth / 2 && posY > centerY - gridHeight / 2 && posY < centerY + gridHeight / 2 && (posX - centerX + gridWidth / 2) / Settings.dotSize.val % 2 <= 1 && (posY - centerY + gridHeight / 2) / Settings.dotSize.val % 2 <= 1;
   }
@@ -393,7 +466,7 @@ function Endless() {
           dots[col][row] = dots[col][row - countNulls];
           dots[col][row - countNulls] = null;
           dots[col][row].row = row;
-          dots[col][row].transitions = [new Transition(dots[col][row].y, dots[col][row].y + (countNulls * Settings.dotSize.val * 2), 600, 0, "y", "logistic")];
+          dots[col][row].transitions = [new Transition(dots[col][row].y, dots[col][row].y + (countNulls * Settings.dotSize.val * 2), 400, 0, "y", "logistic")];
           dots[col][row].draw.finishedy = false;
           dots[col][row].transitions[0].start();
           //dots[col][row].y = (centerY - gridHeight / 2 + Settings.dotSize.val / 2) + (dots[col][row].row * Settings.dotSize.val * 2) - centerY
@@ -521,15 +594,6 @@ function Endless() {
     ctx.stroke();
   }
 
-  // Attaches all of the event handlers to their events.
-  function setupEventListeners() {
-    canvas.onmousemove = function(e) { handleMouseMove(e.clientX, e.clientY) };
-    canvas.onmousedown = function(e) { handleMouseDown(e.clientX, e.clientY) };
-    canvas.onmouseup = function(e) { handleMouseUp(e.clientX, e.clientY) };
-    canvas.onblur = function(e) { handleMouseUp(e.clientX, e.clientY) };
-    window.onresize = updateCanvasSize;
-  }
-
   // Grabs canvas element and context, sets canvas to to size of the
   // window, and begins the drawing loop.
   function setupGraphics() {
@@ -552,15 +616,15 @@ function Endless() {
     ], true);
 
     bottomMenu = new MenuObjectGroup([
-      new MenuObject(0, 1, 15, -15, "tomgenco.com", 32, 180, 40, function() {
-        window.location.href = "http://tomgenco.com/"; }),
-      new MenuObject(1, 1, -15, -15, "source code", 32, 160, 40, function() {
+      new MenuObject(0, 1, 15, -15, "about.me/tomgenco", 64, 500, 70, function() {
+        window.location.href = "https://about.me/tomgenco"; }),
+      new MenuObject(1, 1, -15, -15, "Source code", 64, 300, 70, function() {
         window.location.href = "http://github.com/TomGenco/Endless"; })
     ], true);
 
     inGameMenu = new MenuObjectGroup([
-      new MenuObject(0, 0, 15, 15, "Menu", 64, 140, 70, showMenu),
-      new MenuObject(1, 0, -15, 15, "Score: " + score, 64)
+      new MenuObject(0, 0, 15, 25, "Menu", 128, 300, 130, showMenu),
+      new MenuObject(1, 0, -15, 25, "Score: " + score, 128)
     ], false);
 
     if (Settings.animateMenuObjects.val) {
