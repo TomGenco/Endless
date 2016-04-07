@@ -466,7 +466,7 @@ function Endless() {
           dots[col][row] = dots[col][row - countNulls];
           dots[col][row - countNulls] = null;
           dots[col][row].row = row;
-          dots[col][row].transitions = [new Transition(dots[col][row].y, dots[col][row].y + (countNulls * Settings.dotSize.val * 2), 600, 0, "y", "logistic")];
+          dots[col][row].transitions = [new Transition(dots[col][row].y, dots[col][row].y + (countNulls * Settings.dotSize.val * 2), 400, 0, "y", "logistic")];
           dots[col][row].draw.finishedy = false;
           dots[col][row].transitions[0].start();
           //dots[col][row].y = (centerY - gridHeight / 2 + Settings.dotSize.val / 2) + (dots[col][row].row * Settings.dotSize.val * 2) - centerY
@@ -616,15 +616,15 @@ function Endless() {
     ], true);
 
     bottomMenu = new MenuObjectGroup([
-      new MenuObject(0, 1, 15, -15, "tomgenco.com", 64, 360, 70, function() {
-        window.location.href = "http://tomgenco.com/"; }),
-      new MenuObject(1, 1, -15, -15, "source code", 64, 300, 70, function() {
+      new MenuObject(0, 1, 15, -15, "about.me/tomgenco", 64, 500, 70, function() {
+        window.location.href = "https://about.me/tomgenco"; }),
+      new MenuObject(1, 1, -15, -15, "Source code", 64, 300, 70, function() {
         window.location.href = "http://github.com/TomGenco/Endless"; })
     ], true);
 
     inGameMenu = new MenuObjectGroup([
-      new MenuObject(0, 0, 15, 15, "Menu", 128, 300, 130, showMenu),
-      new MenuObject(1, 0, -15, 15, "Score: " + score, 128)
+      new MenuObject(0, 0, 15, 25, "Menu", 128, 300, 130, showMenu),
+      new MenuObject(1, 0, -15, 25, "Score: " + score, 128)
     ], false);
 
     if (Settings.animateMenuObjects.val) {
