@@ -1,7 +1,7 @@
 "use strict";
 
 function Endless() {
-  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotMouseover, dots, dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, supportsStorage, Transition;
+  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotMouseover, dots, dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, smallScreen = false, supportsStorage, Transition;
 
   // nifty Settings object
   Setting = function(defaultVal, onSet) {
@@ -362,8 +362,6 @@ function Endless() {
   }
 
   function handleTouchStart(event) {
-    event.preventDefault();
-
     var touches = event.changedTouches;
 
     for (var i = 0; i < menuObjectGroups.length; i++)
@@ -375,6 +373,7 @@ function Endless() {
         }
 
     if (playing && !showOverlay && checkForADot(touches[0].pageX, touches[0].pageY)) {
+      event.preventDefault();
       mousePosX = touches[0].pageX;
       mousePosY = touches[0].pageY;
       dotSelection[0] = dotAtPosition(touches[0].pageX, touches[0].pageY);
@@ -407,11 +406,11 @@ function Endless() {
   }
 
   function handleTouchMove(event) {
-    event.preventDefault();
-
     var touches = event.changedTouches;
 
     if (selectingDots) {
+      event.preventDefault();
+
       mousePosX = touches[0].pageX;
       mousePosY = touches[0].pageY;
       if (checkForADot(touches[0].pageX, touches[0].pageY)) {
@@ -490,6 +489,10 @@ function Endless() {
 
   function play() {
     if (!playing) {
+      if (smallScreen)
+        window.addEventListener('load', function(e) {
+          window.scrollTo(0, 1);
+        }, false);
       playing = true;
       generateDots();
       inGameMenu.visibility = true;
@@ -655,13 +658,8 @@ function Endless() {
     loadSettingsFromStorage();
   }
 
-  if (window.matchMedia("only screen and (max-width: 800px)").matches) {
-    console.log("small screen");
-    // Scroll down one pixel to hide the status bar
-    window.addEventListener('load', function(e) {
-      setTimeout(function() { window.scrollTo(0, 1); }, 1);
-    }, false);
-  }
+  if (window.matchMedia("only screen and (max-width: 800px)").matches)
+    smallScreen = true;
 
   setupGraphics();
   setupEventListeners();
