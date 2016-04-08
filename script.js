@@ -655,6 +655,14 @@ function Endless() {
     loadSettingsFromStorage();
   }
 
+  if (window.matchMedia("only screen and (max-width: 800px)").matches) {
+    console.log("small screen");
+    // Scroll down one pixel to hide the status bar
+    window.addEventListener('load', function(e) {
+      setTimeout(function() { window.scrollTo(0, 1); }, 1);
+    }, false);
+  }
+
   setupGraphics();
   setupEventListeners();
 }
