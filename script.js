@@ -376,12 +376,14 @@ function Endless() {
           return;
         }
 
-    if (playing && !showOverlay && (dotSelection[0] = checkForADot(touches.pageX, touches.pageY))) {
+    if (playing && !showOverlay) {
       event.preventDefault();
-      mousePosX = touches.pageX;
-      mousePosY = touches.pageY;
-      dotSelection[0].selected = true;
-      selectingDots = true;
+      if (dotSelection[0] = checkForADot(touches.pageX, touches.pageY)) {
+        mousePosX = touches.pageX;
+        mousePosY = touches.pageY;
+        dotSelection[0].selected = true;
+        selectingDots = true;
+      }
     }
   }
 
