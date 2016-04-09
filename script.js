@@ -346,8 +346,7 @@ function Endless() {
         mousePosX = posX;
         mousePosY = posY;
       }
-      if (checkForADot(posX, posY)) {
-        dotMouseover = dotAtPosition(posX, posY);
+      if (dotMouseover = checkForADot(posX, posY)) {
         if (selectingDots && checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
           dotMouseover.selected = true;
           dotSelection[dotSelection.length] = dotMouseover;
@@ -362,21 +361,21 @@ function Endless() {
   }
 
   function handleTouchStart(event) {
-    var touches = event.changedTouches;
+    var touches = event.changedTouches[0];
 
     for (var i = 0; i < menuObjectGroups.length; i++)
       for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
-        if (menuObjectGroups[i].menuObjects[j].inRange(touches[0].pageX, touches[0].pageY) &&
+        if (menuObjectGroups[i].menuObjects[j].inRange(touches.pageX, touches.pageY) &&
             menuObjectGroups[i].visibility) {
+          event.preventDefault();
           menuObjectGroups[i].menuObjects[j].onClick();
           return;
         }
 
-    if (playing && !showOverlay && checkForADot(touches[0].pageX, touches[0].pageY)) {
+    if (playing && !showOverlay && (dotSelection[0] = checkForADot(touches.pageX, touches.pageY))) {
       event.preventDefault();
-      mousePosX = touches[0].pageX;
-      mousePosY = touches[0].pageY;
-      dotSelection[0] = dotAtPosition(touches[0].pageX, touches[0].pageY);
+      mousePosX = touches.pageX;
+      mousePosY = touches.pageY;
       dotSelection[0].selected = true;
       selectingDots = true;
     }
@@ -385,7 +384,7 @@ function Endless() {
   function handleTouchEnd(event) {
     event.preventDefault();
 
-    var touches = event.changedTouches;
+    var touches = event.changedTouches[0];
 
     if (selectingDots) {
       selectingDots = false;
@@ -406,15 +405,13 @@ function Endless() {
   }
 
   function handleTouchMove(event) {
-    var touches = event.changedTouches;
+    var touches = event.changedTouches[0];
 
     if (selectingDots) {
-      event.preventDefault();
-
-      mousePosX = touches[0].pageX;
-      mousePosY = touches[0].pageY;
-      if (checkForADot(touches[0].pageX, touches[0].pageY)) {
-        dotMouseover = dotAtPosition(touches[0].pageX, touches[0].pageY);
+      mousePosX = touches.pageX;
+      mousePosY = touches.pageY;
+      if (dotMouseover = checkForADot(touches.pageX, touches.pageY)) {
+        event.preventDefault();
         if (checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
           dotMouseover.selected = true;
           dotSelection[dotSelection.length] = dotMouseover;
@@ -436,13 +433,20 @@ function Endless() {
   }
 
   function checkForADot(posX, posY) {
-    return posX > centerX - gridWidth / 2 && posX < centerX + gridWidth / 2 && posY > centerY - gridHeight / 2 && posY < centerY + gridHeight / 2 && (posX - centerX + gridWidth / 2) / Settings.dotSize.val % 2 <= 1 && (posY - centerY + gridHeight / 2) / Settings.dotSize.val % 2 <= 1;
-  }
-
-  function dotAtPosition(posX, posY) {
-    return dots[
-      Math.floor(((posX - centerX + gridWidth / 2) / Settings.dotSize.val) / 2)][
-      Math.floor(((posY - centerY + gridHeight / 2) / Settings.dotSize.val) / 2)];
+    if (posX > centerX - gridWidth / 2 &&
+        posX < centerX + gridWidth / 2 &&
+        posY > centerY - gridHeight / 2 &&
+        posY < centerY + gridHeight / 2 &&
+        (posX - centerX + gridWidth / 2) / Settings.dotSize.val % 2 <= 1 &&
+        (posY - centerY + gridHeight / 2) / Settings.dotSize.val % 2 <= 1) {
+      var dot = dots[
+        Math.floor(((posX - centerX + gridWidth / 2) / Settings.dotSize.val) / 2)][
+        Math.floor(((posY - centerY + gridHeight / 2) / Settings.dotSize.val) / 2)];
+      if (dot == null)
+        return false;
+      else
+        return dot;
+    }
   }
 
   function checkDotConnection(dot1, dot2) {
