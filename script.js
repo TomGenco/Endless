@@ -521,7 +521,9 @@ function Endless() {
     mainMenu.visibility = true;
   }
 
-  function generateDots(timeIncrease = 0) {
+  function generateDots(timeIncrease) {
+    if (timeIncrease == null)
+      timeIncrease = 0;
     dotAnimationsAreDone = false;
     var dot = null;
     for (var col = 0; col < Settings.columns.val; col++)
