@@ -1,7 +1,7 @@
 "use strict";
 
 function Endless() {
-  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotMouseover, dots, dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, smallScreen = false, supportsStorage, Transition;
+  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotMouseover, dots, dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, supportsStorage, Transition;
 
   // nifty Settings object
   Setting = function(defaultVal, onSet) {
@@ -489,10 +489,6 @@ function Endless() {
 
   function play() {
     if (!playing) {
-      if (smallScreen)
-        window.addEventListener('load', function(e) {
-          window.scrollTo(0, 1);
-        }, false);
       playing = true;
       generateDots();
       inGameMenu.visibility = true;
@@ -657,9 +653,6 @@ function Endless() {
     supportsStorage = true;
     loadSettingsFromStorage();
   }
-
-  if (window.matchMedia("only screen and (max-width: 800px)").matches)
-    smallScreen = true;
 
   setupGraphics();
   setupEventListeners();
