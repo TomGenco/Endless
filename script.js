@@ -430,6 +430,11 @@ function Endless() {
 
   // Attaches all of the event handlers to their events.
   function setupEventListeners() {
+    if (window.navigator.msPointerEnabled) {
+      canvas.addEventListener("MSPointerDown", handleMouneDown, false);
+      canvas.addEventListener("MSPointerUp", handleMouseUp, false);
+      canvas.addEventListener("MSPointerMove", handleMouseMove, false);
+    }
     canvas.onmousedown =  function(e) { handleMouseDown(e.clientX, e.clientY) };
     canvas.onmouseup =    function(e) { handleMouseUp(e.clientX, e.clientY) };
     canvas.onmousemove =  function(e) { handleMouseMove(e.clientX, e.clientY) };
