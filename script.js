@@ -257,11 +257,15 @@ function Endless() {
     }
   });
 
-  function loadSettingsFromStorage() {
+  function loadDataFromStorage() {
     var storage = window.localStorage, value;
 
     for (var i = 0; i < storage.length; i++)
-      if (/^ESett--/.test(storage.key(i))) {
+      if (/^Endless--/.test(storage.key(i))) {
+        if (storage.key(i) == "Endless--score") {
+          updateScore(-score + parseFloat(storage.getItem(storage.key(i))));
+          continue;
+        }
         value = storage.getItem(storage.key(i));
         switch (value) {
           case "true":
@@ -277,20 +281,20 @@ function Endless() {
             value = isNaN(parseFloat(value)) ? value : parseFloat(value);
         }
         try {
-          Endless.Settings[storage.key(i).substr(7)].set(value);
+          Settings[storage.key(i).substr(9)].val = value;
         } catch (e) {
-          console.warn("Setting \"" + storage.key(i).substr(7) + "\" from Local Storage doesn't exist");
+          console.warn("Setting \"" + storage.key(i).substr(9) + "\" from Local Storage doesn't exist");
         }
       }
   }
 
-  function saveSettingsToStorage() {
-    for (var setting in Endless.Settings) {
-      if (Endless.Settings[setting].val == Endless.Settings[setting].defaultVal)
-        localStorage.removeItem("ESett--" + setting);
+  function saveDataToStorage() {
+    for (var setting in Settings) {
+      if (Settings[setting].val == Settings[setting].defaultVal)
+        localStorage.removeItem("Endless--" + setting);
       else
-        localStorage.setItem("ESett--" + setting, Endless.Settings[setting].get);
-      }
+        localStorage.setItem("Endless--" + setting, Settings[setting].val);
+    }
   }
 
   function handleMouseDown(posX, posY) {
@@ -316,8 +320,7 @@ function Endless() {
           //dot.selected = false;
           dotsCleared++;
         }
-        score += Math.pow(2, dotsCleared - 1);
-        inGameMenu.menuObjects[1].text = "Score: " + score;
+        updateScore(2 * (dotsCleared - 1));
         fillGridNulls();
       } else
         dotSelection[0].selected = false;
@@ -401,8 +404,7 @@ function Endless() {
           //dot.selected = false;
           dotsCleared++;
         }
-        score += Math.pow(2, dotsCleared - 1);
-        inGameMenu.menuObjects[1].text = "Score: " + score;
+        updateScore(2 * (dotsCleared - 1));
         fillGridNulls();
       } else
         dotSelection[0].selected = false;
@@ -486,6 +488,14 @@ function Endless() {
     generateDots();
   }
 
+  function updateScore(newPoints) {
+    score += newPoints;
+    if (playing)
+      inGameMenu.menuObjects[1].text = "Score: " + score;
+    if (supportsStorage)
+      localStorage.setItem("Endless--score", score);
+  }
+
   // Sets the canvas element's height and width to that of the window's
   function updateCanvasSize() {
     canvas.setAttribute("width", window.innerWidth);
@@ -514,6 +524,19 @@ function Endless() {
     }
     showOverlay = false;
     mainMenu.visibility = false;
+  }
+
+  function reset() {
+    var storage = window.localStorage;
+    var reallyWannaDoThat = confirm("Do you really want to reset settings and score?");
+    if (reallyWannaDoThat) {
+      for (var i = 0; i < storage.length; i++)
+        if (/^Endless--/.test(storage.key(i))) {
+          localStorage.removeItem(storage.key(i));
+          i--;
+        }
+      location.reload();
+    }
   }
 
   function showMenu() {
@@ -634,7 +657,8 @@ function Endless() {
     mainMenu = new MenuObjectGroup([
       new MenuObject(0.5, 0.25, 0, 0, "endless", 256),
       new MenuObject(0.5, 0.25, 200, 130, "By Tom Genco", 64),
-      new MenuObject(0.5, 0.75, 0, 0, "Play", 128, 240, 170, play)
+      new MenuObject(0.5, 0.75, -150, 0, "Play", 128, 240, 170, play),
+      new MenuObject(0.5, 0.75, 150, 0, "Reset", 128, 270, 170, reset)
     ], true);
 
     bottomMenu = new MenuObjectGroup([
@@ -653,6 +677,7 @@ function Endless() {
       mainMenu.menuObjects[0].transitions = [new Transition(0, 1, 2000, 0, "opacity")];
       mainMenu.menuObjects[1].transitions = [new Transition(0, 1, 2000, 500, "opacity")];
       mainMenu.menuObjects[2].transitions = [new Transition(0, 1, 2000, 1000, "opacity")];
+      mainMenu.menuObjects[3].transitions = [new Transition(0, 1, 2000, 1000, "opacity")];
       bottomMenu.menuObjects[0].transitions = [new Transition(0, 1, 2000, 2000, "opacity")];
       bottomMenu.menuObjects[1].transitions = [new Transition(0, 1, 2000, 2000, "opacity")];
       inGameMenu.menuObjects[0].transitions = [new Transition(-100, inGameMenu.menuObjects[0].fixedOffsetY, 1000, Settings.animateDots.val ? 1000 : 0, "fixedOffsetY", "logistic")];
@@ -674,7 +699,7 @@ function Endless() {
     supportsStorage = false;
   } else {
     supportsStorage = true;
-    loadSettingsFromStorage();
+    loadDataFromStorage();
   }
 
   setupGraphics();
