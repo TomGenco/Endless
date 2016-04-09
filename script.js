@@ -368,7 +368,7 @@ function Endless() {
   }
 
   function handleTouchStart(event) {
-    var touches = event.changedTouches[0];
+    var touches = event.pageX || event.changedTouches[0];
 
     for (var i = 0; i < menuObjectGroups.length; i++)
       for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
@@ -393,7 +393,7 @@ function Endless() {
   function handleTouchEnd(event) {
     event.preventDefault();
 
-    var touches = event.changedTouches[0];
+    var touches = event.pageX || event.changedTouches[0];
 
     if (selectingDots) {
       selectingDots = false;
@@ -413,7 +413,7 @@ function Endless() {
   }
 
   function handleTouchMove(event) {
-    var touches = event.changedTouches[0];
+    var touches = event.pageX || event.changedTouches[0];
 
     if (selectingDots) {
       mousePosX = touches.pageX;
@@ -431,9 +431,9 @@ function Endless() {
   // Attaches all of the event handlers to their events.
   function setupEventListeners() {
     if (window.navigator.msPointerEnabled) {
-      canvas.addEventListener("MSPointerDown", handleMouneDown, false);
-      canvas.addEventListener("MSPointerUp", handleMouseUp, false);
-      canvas.addEventListener("MSPointerMove", handleMouseMove, false);
+      canvas.addEventListener("MSPointerDown", handleTouchStart, false);
+      canvas.addEventListener("MSPointerUp", handleTouchEnd, false);
+      canvas.addEventListener("MSPointerMove", handleTouchMove, false);
     }
     canvas.onmousedown =  function(e) { handleMouseDown(e.clientX, e.clientY) };
     canvas.onmouseup =    function(e) { handleMouseUp(e.clientX, e.clientY) };
