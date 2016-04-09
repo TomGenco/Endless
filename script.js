@@ -636,8 +636,8 @@ function Endless() {
     ], true);
 
     bottomMenu = new MenuObjectGroup([
-      new MenuObject(0, 1, 15, -15, "about.me/tomgenco", 64, 500, 70, function() {
-        window.location.href = "https://about.me/tomgenco"; }),
+      new MenuObject(0, 1, 15, -15, "tomgenco.com", 64, 360, 70, function() {
+        window.location.href = "http://tomgenco.com"; }),
       new MenuObject(1, 1, -15, -15, "Source code", 64, 300, 70, function() {
         window.location.href = "http://github.com/TomGenco/Endless"; })
     ], true);
