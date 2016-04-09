@@ -1,7 +1,7 @@
 "use strict";
 
 function Endless() {
-  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotMouseover, dots, dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, supportsStorage, Transition;
+  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotAnimationsAreDone = false, dotMouseover, dots = [], dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, supportsStorage, Transition;
 
   // nifty Settings object
   Setting = function(defaultVal, onSet) {
@@ -31,7 +31,7 @@ function Endless() {
       if (playing)
         generateDots();
     }),
-    dotAnimationTime: new Setting(1000),
+    dotAnimationTime: new Setting(500),
     dotAnimationType: new Setting("logistic"),
     dotColors: new Setting(6, function () {
       if (playing)
@@ -205,7 +205,7 @@ function Endless() {
     };
   }
 
-  Transition = function(startVal, endVal, duration, delay, property, motionType) {
+  Transition = function(startVal, endVal, duration, delay, property, motionType, callback) {
     this.startVal = startVal === undefined ? 0 : startVal;
     this.endVal = endVal === undefined ? 100 : endVal;
     this.duration = duration || 1000;
@@ -217,12 +217,17 @@ function Endless() {
     this.initTime = null;
     this.delta = null;
     this.distance = this.endVal - this.startVal;
+    this.callback = callback;
 
     this.start = function() {
       this.started = true;
       this.finished = false;
       var that = this;
-      setTimeout(function() { that.finished = true; }, that.delay + that.duration);
+      setTimeout(function() {
+        that.finished = true;
+        if (that.callback)
+          that.callback();
+      }, that.delay + that.duration);
       this.initTime = Date.now();
     };
   };
@@ -307,7 +312,6 @@ function Endless() {
       if (dotSelection.length > 1) {
         var pointsEarned = 0;
         for (var dot of dotSelection) {
-          console.log(dot);
           dots[dot.col][dot.row] = null;
           //dot.selected = false;
           pointsEarned++;
@@ -450,31 +454,34 @@ function Endless() {
   }
 
   function checkDotConnection(dot1, dot2) {
-    return dot2 && dot1.color == dot2.color && !dot2.selected &&
+    return dot2 && dotAnimationsAreDone && dot1.color == dot2.color && !dot2.selected &&
       Math.abs(dot2.col - dot1.col) < 2 && Math.abs(dot2.row - dot1.row) < 2;
   }
 
   function fillGridNulls() {
+    // Iterate through each spot in dots[][], from the bottom to top
     for (var row = dots[0].length - 1; row >= 0 ; row--)
-      for (var col = dots.length - 1; col >= 0; col--) {
+      for (var col = 0; col < dots.length; col++)
+        // If that spot is null, try to pull the next non-null dot above it
         if (dots[col][row] == null) {
           var countNulls = 0;
-          while (row - countNulls >= 0) {
+          // Count how many nulls there are from this position upward
+          while (row - countNulls >= 0)
             if (dots[col][row - countNulls] == null)
               countNulls++;
             else break;
+          // If there is a dot above this position, drop it into it's new spot
+          if (row - countNulls >= 0) {
+            dots[col][row] = dots[col][row - countNulls];
+            dots[col][row - countNulls] = null;
+            dots[col][row].row = row;
+            dots[col][row].transitions = [new Transition(dots[col][row].y, dots[col][row].y + (countNulls * Settings.dotSize.val * 2), 400, 0, "y", "logistic")];
+            dots[col][row].draw.finishedy = false;
+            dots[col][row].transitions[0].start();
           }
-          if (row - countNulls < 0)
-            continue;
-          dots[col][row] = dots[col][row - countNulls];
-          dots[col][row - countNulls] = null;
-          dots[col][row].row = row;
-          dots[col][row].transitions = [new Transition(dots[col][row].y, dots[col][row].y + (countNulls * Settings.dotSize.val * 2), 400, 0, "y", "logistic")];
-          dots[col][row].draw.finishedy = false;
-          dots[col][row].transitions[0].start();
-          //dots[col][row].y = (centerY - gridHeight / 2 + Settings.dotSize.val / 2) + (dots[col][row].row * Settings.dotSize.val * 2) - centerY
         }
-      }
+
+    generateDots();
   }
 
   // Sets the canvas element's height and width to that of the window's
@@ -493,10 +500,15 @@ function Endless() {
 
   function play() {
     if (!playing) {
-      playing = true;
-      generateDots();
+      for (var col = 0; col < Settings.columns.val; col++) {
+        dots[col] = [];
+        for (var row = 0; row < Settings.rows.val; row++)
+          dots[col][row] = null;
+      }
+      generateDots(300, true);
       inGameMenu.visibility = true;
       inGameMenu.startTransitions();
+      playing = true;
     }
     showOverlay = false;
     mainMenu.visibility = false;
@@ -507,32 +519,32 @@ function Endless() {
     mainMenu.visibility = true;
   }
 
-  function generateDots() {
-    dots = [];
-    for (var col = 0; col < Settings.columns.val; col++) {
-      dots[col] = [];
+  function generateDots(timeIncrease = 0, delay = false) {
+    dotAnimationsAreDone = false;
+    var dot;
+    for (var col = 0; col < Settings.columns.val; col++)
       for (var row = 0; row < Settings.rows.val; row++) {
-        dots[col][row] = new Dot(
-          (Math.floor(Math.random() * Settings.dotColors.val) * (360 / Settings.dotColors.val) + Settings.hueShift.val) % 360,
-          col, row,
-          (centerX - gridWidth / 2 + Settings.dotSize.val / 2) + (col * Settings.dotSize.val * 2) - centerX,
-          (centerY - gridHeight / 2 + Settings.dotSize.val / 2) + (row * Settings.dotSize.val * 2) - centerY);
-        if (Settings.animateDots.val)
-          dots[col][row].transitions = [
-            new Transition(
-              dots[col][row].y - centerY - gridHeight / 2 - Settings.dotSize.val / 2,
-              dots[col][row].y,
-              Settings.dotAnimationTime.val,
-              col * (Settings.dotAnimationTime.val / 20),
-              "y", Settings.dotAnimationType.val),
-            new Transition(
-              dots[col][row].x - centerX - gridWidth / 2 - Settings.dotSize.val / 2,
-              dots[col][row].x,
-              Settings.dotAnimationTime.val,
-              (Settings.rows.val - row - 1) * (Settings.dotAnimationTime.val / 20),
-              "x", Settings.dotAnimationType.val)];
+        if (dots[col][row] == null) {
+          dots[col][row] = new Dot(
+            (Math.floor(Math.random() * Settings.dotColors.val) * (360 / Settings.dotColors.val) + Settings.hueShift.val) % 360,
+            col, row,
+            (centerX - gridWidth / 2 + Settings.dotSize.val / 2) + (col * Settings.dotSize.val * 2) - centerX,
+            (centerY - gridHeight / 2 + Settings.dotSize.val / 2) + (row * Settings.dotSize.val * 2) - centerY);
+          dot = dots[col][row];
+          if (Settings.animateDots.val)
+            dots[col][row].transitions = [
+              new Transition(
+                dots[col][row].y - centerY - gridHeight / 2 - Settings.dotSize.val / 2,
+                dots[col][row].y,
+                Settings.dotAnimationTime.val + timeIncrease,
+                delay ? col * ((Settings.dotAnimationTime.val + timeIncrease) / 20) : 0,
+                "y", Settings.dotAnimationType.val),
+            ];
+          }
       }
-    }
+      dot.transitions[0].callback = function () {
+        dotAnimationsAreDone = true;
+      }
   }
 
   // Calls each drawing function every frame, if needed.
