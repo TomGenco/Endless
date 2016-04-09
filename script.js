@@ -305,14 +305,14 @@ function Endless() {
     if (selectingDots) {
       selectingDots = false;
       if (dotSelection.length > 1) {
-        var pointsEarned = 0;
+        var dotsCleared = 0;
         for (var dot of dotSelection) {
           console.log(dot);
           dots[dot.col][dot.row] = null;
           //dot.selected = false;
-          pointsEarned++;
+          dotsCleared++;
         }
-        score += pointsEarned;
+        score += Math.pow(2, dotsCleared - 1);
         inGameMenu.menuObjects[1].text = "Score: " + score;
         fillGridNulls();
       } else
@@ -389,13 +389,13 @@ function Endless() {
     if (selectingDots) {
       selectingDots = false;
       if (dotSelection.length > 1) {
-        var pointsEarned = 0;
+        var dotsCleared = 0;
         for (var dot of dotSelection) {
           dots[dot.col][dot.row] = null;
           //dot.selected = false;
-          pointsEarned++;
+          dotsCleared++;
         }
-        score += pointsEarned;
+        score += Math.pow(2, dotsCleared - 1);
         inGameMenu.menuObjects[1].text = "Score: " + score;
         fillGridNulls();
       } else
