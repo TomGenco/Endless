@@ -369,7 +369,7 @@ function Endless() {
 
   function handleTouchStart(event) {
     var posX, posY;
-    if (PointerEvent) {
+    if (window.PointerEvent) {
       posX = event.clientX;
       posY = event.clientY
     } else {
@@ -419,7 +419,7 @@ function Endless() {
 
   function handleTouchMove(event) {
     var posX, posY;
-    if (PointerEvent) {
+    if (window.PointerEvent) {
       posX = event.clientX;
       posY = event.clientY
     } else {
