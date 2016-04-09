@@ -368,11 +368,18 @@ function Endless() {
   }
 
   function handleTouchStart(event) {
-    var touches = event.pageX || event.changedTouches[0];
+    var posX, posY;
+    if (PointerEvent) {
+      posX = event.clientX;
+      posY = event.clientY
+    } else {
+      posX = event.changedTouches[0].pageX;
+      posY = event.changedTouches[0].pageY;
+    }
 
     for (var i = 0; i < menuObjectGroups.length; i++)
       for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
-        if (menuObjectGroups[i].menuObjects[j].inRange(touches.pageX, touches.pageY) &&
+        if (menuObjectGroups[i].menuObjects[j].inRange(posX, posY) &&
             menuObjectGroups[i].visibility) {
           event.preventDefault();
           menuObjectGroups[i].menuObjects[j].onClick();
@@ -381,9 +388,9 @@ function Endless() {
 
     if (playing && !showOverlay) {
       event.preventDefault();
-      if (dotSelection[0] = checkForADot(touches.pageX, touches.pageY)) {
-        mousePosX = touches.pageX;
-        mousePosY = touches.pageY;
+      if (dotSelection[0] = checkForADot(posX, posY)) {
+        mousePosX = posX;
+        mousePosY = posY;
         dotSelection[0].selected = true;
         selectingDots = true;
       }
@@ -392,8 +399,6 @@ function Endless() {
 
   function handleTouchEnd(event) {
     event.preventDefault();
-
-    var touches = event.pageX || event.changedTouches[0];
 
     if (selectingDots) {
       selectingDots = false;
@@ -413,12 +418,19 @@ function Endless() {
   }
 
   function handleTouchMove(event) {
-    var touches = event.pageX || event.changedTouches[0];
+    var posX, posY;
+    if (PointerEvent) {
+      posX = event.clientX;
+      posY = event.clientY
+    } else {
+      posX = event.changedTouches[0].pageX;
+      posY = event.changedTouches[0].pageY;
+    }
 
     if (selectingDots) {
-      mousePosX = touches.pageX;
-      mousePosY = touches.pageY;
-      if (dotMouseover = checkForADot(touches.pageX, touches.pageY)) {
+      mousePosX = posX;
+      mousePosY = posY;
+      if (dotMouseover = checkForADot(posX, posY)) {
         event.preventDefault();
         if (checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
           dotMouseover.selected = true;
@@ -430,18 +442,19 @@ function Endless() {
 
   // Attaches all of the event handlers to their events.
   function setupEventListeners() {
-    if (window.navigator.msPointerEnabled) {
-      canvas.addEventListener("MSPointerDown", handleTouchStart, false);
-      canvas.addEventListener("MSPointerUp", handleTouchEnd, false);
-      canvas.addEventListener("MSPointerMove", handleTouchMove, false);
+    if (window.PointerEvent) {
+      canvas.addEventListener("pointerdown", handleTouchStart, false);
+      canvas.addEventListener("pointerup", handleTouchEnd, false);
+      canvas.addEventListener("pointermove", handleTouchMove, false);
+    } else {
+      canvas.onmousedown =  function(e) { handleMouseDown(e.clientX, e.clientY) };
+      canvas.onmouseup =    function(e) { handleMouseUp(e.clientX, e.clientY) };
+      canvas.onmousemove =  function(e) { handleMouseMove(e.clientX, e.clientY) };
+      canvas.onblur =       function(e) { handleMouseUp(e.clientX, e.clientY) };
+      canvas.addEventListener("touchstart", handleTouchStart, false);
+      canvas.addEventListener("touchend", handleTouchEnd, false);
+      canvas.addEventListener("touchmove", handleTouchMove, false);
     }
-    canvas.onmousedown =  function(e) { handleMouseDown(e.clientX, e.clientY) };
-    canvas.onmouseup =    function(e) { handleMouseUp(e.clientX, e.clientY) };
-    canvas.onmousemove =  function(e) { handleMouseMove(e.clientX, e.clientY) };
-    canvas.onblur =       function(e) { handleMouseUp(e.clientX, e.clientY) };
-    canvas.addEventListener("touchstart", handleTouchStart, false);
-    canvas.addEventListener("touchend", handleTouchEnd, false);
-    canvas.addEventListener("touchmove", handleTouchMove, false);
     window.onresize = updateCanvasSize;
   }
 
