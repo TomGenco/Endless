@@ -31,7 +31,7 @@ function Endless() {
       if (playing)
         generateDots();
     }),
-    dotAnimationTime: new Setting(500),
+    dotAnimationTime: new Setting(300),
     dotAnimationType: new Setting("logistic"),
     dotColors: new Setting(6, function () {
       if (playing)
@@ -505,7 +505,7 @@ function Endless() {
         for (var row = 0; row < Settings.rows.val; row++)
           dots[col][row] = null;
       }
-      generateDots(300, true);
+      generateDots(300);
       inGameMenu.visibility = true;
       inGameMenu.startTransitions();
       playing = true;
@@ -519,9 +519,9 @@ function Endless() {
     mainMenu.visibility = true;
   }
 
-  function generateDots(timeIncrease = 0, delay = false) {
+  function generateDots(timeIncrease = 0) {
     dotAnimationsAreDone = false;
-    var dot;
+    var dot = null;
     for (var col = 0; col < Settings.columns.val; col++)
       for (var row = 0; row < Settings.rows.val; row++) {
         if (dots[col][row] == null) {
@@ -534,17 +534,20 @@ function Endless() {
           if (Settings.animateDots.val)
             dots[col][row].transitions = [
               new Transition(
-                dots[col][row].y - centerY - gridHeight / 2 - Settings.dotSize.val / 2,
+                -centerY - Settings.dotSize.val / 2,
                 dots[col][row].y,
                 Settings.dotAnimationTime.val + timeIncrease,
-                delay ? col * ((Settings.dotAnimationTime.val + timeIncrease) / 20) : 0,
+                (Settings.rows.val - 1 - row) * ((Settings.dotAnimationTime.val + timeIncrease) / 20),
                 "y", Settings.dotAnimationType.val),
             ];
           }
       }
-      dot.transitions[0].callback = function () {
+      if (dot == null)
         dotAnimationsAreDone = true;
-      }
+      else
+        dot.transitions[0].callback = function () {
+          dotAnimationsAreDone = true;
+        };
   }
 
   // Calls each drawing function every frame, if needed.
