@@ -25,7 +25,7 @@ function Endless() {
     acid: new Setting(false),
     animateDots: new Setting(true),
     animateMenuObjects: new Setting(true),
-    backgroundColor: new Setting("rainbow"),
+    backgroundColor: new Setting("#333"),
     columns: new Setting(6, function () {
       updateGridDimensions();
       if (playing)
@@ -47,7 +47,7 @@ function Endless() {
           }
       }
     }),
-    hueShift: new Setting(70),
+    hueShift: new Setting(55),
     rows: new Setting(6, function () {
       updateGridDimensions();
       if (playing)
@@ -370,25 +370,6 @@ function Endless() {
     }
   }
 
-  function handleTouchEnd(event, posX, posY) {
-    event.preventDefault();
-
-    if (selectingDots) {
-      selectingDots = false;
-      if (dotSelection.length > 1) {
-        var dotsCleared = 0;
-        for (var dot of dotSelection) {
-          dots[dot.col][dot.row] = null;
-          dotsCleared++;
-        }
-        updateScore(2 * (dotsCleared - 1));
-        fillGridNulls();
-      } else
-        dotSelection[0].selected = false;
-      dotSelection = [];
-    }
-  }
-
   function handleTouchMove(event, posX, posY) {
     if (selectingDots) {
       mousePosX = posX, mousePosY = posY;
@@ -404,19 +385,13 @@ function Endless() {
 
   // Attaches all of the event handlers to their events.
   function setupEventListeners() {
-    if (window.PointerEvent) {
-      canvas.addEventListener("pointerdown", handleTouchStart, false);
-      canvas.addEventListener("pointerup",   handleTouchEnd, false);
-      canvas.addEventListener("pointermove", handleTouchMove, false);
-    } else {
-      canvas.addEventListener("mousedown",  function(e) { handleMouseDown(e.clientX, e.clientY) }, false);
-      canvas.addEventListener("mouseup",    function(e) { handleMouseUp() }, false);
-      canvas.addEventListener("mousemove",  function(e) { handleMouseMove(e.clientX, e.clientY) }, false);
-      canvas.addEventListener("blur",       function(e) { handleMouseUp(e.clientX, e.clientY) }, false);
-      canvas.addEventListener("touchstart", function(e) { handleTouchStart(e, e.changedTouches[0].pageX, e.changedTouches[0].pageY) }, false);
-      canvas.addEventListener("touchend",   function(e) { event.preventDefault(); handleMouseUp() }, false);
-      canvas.addEventListener("touchmove",  function(e) { handleTouchMove(e, e.changedTouches[0].pageX, e.changedTouches[0].pageY) }, false);
-    }
+    canvas.addEventListener("mousedown",  function(e) { handleMouseDown(e.clientX, e.clientY) }, false);
+    canvas.addEventListener("mouseup",    function(e) { handleMouseUp() }, false);
+    canvas.addEventListener("mousemove",  function(e) { handleMouseMove(e.clientX, e.clientY) }, false);
+    canvas.addEventListener("blur",       function(e) { handleMouseUp(e.clientX, e.clientY) }, false);
+    canvas.addEventListener("touchstart", function(e) { handleTouchStart(e, e.changedTouches[0].pageX, e.changedTouches[0].pageY) }, false);
+    canvas.addEventListener("touchend",   function(e) { event.preventDefault(); handleMouseUp() }, false);
+    canvas.addEventListener("touchmove",  function(e) { handleTouchMove(e, e.changedTouches[0].pageX, e.changedTouches[0].pageY) }, false);
     window.onresize = updateCanvasSize;
   }
 
@@ -465,7 +440,7 @@ function Endless() {
 
   function fillGridNulls() {
     // Iterate through each spot in dots[][], from the bottom to top
-    for (var row = dots[0].length - 1; row >= 0 ; row--)
+    for (var row = dots[0].length - 1; row >= 0; row--)
       for (var col = 0; col < dots.length; col++)
         // If that spot is null, try to pull the next non-null dot above it
         if (dots[col][row] == null) {
