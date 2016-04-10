@@ -317,7 +317,6 @@ function Endless() {
         var dotsCleared = 0;
         for (var dot of dotSelection) {
           dots[dot.col][dot.row] = null;
-          //dot.selected = false;
           dotsCleared++;
         }
         updateScore(2 * (dotsCleared - 1));
@@ -330,63 +329,37 @@ function Endless() {
   }
 
   function handleMouseMove(posX, posY) {
-    var onAMenuObject = false, dotMo;
+    var menuObject;
 
-    if (!selectingDots) {
-      for (var i = 0; i < menuObjectGroups.length; i++)
-        for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
-          if (menuObjectGroups[i].menuObjects[j].inRange(posX, posY) &&
-              menuObjectGroups[i].visibility) {
-            menuObjectMouseover = menuObjectGroups[i].menuObjects[j];
-            dotMouseover = null;
-            onAMenuObject = true;
-            canvas.style.cursor = "pointer";
-            return;
-          }
-
+    if (!selectingDots && (menuObject = checkForAMenuObject(posX, posY))) {
+      menuObjectMouseover = menuObject;
+      dotMouseover = null;
+      canvas.style.cursor = "pointer";
+    } else {
       menuObjectMouseover = null;
-    }
+      canvas.removeAttribute("style");
 
-    // If the user has started playing, doesn't have the game paused, and the last dot has finished its animation
-    if (playing && !showOverlay) {
-      if (selectingDots) {
-        mousePosX = posX;
-        mousePosY = posY;
-      }
-      if (dotMouseover = checkForADot(posX, posY)) {
+      if (selectingDots)
+        mousePosX = posX, mousePosY = posY;
+      if (playing && !showOverlay && (dotMouseover = checkForADot(posX, posY))) {
+        canvas.style.cursor = "pointer";
         if (selectingDots && checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
           dotMouseover.selected = true;
           dotSelection[dotSelection.length] = dotMouseover;
         }
-        canvas.style.cursor = "pointer";
-        return;
+      } else {
+        dotMouseover = null;
+        canvas.removeAttribute("style");
       }
     }
-
-    dotMouseover = null;
-    canvas.removeAttribute("style");
   }
 
-  function handleTouchStart(event) {
-    var posX, posY;
-    if (window.PointerEvent) {
-      posX = event.clientX;
-      posY = event.clientY
-    } else {
-      posX = event.changedTouches[0].pageX;
-      posY = event.changedTouches[0].pageY;
-    }
-
-    for (var i = 0; i < menuObjectGroups.length; i++)
-      for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
-        if (menuObjectGroups[i].menuObjects[j].inRange(posX, posY) &&
-            menuObjectGroups[i].visibility) {
-          event.preventDefault();
-          menuObjectGroups[i].menuObjects[j].onClick();
-          return;
-        }
-
-    if (playing && !showOverlay) {
+  function handleTouchStart(event, posX, posY) {
+    var menuObject;
+    if (menuObject = checkForAMenuObject(posX, posY)) {
+      event.preventDefault();
+      menuObject.onClick();
+    } else if (playing && !showOverlay) {
       event.preventDefault();
       if (dotSelection[0] = checkForADot(posX, posY)) {
         mousePosX = posX;
@@ -397,7 +370,7 @@ function Endless() {
     }
   }
 
-  function handleTouchEnd(event) {
+  function handleTouchEnd(event, posX, posY) {
     event.preventDefault();
 
     if (selectingDots) {
@@ -406,7 +379,6 @@ function Endless() {
         var dotsCleared = 0;
         for (var dot of dotSelection) {
           dots[dot.col][dot.row] = null;
-          //dot.selected = false;
           dotsCleared++;
         }
         updateScore(2 * (dotsCleared - 1));
@@ -417,19 +389,9 @@ function Endless() {
     }
   }
 
-  function handleTouchMove(event) {
-    var posX, posY;
-    if (window.PointerEvent) {
-      posX = event.clientX;
-      posY = event.clientY
-    } else {
-      posX = event.changedTouches[0].pageX;
-      posY = event.changedTouches[0].pageY;
-    }
-
+  function handleTouchMove(event, posX, posY) {
     if (selectingDots) {
-      mousePosX = posX;
-      mousePosY = posY;
+      mousePosX = posX, mousePosY = posY;
       if (dotMouseover = checkForADot(posX, posY)) {
         event.preventDefault();
         if (checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
@@ -444,18 +406,39 @@ function Endless() {
   function setupEventListeners() {
     if (window.PointerEvent) {
       canvas.addEventListener("pointerdown", handleTouchStart, false);
-      canvas.addEventListener("pointerup", handleTouchEnd, false);
+      canvas.addEventListener("pointerup",   handleTouchEnd, false);
       canvas.addEventListener("pointermove", handleTouchMove, false);
     } else {
-      canvas.onmousedown =  function(e) { handleMouseDown(e.clientX, e.clientY) };
-      canvas.onmouseup =    function(e) { handleMouseUp(e.clientX, e.clientY) };
-      canvas.onmousemove =  function(e) { handleMouseMove(e.clientX, e.clientY) };
-      canvas.onblur =       function(e) { handleMouseUp(e.clientX, e.clientY) };
-      canvas.addEventListener("touchstart", handleTouchStart, false);
-      canvas.addEventListener("touchend", handleTouchEnd, false);
-      canvas.addEventListener("touchmove", handleTouchMove, false);
+      canvas.addEventListener("mousedown",  function(e) { handleMouseDown(e.clientX, e.clientY) }, false);
+      canvas.addEventListener("mouseup",    function(e) { handleMouseUp() }, false);
+      canvas.addEventListener("mousemove",  function(e) { handleMouseMove(e.clientX, e.clientY) }, false);
+      canvas.addEventListener("blur",       function(e) { handleMouseUp(e.clientX, e.clientY) }, false);
+      canvas.addEventListener("touchstart", function(e) { handleTouchStart(e, e.changedTouches[0].pageX, e.changedTouches[0].pageY) }, false);
+      canvas.addEventListener("touchend",   function(e) { event.preventDefault(); handleMouseUp() }, false);
+      canvas.addEventListener("touchmove",  function(e) { handleTouchMove(e, e.changedTouches[0].pageX, e.changedTouches[0].pageY) }, false);
     }
     window.onresize = updateCanvasSize;
+  }
+
+  function getTouchPosition(event) {
+    var posX, posY;
+    if (window.PointerEvent) {
+      posX = event.clientX;
+      posY = event.clientY;
+    } else {
+      posX = event.changedTouches[0].pageX;
+      posY = event.changedTouches[0].pageY;
+    }
+
+  }
+
+  function checkForAMenuObject(posX, posY) {
+    for (var i = 0; i < menuObjectGroups.length; i++)
+      for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
+        if (menuObjectGroups[i].menuObjects[j].inRange(posX, posY) &&
+            menuObjectGroups[i].visibility)
+          return menuObjectGroups[i].menuObjects[j];
+    return false;
   }
 
   function checkForADot(posX, posY) {
