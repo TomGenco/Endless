@@ -395,18 +395,6 @@ function Endless() {
     window.onresize = updateCanvasSize;
   }
 
-  function getTouchPosition(event) {
-    var posX, posY;
-    if (window.PointerEvent) {
-      posX = event.clientX;
-      posY = event.clientY;
-    } else {
-      posX = event.changedTouches[0].pageX;
-      posY = event.changedTouches[0].pageY;
-    }
-
-  }
-
   function checkForAMenuObject(posX, posY) {
     for (var i = 0; i < menuObjectGroups.length; i++)
       for (var j = 0; j < menuObjectGroups[i].menuObjects.length; j++)
