@@ -343,6 +343,10 @@ function Endless() {
         mousePosX = posX, mousePosY = posY;
       if (playing && !showOverlay && (dotMouseover = checkForADot(posX, posY))) {
         canvas.style.cursor = "pointer";
+        if (dotMouseover == dotSelection[dotSelection.length - 2]) {
+          dotSelection[dotSelection.length - 1].selected = false;
+          dotSelection.pop();
+        }
         if (selectingDots && checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
           dotMouseover.selected = true;
           dotSelection[dotSelection.length] = dotMouseover;
@@ -375,9 +379,12 @@ function Endless() {
       mousePosX = posX, mousePosY = posY;
       if (dotMouseover = checkForADot(posX, posY)) {
         event.preventDefault();
-        if (checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
+        if (dotMouseover == dotSelection[dotSelection.length - 2]) {
+          dotSelection[dotSelection.length - 1].selected = false;
+          dotSelection.pop();
+        } else if (checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
           dotMouseover.selected = true;
-          dotSelection[dotSelection.length] = dotMouseover;
+          dotSelection.push(dotMouseover);
         }
       }
     }
