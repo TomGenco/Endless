@@ -1,7 +1,7 @@
 "use strict";
 
 function Endless() {
-  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotAnimationsAreDone = false, dotMouseover, dots = [], dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, supportsStorage, Transition;
+  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotAnimationsAreDone = false, dotMouseover, dots = [], dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, supportsStorage, Transition, vibrate = (navigator.vibrate.bind(window.navigator) || navigator.mozVibrate.bind(window.navigator) || navigator.webkitVibrate.bind(window.navigator) || function () {});
 
   // nifty Settings object
   Setting = function(defaultVal, onSet) {
@@ -325,7 +325,7 @@ function Endless() {
         }
         updateScore(2 * (dotsCleared - 1));
         fillGridNulls();
-        navigator.vibrate && navigator.vibrate(80);
+        vibrate(80);
       } else
         dotSelection[0].selected = false;
       dotSelection = [];
@@ -375,7 +375,7 @@ function Endless() {
         mousePosY = posY;
         dotSelection[0].selected = true;
         selectingDots = true;
-        navigator.vibrate && navigator.vibrate(50);
+        vibrate(50);
       }
     }
   }
@@ -389,7 +389,7 @@ function Endless() {
           dotSelection[dotSelection.length - 1].selected = false;
           dotSelection.pop();
         } else if (checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
-          navigator.vibrate && navigator.vibrate(50);
+          vibrate(50);
           dotMouseover.selected = true;
           dotSelection.push(dotMouseover);
         }
