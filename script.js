@@ -367,9 +367,13 @@ function Endless() {
     }
   }
 
-  function handleTouchStart(event, posX, posY) {
-    if (event.touches.length)
-      handleMouseUp();
+  function handleTouchStart(event) {
+    var posX, posY;
+    for (var i = 0; i < event.changedTouches.length; i++)
+      if (event.changedTouches[i].identifier == 0)
+        posX = event.changedTouches[i].pageX, posY = event.changedTouches[i].pageY;
+    if (posX == undefined)
+      return;
 
     var menuObject;
     if (menuObject = checkForAMenuObject(posX, posY)) {
@@ -387,7 +391,25 @@ function Endless() {
     }
   }
 
-  function handleTouchMove(event, posX, posY) {
+  function handleTouchEnd(event) {
+    var posX, posY;
+    for (var i = 0; i < event.changedTouches.length; i++)
+      if (event.changedTouches[i].identifier == 0)
+        posX = event.changedTouches[i].pageX, posY = event.changedTouches[i].pageY;
+    if (posX == undefined)
+      return;
+
+    handleMouseUp();
+  }
+
+  function handleTouchMove(event) {
+    var posX, posY;
+    for (var i = 0; i < event.changedTouches.length; i++)
+      if (event.changedTouches[i].identifier == 0)
+        posX = event.changedTouches[i].pageX, posY = event.changedTouches[i].pageY;
+    if (posX == undefined)
+      return;
+
     if (selectingDots) {
       mousePosX = posX, mousePosY = posY;
       if (dotMouseover = checkForADot(posX, posY)) {
@@ -410,9 +432,9 @@ function Endless() {
     canvas.addEventListener("mouseup",    function(e) { handleMouseUp(e.clientX, e.clientY) }, false);
     canvas.addEventListener("mousemove",  function(e) { handleMouseMove(e.clientX, e.clientY) }, false);
     canvas.addEventListener("blur",       function(e) { handleMouseUp(e.clientX, e.clientY) }, false);
-    canvas.addEventListener("touchstart", function(e) { handleTouchStart(e, e.touches[0].pageX, e.touches[0].pageY) }, false);
-    canvas.addEventListener("touchend",   function(e) { event.preventDefault(); handleMouseUp() }, false);
-    canvas.addEventListener("touchmove",  function(e) { handleTouchMove(e, e.touches[0].pageX, e.touches[0].pageY) }, false);
+    canvas.addEventListener("touchstart", function(e) { handleTouchStart(e) }, false);
+    canvas.addEventListener("touchend",   function(e) { handleTouchEnd(e) }, false);
+    canvas.addEventListener("touchmove",  function(e) { handleTouchMove(e) }, false);
     window.onresize = updateCanvasSize;
   }
 
