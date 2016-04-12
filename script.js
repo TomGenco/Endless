@@ -1,5 +1,30 @@
 "use strict";
 
+var consoleOutput = document.getElementsByTagName("div")[0];
+var showingOutput = false;
+
+if (typeof console != "undefined")
+    if (typeof console.log != 'undefined')
+        console.olog = console.log;
+    else
+        console.olog = function() {};
+
+console.log = function(message) {
+    console.olog(message);
+    if (!showingOutput) {
+      let para = document.createElement("p");
+      let node = document.createTextNode(navigator.userAgent);
+      para.appendChild(node);
+      consoleOutput.appendChild(para);
+    }
+    showingOutput = true;
+    var para = document.createElement("p");
+    var node = document.createTextNode(message);
+    para.appendChild(node);
+    consoleOutput.appendChild(para);
+};
+console.error = console.debug = console.info = console.log;
+
 function Endless() {
   var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotAnimationsAreDone = false, dotMouseover, dots = [], dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, supportsStorage, Transition, vibrate = (navigator.vibrate.bind(window.navigator) || navigator.mozVibrate.bind(window.navigator) || navigator.webkitVibrate.bind(window.navigator) || function () {});
 
