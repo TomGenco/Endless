@@ -529,7 +529,10 @@ function Endless() {
       inGameMenu.startTransitions();
       playing = true;
     }
-    scrollTo(0, 100);
+    if (window.innerWidth <= 1024) {
+      canvas.style.margin = "60px 0 0 0";
+      scrollTo(0, 100);
+    }
     showOverlay = false;
     mainMenu.visibility = false;
   }
@@ -695,6 +698,7 @@ function Endless() {
     menuObjectGroups = [mainMenu, bottomMenu, inGameMenu];
 
     updateGridDimensions();
+    scrollTo(0, 0);
 
     mainMenu.startTransitions();
     bottomMenu.startTransitions();

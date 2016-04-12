@@ -8,8 +8,8 @@ body {
 }
 
 @media screen and (max-width: 1024px) {
-  body {
-    top: 30px;
+  canvas {
+    margin: 0 0 60px 0;
   }
 }
 
