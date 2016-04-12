@@ -334,6 +334,10 @@ function Endless() {
   }
 
   function handleMouseMove(posX, posY) {
+    // Skip all this if onTouchEnd called handleMouseUp
+    if (posX == null)
+      return;
+
     var menuObject;
 
     if (!selectingDots && (menuObject = checkForAMenuObject(posX, posY))) {
@@ -400,12 +404,12 @@ function Endless() {
   // Attaches all of the event handlers to their events.
   function setupEventListeners() {
     canvas.addEventListener("mousedown",  function(e) { handleMouseDown(e.clientX, e.clientY) }, false);
-    canvas.addEventListener("mouseup",    function(e) { handleMouseUp() }, false);
+    canvas.addEventListener("mouseup",    function(e) { handleMouseUp(e.clientX, e.clientY) }, false);
     canvas.addEventListener("mousemove",  function(e) { handleMouseMove(e.clientX, e.clientY) }, false);
     canvas.addEventListener("blur",       function(e) { handleMouseUp(e.clientX, e.clientY) }, false);
-    canvas.addEventListener("touchstart", function(e) { handleTouchStart(e, e.changedTouches[0].pageX, e.changedTouches[0].pageY) }, false);
+    canvas.addEventListener("touchstart", function(e) { handleTouchStart(e, e.touches[0].pageX, e.touches[0].pageY) }, false);
     canvas.addEventListener("touchend",   function(e) { event.preventDefault(); handleMouseUp() }, false);
-    canvas.addEventListener("touchmove",  function(e) { handleTouchMove(e, e.changedTouches[0].pageX, e.changedTouches[0].pageY) }, false);
+    canvas.addEventListener("touchmove",  function(e) { handleTouchMove(e, e.touches[0].pageX, e.touches[0].pageY) }, false);
     window.onresize = updateCanvasSize;
   }
 
