@@ -76,12 +76,17 @@ function Endless() {
         }
       }
 
+      ctx.shadowColor = "rgba(0,0,0,0)";
+      ctx.fillStyle = "black";
+      ctx.beginPath();
+      ctx.arc(this.x + centerX + 7, this.y + centerY + 7, Settings.dotSize.val / 2, 0, Math.PI * 2, false);
+      ctx.fill();
+
       ctx.fillStyle = "hsla(" + this.color + ", " +                     // Hue
                                (this.selected? "100%" : "60%") + ", " + // Saturation
                                (this.selected? "50%"  : "60%") + ", " + // Lightness
                                 this.opacity + ")";                     // Alpha (opacity)
       ctx.beginPath();
-      ctx.shadowColor = "rgba(0,0,0,0.5)";
       ctx.arc(this.x + centerX, this.y + centerY, Settings.dotSize.val / 2, 0, Math.PI * 2, false);
       ctx.fill();
     };
@@ -605,7 +610,6 @@ function Endless() {
     ctx.strokeStyle = "hsla(" + dotSelection[0].color + ", 100%, 50%," + dotSelection[0].opacity + ")";
     ctx.lineWidth = Settings.dotSize.val / 3;
     ctx.lineJoin = "round";
-    ctx.shadowColor = "rgba(0,0,0,0.0)";
     ctx.beginPath();
     ctx.moveTo(dotSelection[0].x  + centerX, dotSelection[0].y + centerY);
     for (var i = 0; i < dotSelection.length; i++)
