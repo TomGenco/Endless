@@ -325,7 +325,7 @@ function Endless() {
         }
         updateScore(2 * (dotsCleared - 1));
         fillGridNulls();
-        vibrate(80);
+        vibrate(30 + (dotSelection * 10));
       } else
         dotSelection[0].selected = false;
       dotSelection = [];
@@ -375,7 +375,7 @@ function Endless() {
         mousePosY = posY;
         dotSelection[0].selected = true;
         selectingDots = true;
-        vibrate(50);
+        vibrate(30);
       }
     }
   }
@@ -389,7 +389,7 @@ function Endless() {
           dotSelection[dotSelection.length - 1].selected = false;
           dotSelection.pop();
         } else if (checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
-          vibrate(50);
+          vibrate(30);
           dotMouseover.selected = true;
           dotSelection.push(dotMouseover);
         }
