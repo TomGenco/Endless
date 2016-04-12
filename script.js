@@ -21,7 +21,7 @@ function Endless() {
     }
   });
 
-  this.Settings = {
+  var Settings = {
     acid: new Setting(false),
     animateDots: new Setting(true),
     animateMenuObjects: new Setting(true),
@@ -368,6 +368,9 @@ function Endless() {
   }
 
   function handleTouchStart(event, posX, posY) {
+    if (event.touches.length)
+      handleMouseUp();
+
     var menuObject;
     if (menuObject = checkForAMenuObject(posX, posY)) {
       event.preventDefault();
@@ -688,4 +691,4 @@ function Endless() {
   setupEventListeners();
 }
 
-window.onload = Endless;
+document.addEventListener("DOMContentLoaded", Endless);
