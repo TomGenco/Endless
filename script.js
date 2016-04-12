@@ -325,7 +325,7 @@ function Endless() {
         }
         updateScore(2 * (dotsCleared - 1));
         fillGridNulls();
-        vibrate(30 + (dotSelection * 10));
+        vibrate(30 + (dotSelection.length * 10));
       } else
         dotSelection[0].selected = false;
       dotSelection = [];
