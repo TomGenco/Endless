@@ -33,7 +33,7 @@ function Endless() {
     }),
     dotAnimationTime: new Setting(300),
     dotAnimationType: new Setting("logistic"),
-    dotColors: new Setting(6, function () {
+    dotColors: new Setting(5, function () {
       if (playing)
         generateDots();
     }),
@@ -47,7 +47,7 @@ function Endless() {
           }
       }
     }),
-    hueShift: new Setting(55),
+    hueShift: new Setting(60),
     rows: new Setting(6, function () {
       updateGridDimensions();
       if (playing)
@@ -76,9 +76,12 @@ function Endless() {
         }
       }
 
-      ctx.fillStyle = "hsla(" + this.color + ", 100%, 50%," + this.opacity + ")";
+      ctx.fillStyle = "hsla(" + this.color + ", " +                     // Hue
+                               (this.selected? "100%" : "60%") + ", " + // Saturation
+                               (this.selected? "50%"  : "60%") + ", " + // Lightness
+                                this.opacity + ")";                     // Alpha (opacity)
       ctx.beginPath();
-      ctx.shadowColor = "rgba(0,0,0,0)";
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
       ctx.arc(this.x + centerX, this.y + centerY, Settings.dotSize.val / 2, 0, Math.PI * 2, false);
       ctx.fill();
     };
@@ -601,7 +604,8 @@ function Endless() {
   function drawDotSelectionLine() {
     ctx.strokeStyle = "hsla(" + dotSelection[0].color + ", 100%, 50%," + dotSelection[0].opacity + ")";
     ctx.lineWidth = Settings.dotSize.val / 3;
-    ctx.lineJoin = "bevel";
+    ctx.lineJoin = "round";
+    ctx.shadowColor = "rgba(0,0,0,0.0)";
     ctx.beginPath();
     ctx.moveTo(dotSelection[0].x  + centerX, dotSelection[0].y + centerY);
     for (var i = 0; i < dotSelection.length; i++)
