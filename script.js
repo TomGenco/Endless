@@ -529,6 +529,7 @@ function Endless() {
       inGameMenu.startTransitions();
       playing = true;
     }
+    scrollTo(0, 100);
     showOverlay = false;
     mainMenu.visibility = false;
   }

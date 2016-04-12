@@ -1,9 +1,16 @@
 /* Style settings for Endless by Tom Genco */
 
 body {
+  background-color: #333;
   margin: 0;
   position: absolute;
   font-family: 'Josefin Sans', sans-serif;
+}
+
+@media screen and (max-width: 1024px) {
+  body {
+    top: 30px;
+  }
 }
 
 canvas {
