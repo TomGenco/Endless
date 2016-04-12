@@ -310,6 +310,7 @@ function Endless() {
       selectingDots = true;
       dotSelection[0] = dotMouseover;
       dotMouseover.selected = true;
+
     }
   }
 
@@ -324,6 +325,7 @@ function Endless() {
         }
         updateScore(2 * (dotsCleared - 1));
         fillGridNulls();
+        navigator.vibrate && navigator.vibrate(80);
       } else
         dotSelection[0].selected = false;
       dotSelection = [];
@@ -352,7 +354,7 @@ function Endless() {
         }
         if (selectingDots && checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
           dotMouseover.selected = true;
-          dotSelection[dotSelection.length] = dotMouseover;
+          dotSelection.push(dotMouseover);
         }
       } else {
         dotMouseover = null;
@@ -373,6 +375,7 @@ function Endless() {
         mousePosY = posY;
         dotSelection[0].selected = true;
         selectingDots = true;
+        navigator.vibrate && navigator.vibrate(50);
       }
     }
   }
@@ -386,6 +389,7 @@ function Endless() {
           dotSelection[dotSelection.length - 1].selected = false;
           dotSelection.pop();
         } else if (checkDotConnection(dotSelection[dotSelection.length - 1], dotMouseover)) {
+          navigator.vibrate && navigator.vibrate(50);
           dotMouseover.selected = true;
           dotSelection.push(dotMouseover);
         }
