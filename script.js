@@ -26,7 +26,7 @@ function Endless() {
     animateDots: new Setting(true),
     animateMenuObjects: new Setting(true),
     backgroundColor: new Setting("#333"),
-    columns: new Setting(6, function () {
+    columns: new Setting(5, function () {
       updateGridDimensions();
       if (playing)
         generateDots();
@@ -37,7 +37,7 @@ function Endless() {
       if (playing)
         generateDots();
     }),
-    dotSize: new Setting(70, function () {
+    dotSize: new Setting(80, function () {
       if (playing) {
         updateGridDimensions();
         for (var i = 0; i < dots.length; i++)
@@ -76,17 +76,12 @@ function Endless() {
         }
       }
 
-      ctx.shadowColor = "rgba(0,0,0,0)";
-      ctx.fillStyle = "black";
-      ctx.beginPath();
-      ctx.arc(this.x + centerX + 7, this.y + centerY + 7, Settings.dotSize.val / 2, 0, Math.PI * 2, false);
-      ctx.fill();
-
       ctx.fillStyle = "hsla(" + this.color + ", " +                     // Hue
                                (this.selected? "100%" : "60%") + ", " + // Saturation
                                (this.selected? "50%"  : "60%") + ", " + // Lightness
                                 this.opacity + ")";                     // Alpha (opacity)
       ctx.beginPath();
+      ctx.shadowColor = "rgba(0,0,0,0)";
       ctx.arc(this.x + centerX, this.y + centerY, Settings.dotSize.val / 2, 0, Math.PI * 2, false);
       ctx.fill();
     };
