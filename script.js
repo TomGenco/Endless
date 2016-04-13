@@ -319,8 +319,8 @@ function Endless() {
       selectingDots = false;
       if (dotSelection.length > 1) {
         var dotsCleared = 0;
-        for (var dot of dotSelection) {
-          dots[dot.col][dot.row] = null;
+        for (var i = 0; i < dotSelection.length; i++) {
+          dots[dotSelection[i].col][dotSelection[i].row] = null;
           dotsCleared++;
         }
         updateScore(2 * (dotsCleared - 1));
