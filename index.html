@@ -11,6 +11,34 @@
   </head>
   <body>
     <div></div>
+    <script type="text/javascript">
+      var consoleOutput = document.getElementsByTagName("div")[0];
+      var showingOutput = false;
+
+      if (typeof console != "undefined")
+          if (typeof console.log != 'undefined')
+              console.olog = console.log;
+          else
+              console.olog = function() {};
+
+      console.log = function(message) {
+          console.olog(message);
+          if (!showingOutput) {
+            let para = document.createElement("p");
+            let node = document.createTextNode(navigator.userAgent);
+            para.appendChild(node);
+            consoleOutput.appendChild(para);
+          }
+          showingOutput = true;
+          var para = document.createElement("p");
+          var node = document.createTextNode(message);
+          para.appendChild(node);
+          consoleOutput.appendChild(para);
+      };
+      console.error = console.debug = console.info = console.log;
+
+      console.log("that ^");
+    </script>
     <canvas>Browser does not support this game, sorry.</canvas>
     <script src="script.js"></script>
   </body>
