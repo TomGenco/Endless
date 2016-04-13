@@ -1,7 +1,7 @@
 "use strict";
 
 function Endless() {
-  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotAnimationsAreDone = false, dotMouseover, dots = [], dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, supportsStorage, Transition, vibrate = (navigator.vibrate.bind(window.navigator) || navigator.mozVibrate.bind(window.navigator) || navigator.webkitVibrate.bind(window.navigator) || function () {});
+  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotAnimationsAreDone = false, dotMouseover, dots = [], dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, supportsStorage, Transition;
 
   // nifty Settings object
   Setting = function(defaultVal, onSet) {
@@ -549,6 +549,17 @@ function Endless() {
   function showMenu() {
     showOverlay = true;
     mainMenu.visibility = true;
+  }
+
+  function vibrate(time) {
+    if (navigator.vibrate)
+      navigator.vibrate(time);
+    else if (navigator.mozVibrate)
+      navigator.mozVibrate(time);
+    else if (navigator.webkitVibrate)
+      navigator.webkitVibrate(time);
+    else return false;
+    return true;
   }
 
   function generateDots(timeIncrease) {
