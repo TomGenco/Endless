@@ -28,8 +28,8 @@
       console.log = function(message) {
           console.olog(message);
           if (!showingOutput) {
-            let para = document.createElement("p");
-            let node = document.createTextNode(navigator.userAgent);
+            var para = document.createElement("p");
+            var node = document.createTextNode(navigator.userAgent);
             para.appendChild(node);
             consoleOutput.appendChild(para);
           }
