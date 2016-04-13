@@ -12,8 +12,8 @@ if (typeof console != "undefined")
 console.log = function(message) {
     console.olog(message);
     if (!showingOutput) {
-      let para = document.createElement("p");
-      let node = document.createTextNode(navigator.userAgent);
+      var para = document.createElement("p");
+      var node = document.createTextNode(navigator.userAgent);
       para.appendChild(node);
       consoleOutput.appendChild(para);
     }
@@ -26,7 +26,7 @@ console.log = function(message) {
 console.error = console.debug = console.info = console.log;
 
 function Endless() {
-  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotAnimationsAreDone = false, dotMouseover, dots = [], dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, supportsStorage, Transition, vibrate = (navigator.vibrate.bind(window.navigator) || navigator.mozVibrate.bind(window.navigator) || navigator.webkitVibrate.bind(window.navigator) || function () {});
+  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotAnimationsAreDone = false, dotMouseover, dots = [], dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, supportsStorage, Transition;
 
   // nifty Settings object
   Setting = function(defaultVal, onSet) {
@@ -344,8 +344,8 @@ function Endless() {
       selectingDots = false;
       if (dotSelection.length > 1) {
         var dotsCleared = 0;
-        for (var dot of dotSelection) {
-          dots[dot.col][dot.row] = null;
+        for (var i = 0; i < dotSelection.length; i++) {
+          dots[dotSelection[i].col][dotSelection[i].row] = null;
           dotsCleared++;
         }
         updateScore(2 * (dotsCleared - 1));
@@ -574,6 +574,17 @@ function Endless() {
   function showMenu() {
     showOverlay = true;
     mainMenu.visibility = true;
+  }
+
+  function vibrate(time) {
+    if (navigator.vibrate)
+      navigator.vibrate(time);
+    else if (navigator.mozVibrate)
+      navigator.mozVibrate(time);
+    else if (navigator.webkitVibrate)
+      navigator.webkitVibrate(time);
+    else return false;
+    return true;
   }
 
   function generateDots(timeIncrease) {
