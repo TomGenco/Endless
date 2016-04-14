@@ -311,6 +311,8 @@ function Endless() {
     if (selectingDots) {
       selectingDots = false;
       if (dotSelection.length > 1) {
+        generateDotColor.lastTwoColors[1] = generateDotColor.lastTwoColors[0];
+        generateDotColor.lastTwoColors[0] = dotSelection[0].color;
         var dotsCleared = 0;
         for (var i = 0; i < dotSelection.length; i++) {
           dots[dotSelection[i].col][dotSelection[i].row] = null;
@@ -454,7 +456,7 @@ function Endless() {
         [Math.floor(gridY / ((gridHeight + dotRadius * 2) / settings.get("rows")))
       ];
 
-      if (Math.sqrt(Math.pow(dot.x - posX, 2) + Math.pow(dot.y - posY, 2)) < dotRadius * 1.5)
+      if (Math.sqrt(Math.pow(dot.x - posX, 2) + Math.pow(dot.y - posY, 2)) < dotRadius * 1.75)
         return dot;
     }
     return false;
@@ -563,7 +565,7 @@ function Endless() {
       for (var row = 0; row < settings.get("rows"); row++) {
         if (dots[col][row] == null) {
           dots[col][row] = new Dot(
-            Math.floor(Math.random() * settings.get("dotColors")) * (360 / Math.floor(settings.get("dotColors"))),
+            generateDotColor(),
             col, row,
             centerX - gridWidth / 2 + settings.get("dotSize") / 2 + col * settings.get("dotSize") * 2,
             centerY - gridHeight / 2 + settings.get("dotSize") / 2 + row * settings.get("dotSize") * 2);
@@ -590,6 +592,20 @@ function Endless() {
         dotAnimationsAreDone = true;
       else
         dot.transitions[0].callback = function () { dotAnimationsAreDone = true };
+  }
+
+  generateDotColor.lastTwoColors = [];
+  function generateDotColor() {
+    console.log(generateDotColor.lastTwoColors);
+    var color;
+    while ("I still feel like it") {
+      color = Math.floor(Math.random() * settings.get("dotColors")) * (360 / Math.floor(settings.get("dotColors")));
+      if (settings.get("dotColors") < 3 ||
+         (color != generateDotColor.lastTwoColors[0] &&
+          color != generateDotColor.lastTwoColors[1]))
+        return color;
+    }
+
   }
 
   function play() {
