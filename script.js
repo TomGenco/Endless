@@ -74,7 +74,7 @@ function Endless() {
                                 this.opacity + ")";                     // Alpha (opacity)
       ctx.beginPath();
       ctx.shadowColor = "rgba(0,0,0,0)";
-      ctx.arc(this.x + centerX, this.y + centerY, settings.get("dotSize") / 2, 0, Math.PI * 2, false);
+      ctx.arc(this.x, this.y, settings.get("dotSize") / 2, 0, Math.PI * 2, false);
       ctx.fill();
     };
   }
@@ -316,9 +316,9 @@ function Endless() {
           dots[dotSelection[i].col][dotSelection[i].row] = null;
           dotsCleared++;
         }
-        updateScore(2 * (dotsCleared - 1));
+        updateScore(dotSelection.length == 2? 2 : 2 * dotsCleared);
         fillGridNulls();
-        vibrate(30 + (dotSelection.length * 15));
+        vibrate(30 + (dotSelection.length * 30));
       } else
         dotSelection[0].selected = false;
       dotSelection = [];
@@ -443,20 +443,21 @@ function Endless() {
   }
 
   function checkForADot(posX, posY) {
-    if (posX > centerX - gridWidth / 2 &&
-        posX < centerX + gridWidth / 2 &&
-        posY > centerY - gridHeight / 2 &&
-        posY < centerY + gridHeight / 2 &&
-        (posX - centerX + gridWidth / 2) / settings.get("dotSize") % 2 <= 1 &&
-        (posY - centerY + gridHeight / 2) / settings.get("dotSize") % 2 <= 1) {
+    var dotRadius = settings.get("dotSize") / 2,
+        gridX = posX - (centerX - gridWidth / 2 - dotRadius),
+        gridY = posY - (centerY - gridHeight / 2 - dotRadius);
+
+    if (gridX > 0 && gridX < gridWidth + dotRadius * 2 &&
+        gridY > 0 && gridY < gridHeight + dotRadius * 2) {
       var dot = dots[
-        Math.floor(((posX - centerX + gridWidth / 2) / settings.get("dotSize")) / 2)][
-        Math.floor(((posY - centerY + gridHeight / 2) / settings.get("dotSize")) / 2)];
-      if (dot == null)
-        return false;
-      else
+         Math.floor(gridX / ((gridWidth + dotRadius * 2) / settings.get("columns")))]
+        [Math.floor(gridY / ((gridHeight + dotRadius * 2) / settings.get("rows")))
+      ];
+
+      if (Math.sqrt(Math.pow(dot.x - posX, 2) + Math.pow(dot.y - posY, 2)) < dotRadius * 1.5)
         return dot;
     }
+    return false;
   }
 
   function checkDotConnection(dot1, dot2) {
@@ -541,8 +542,8 @@ function Endless() {
       // Reset existing dot's positions
       for (col = 0; col < dots.length; col++)
         for (row = 0; row < dots[col].length; row++) {
-          dots[col][row].x = centerX - gridWidth / 2 + settings.get("dotSize") / 2 + col * settings.get("dotSize") * 2 - centerX;
-          dots[col][row].y = centerY - gridHeight / 2 + settings.get("dotSize") / 2 + row * settings.get("dotSize") * 2 - centerY;
+          dots[col][row].x = centerX - gridWidth / 2 + settings.get("dotSize") / 2 + col * settings.get("dotSize") * 2;
+          dots[col][row].y = centerY - gridHeight / 2 + settings.get("dotSize") / 2 + row * settings.get("dotSize") * 2;
         }
 
       // Fill holes in the grid
@@ -564,8 +565,8 @@ function Endless() {
           dots[col][row] = new Dot(
             Math.floor(Math.random() * settings.get("dotColors")) * (360 / Math.floor(settings.get("dotColors"))),
             col, row,
-            centerX - gridWidth / 2 + settings.get("dotSize") / 2 + col * settings.get("dotSize") * 2 - centerX,
-            centerY - gridHeight / 2 + settings.get("dotSize") / 2 + row * settings.get("dotSize") * 2 - centerY);
+            centerX - gridWidth / 2 + settings.get("dotSize") / 2 + col * settings.get("dotSize") * 2,
+            centerY - gridHeight / 2 + settings.get("dotSize") / 2 + row * settings.get("dotSize") * 2);
           if (settings.get("animateDots")) {
             dotAnimationsAreDone = false;
             var dot = dots[col][row];
@@ -579,8 +580,8 @@ function Endless() {
             ];
           }
         } else {
-          dots[col][row].x = (centerX - gridWidth / 2 + settings.get("dotSize") / 2) + (col * settings.get("dotSize") * 2) - centerX;
-          dots[col][row].y = (centerY - gridHeight / 2 + settings.get("dotSize") / 2) + (row * settings.get("dotSize") * 2) - centerY;
+          dots[col][row].x = (centerX - gridWidth / 2 + settings.get("dotSize") / 2) + (col * settings.get("dotSize") * 2);
+          dots[col][row].y = (centerY - gridHeight / 2 + settings.get("dotSize") / 2) + (row * settings.get("dotSize") * 2);
         }
       }
     }
@@ -687,9 +688,9 @@ function Endless() {
     ctx.lineWidth = settings.get("dotSize") / 3;
     ctx.lineJoin = "round";
     ctx.beginPath();
-    ctx.moveTo(dotSelection[0].x  + centerX, dotSelection[0].y + centerY);
+    ctx.moveTo(dotSelection[0].x, dotSelection[0].y);
     for (var i = 0; i < dotSelection.length; i++)
-      ctx.lineTo(dotSelection[i].x  + centerX, dotSelection[i].y + centerY)
+      ctx.lineTo(dotSelection[i].x, dotSelection[i].y)
     ctx.lineTo(mousePosX, mousePosY);
     ctx.stroke();
   }
