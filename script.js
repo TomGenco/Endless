@@ -288,7 +288,12 @@ function Endless() {
       localStorage.setItem("Endless--" + Endless.settings[setting], settings.get(setting));
   }
 
-  function handleMouseDown(posX, posY) {
+  function handleMouseDown(e) {
+    var posX = e.x, posY = e.y;
+
+    if (event.button != 0)
+      handleMouseUp(posX, posY);
+
     if (menuObjectMouseover)
       menuObjectMouseover.onClick();
 
@@ -416,13 +421,15 @@ function Endless() {
 
   // Attaches all of the event handlers to their events.
   function setupEventListeners() {
-    canvas.addEventListener("mousedown",  function(e) { handleMouseDown(e.clientX, e.clientY) }, false);
-    canvas.addEventListener("mouseup",    function(e) { handleMouseUp(e.clientX, e.clientY) }, false);
-    canvas.addEventListener("mousemove",  function(e) { handleMouseMove(e.clientX, e.clientY) }, false);
-    canvas.addEventListener("blur",       function(e) { handleMouseUp(e.clientX, e.clientY) }, false);
-    canvas.addEventListener("touchstart", function(e) { handleTouchStart(e) }, false);
-    canvas.addEventListener("touchend",   function(e) { handleTouchEnd(e) }, false);
-    canvas.addEventListener("touchmove",  function(e) { handleTouchMove(e) }, false);
+    canvas.addEventListener("mousedown",   function(e) { handleMouseDown(e) }, false);
+    canvas.addEventListener("mouseup",     function(e) { handleMouseUp(e.x, e.y) }, false);
+    canvas.addEventListener("mousemove",   function(e) { handleMouseMove(e.x, e.y) }, false);
+    canvas.addEventListener("mouseout",    function(e) { handleMouseUp(e.x, e.y) }, false);
+    canvas.addEventListener("blur",        function(e) { handleMouseUp(e.x, e.y) }, false);
+    canvas.addEventListener("touchstart",  function(e) { handleTouchStart(e) }, false);
+    canvas.addEventListener("touchend",    function(e) { handleTouchEnd(e) }, false);
+    canvas.addEventListener("touchmove",   function(e) { handleTouchMove(e) }, false);
+    canvas.addEventListener("touchcancel", function(e) { handleTouchEnd(e) }, false);
     window.onresize = updateCanvasSize;
   }
 
