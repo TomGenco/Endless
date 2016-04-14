@@ -11,21 +11,3 @@ canvas {
   z-index: 0;
   position: absolute;
 }
-
-div {
-  background-color: rgba(0, 0, 0, 0.4);
-  pointer-events: none;
-  z-index: 1;
-  position: absolute;
-  top: 100px;
-  left: 0;
-  width: 400px;
-  heigth: 400px;
-}
-
-div p {
-  margin: 16px;
-  font-size: 32pt;
-  color: red;
-  font-weight: bold;
-}

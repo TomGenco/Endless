@@ -1,86 +1,53 @@
 "use strict";
 
-var consoleOutput = document.getElementsByTagName("div")[0];
-var showingOutput = false;
-
-if (typeof console != "undefined")
-    if (typeof console.log != 'undefined')
-        console.olog = console.log;
-    else
-        console.olog = function() {};
-
-console.log = function(message) {
-    console.olog(message);
-    if (!showingOutput) {
-      var para = document.createElement("p");
-      var node = document.createTextNode(navigator.userAgent);
-      para.appendChild(node);
-      consoleOutput.appendChild(para);
-    }
-    showingOutput = true;
-    var para = document.createElement("p");
-    var node = document.createTextNode(message);
-    para.appendChild(node);
-    consoleOutput.appendChild(para);
-};
-console.error = console.debug = console.info = console.log;
-
 function Endless() {
-  var backgroundChangingColor, bottomMenu, canvas, centerX, centerY, ctx, Dot, dotAnimationsAreDone = false, dotMouseover, dots = [], dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, MenuObject, MenuObjectGroup, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, Setting, showOverlay, supportsStorage, Transition;
-
-  // nifty Settings object
-  Setting = function(defaultVal, onSet) {
-    this._onSet = onSet;
-    this._value = defaultVal;
-    this.defaultVal = defaultVal;
-  };
-
-  Object.defineProperty(Setting.prototype, "val", {
-    get: function() {
-      return this._value;
-    },
-    set: function(newVal) {
-      this._value = newVal;
-      if (this._onSet != null)
-        this._onSet();
-    }
+  var settings = new Settings({
+    acid: [false],
+    animateDots: [true],
+    animateMenuObjects: [true],
+    backgroundColor: ["#333"],
+    columns: [5, updateGrid],
+    dotAnimationTime: [300],
+    dotAnimationType: ["logistic"],
+    dotColors: [5, updateGrid],
+    dotSize: [80, updateGrid],
+    hueShift: [60],
+    rows: [6, updateGrid]
   });
 
-  var Settings = {
-    acid: new Setting(false),
-    animateDots: new Setting(true),
-    animateMenuObjects: new Setting(true),
-    backgroundColor: new Setting("#333"),
-    columns: new Setting(5, function () {
-      updateGridDimensions();
-      if (playing)
-        generateDots();
-    }),
-    dotAnimationTime: new Setting(300),
-    dotAnimationType: new Setting("logistic"),
-    dotColors: new Setting(5, function () {
-      if (playing)
-        generateDots();
-    }),
-    dotSize: new Setting(80, function () {
-      if (playing) {
-        updateGridDimensions();
-        for (var i = 0; i < dots.length; i++)
-          for (var j = 0; j < dots[i].length; j++) {
-            dots[i][j].x = (centerX - gridWidth / 2 + Settings.dotSize.val / 2) + (i * Settings.dotSize.val * 2) - centerX;
-            dots[i][j].y = (centerY - gridHeight / 2 + Settings.dotSize.val / 2) + (j * Settings.dotSize.val * 2) - centerY;
-          }
-      }
-    }),
-    hueShift: new Setting(60),
-    rows: new Setting(6, function () {
-      updateGridDimensions();
-      if (playing)
-        generateDots();
-    })
+  this.settings = settings;
+
+  this.init = function() {
+    if (!window.localStorage) {
+      console.error("This browser doesn't support Web Storage, so Settings and " +
+                    "statistics cannot be saved to browser.");
+      supportsStorage = false;
+    } else {
+      supportsStorage = true;
+      loadDataFromStorage();
+    }
+
+    setupGraphics();
+    setupEventListeners();
+
+    return this;
   };
 
-  Dot = function(color, column, row, x, y) {
+  function Settings(settings) {
+    this.get = function(setting) {
+      return settings[setting][0];
+    }
+    this.set = function(setting, value) {
+      settings[setting][0] = value;
+      if (settings[setting][1])
+        return settings[setting][1]();
+      return true;
+    }
+  };
+
+  var bottomMenu, canvas, centerX, centerY, ctx, dotAnimationsAreDone = true, dotMouseover, dots = [], dotSelection = [], gridHeight, gridWidth, inGameMenu, mainMenu, menuObjectMouseover, menuObjectGroups, mousePosX, mousePosY, playing, score = 0, selectingDots = false, showOverlay, supportsStorage;
+
+  var Dot = function(color, column, row, x, y) {
     this.color = color;
     this.col = column;
     this.row = row;
@@ -101,18 +68,18 @@ function Endless() {
         }
       }
 
-      ctx.fillStyle = "hsla(" + this.color + ", " +                     // Hue
+      ctx.fillStyle = "hsla(" + (this.color + settings.get("hueShift") % 360) + ", " +                     // Hue
                                (this.selected? "100%" : "60%") + ", " + // Saturation
                                (this.selected? "50%"  : "60%") + ", " + // Lightness
                                 this.opacity + ")";                     // Alpha (opacity)
       ctx.beginPath();
       ctx.shadowColor = "rgba(0,0,0,0)";
-      ctx.arc(this.x + centerX, this.y + centerY, Settings.dotSize.val / 2, 0, Math.PI * 2, false);
+      ctx.arc(this.x, this.y, settings.get("dotSize") / 2, 0, Math.PI * 2, false);
       ctx.fill();
     };
   }
 
-  MenuObject = function(relativeX, relativeY, fixedOffsetX, fixedOffsetY,
+  var MenuObject = function(relativeX, relativeY, fixedOffsetX, fixedOffsetY,
       text, fontSize, width, height, onClick) {
     this.relativeX = relativeX;
     this.relativeY = relativeY;
@@ -196,7 +163,7 @@ function Endless() {
     };
 
     this.draw = function() {
-      if (Settings.animateMenuObjects.val)
+      if (settings.get("animateMenuObjects"))
         for (var i = 0; i < this.transitions.length; i++)
           if (this.transitions[i].started && !this.draw["finished" + this.transitions[i].property]) {
             this[this.transitions[i].property] = this.transitions[i].value;
@@ -217,7 +184,7 @@ function Endless() {
     };
   }
 
-  MenuObjectGroup = function(menuObjects, visibility) {
+  var MenuObjectGroup = function(menuObjects, visibility) {
     this.menuObjects = menuObjects;
     this.visibility = visibility;
 
@@ -233,7 +200,7 @@ function Endless() {
     };
   }
 
-  Transition = function(startVal, endVal, duration, delay, property, motionType, callback) {
+  var Transition = function(startVal, endVal, duration, delay, property, motionType, callback) {
     this.startVal = startVal === undefined ? 0 : startVal;
     this.endVal = endVal === undefined ? 100 : endVal;
     this.duration = duration || 1000;
@@ -309,7 +276,7 @@ function Endless() {
             value = isNaN(parseFloat(value)) ? value : parseFloat(value);
         }
         try {
-          Settings[storage.key(i).substr(9)].val = value;
+          Endless.setSetting([storage.key(i).substr(9)], value);
         } catch (e) {
           console.warn("Setting \"" + storage.key(i).substr(9) + "\" from Local Storage doesn't exist");
         }
@@ -317,15 +284,16 @@ function Endless() {
   }
 
   function saveDataToStorage() {
-    for (var setting in Settings) {
-      if (Settings[setting].val == Settings[setting].defaultVal)
-        localStorage.removeItem("Endless--" + setting);
-      else
-        localStorage.setItem("Endless--" + setting, Settings[setting].val);
-    }
+    for (var setting in Endless.settings)
+      localStorage.setItem("Endless--" + Endless.settings[setting], settings.get(setting));
   }
 
-  function handleMouseDown(posX, posY) {
+  function handleMouseDown(e) {
+    var posX = e.x, posY = e.y;
+
+    if (event.button != 0)
+      handleMouseUp(posX, posY);
+
     if (menuObjectMouseover)
       menuObjectMouseover.onClick();
 
@@ -343,14 +311,16 @@ function Endless() {
     if (selectingDots) {
       selectingDots = false;
       if (dotSelection.length > 1) {
+        generateDotColor.lastTwoColors[1] = generateDotColor.lastTwoColors[0];
+        generateDotColor.lastTwoColors[0] = dotSelection[0].color;
         var dotsCleared = 0;
         for (var i = 0; i < dotSelection.length; i++) {
           dots[dotSelection[i].col][dotSelection[i].row] = null;
           dotsCleared++;
         }
-        updateScore(2 * (dotsCleared - 1));
+        updateScore(dotSelection.length == 2? 2 : 2 * dotsCleared);
         fillGridNulls();
-        vibrate(30 + (dotSelection.length * 15));
+        vibrate(30 + (dotSelection.length * 30));
       } else
         dotSelection[0].selected = false;
       dotSelection = [];
@@ -453,13 +423,15 @@ function Endless() {
 
   // Attaches all of the event handlers to their events.
   function setupEventListeners() {
-    canvas.addEventListener("mousedown",  function(e) { handleMouseDown(e.clientX, e.clientY) }, false);
-    canvas.addEventListener("mouseup",    function(e) { handleMouseUp(e.clientX, e.clientY) }, false);
-    canvas.addEventListener("mousemove",  function(e) { handleMouseMove(e.clientX, e.clientY) }, false);
-    canvas.addEventListener("blur",       function(e) { handleMouseUp(e.clientX, e.clientY) }, false);
-    canvas.addEventListener("touchstart", function(e) { handleTouchStart(e) }, false);
-    canvas.addEventListener("touchend",   function(e) { handleTouchEnd(e) }, false);
-    canvas.addEventListener("touchmove",  function(e) { handleTouchMove(e) }, false);
+    canvas.addEventListener("mousedown",   function(e) { handleMouseDown(e) }, false);
+    canvas.addEventListener("mouseup",     function(e) { handleMouseUp(e.x, e.y) }, false);
+    canvas.addEventListener("mousemove",   function(e) { handleMouseMove(e.x, e.y) }, false);
+    canvas.addEventListener("mouseout",    function(e) { handleMouseUp(e.x, e.y) }, false);
+    canvas.addEventListener("blur",        function(e) { handleMouseUp(e.x, e.y) }, false);
+    canvas.addEventListener("touchstart",  function(e) { handleTouchStart(e) }, false);
+    canvas.addEventListener("touchend",    function(e) { handleTouchEnd(e) }, false);
+    canvas.addEventListener("touchmove",   function(e) { handleTouchMove(e) }, false);
+    canvas.addEventListener("touchcancel", function(e) { handleTouchEnd(e) }, false);
     window.onresize = updateCanvasSize;
   }
 
@@ -473,20 +445,21 @@ function Endless() {
   }
 
   function checkForADot(posX, posY) {
-    if (posX > centerX - gridWidth / 2 &&
-        posX < centerX + gridWidth / 2 &&
-        posY > centerY - gridHeight / 2 &&
-        posY < centerY + gridHeight / 2 &&
-        (posX - centerX + gridWidth / 2) / Settings.dotSize.val % 2 <= 1 &&
-        (posY - centerY + gridHeight / 2) / Settings.dotSize.val % 2 <= 1) {
+    var dotRadius = settings.get("dotSize") / 2,
+        gridX = posX - (centerX - gridWidth / 2 - dotRadius),
+        gridY = posY - (centerY - gridHeight / 2 - dotRadius);
+
+    if (gridX > 0 && gridX < gridWidth + dotRadius * 2 &&
+        gridY > 0 && gridY < gridHeight + dotRadius * 2) {
       var dot = dots[
-        Math.floor(((posX - centerX + gridWidth / 2) / Settings.dotSize.val) / 2)][
-        Math.floor(((posY - centerY + gridHeight / 2) / Settings.dotSize.val) / 2)];
-      if (dot == null)
-        return false;
-      else
+         Math.floor(gridX / ((gridWidth + dotRadius * 2) / settings.get("columns")))]
+        [Math.floor(gridY / ((gridHeight + dotRadius * 2) / settings.get("rows")))
+      ];
+
+      if (Math.sqrt(Math.pow(dot.x - posX, 2) + Math.pow(dot.y - posY, 2)) < dotRadius * 1.75)
         return dot;
     }
+    return false;
   }
 
   function checkDotConnection(dot1, dot2) {
@@ -511,11 +484,27 @@ function Endless() {
             dots[col][row] = dots[col][row - countNulls];
             dots[col][row - countNulls] = null;
             dots[col][row].row = row;
-            dots[col][row].transitions = [new Transition(dots[col][row].y, dots[col][row].y + (countNulls * Settings.dotSize.val * 2), 400, 0, "y", "logistic")];
-            dots[col][row].draw.finishedy = false;
-            dots[col][row].transitions[0].start();
+            if (settings.get("animateDots")) {
+              var dot = dots[col][row];
+              dotAnimationsAreDone = false;
+              dots[col][row].transitions = [new Transition(
+                dots[col][row].y,
+                dots[col][row].y + (countNulls * settings.get("dotSize") * 2),
+                settings.get("dotAnimationTime"),
+                0,
+                "y",
+                settings.get("dotAnimationType"))];
+              dots[col][row].draw.finishedy = false;
+              dots[col][row].transitions[0].start();
+            }
           }
         }
+
+    if (settings.get("animateDots"))
+      if (dot == null)
+        dotAnimationsAreDone = true;
+      else
+        dot.transitions[0].callback = function () { dotAnimationsAreDone = true };
 
     generateDots();
   }
@@ -537,22 +526,94 @@ function Endless() {
     centerY = window.innerHeight / 2;
   }
 
-  function updateGridDimensions() {
-    gridWidth = Settings.columns.val * Settings.dotSize.val * 2 - Settings.dotSize.val;
-    gridHeight = Settings.rows.val * Settings.dotSize.val * 2 - Settings.dotSize.val;
+  // Update variables, fix dot positions, delete dots that shouldn't exist
+  function updateGrid() {
+    gridWidth = settings.get("columns") * settings.get("dotSize") * 2 - settings.get("dotSize");
+    gridHeight = settings.get("rows") * settings.get("dotSize") * 2 - settings.get("dotSize");
+
+    // remove rows and columns that shouldn't exist anymore, and recalculate x and y
+    if (playing) {
+      // Pop any dot that shouldn't exist
+      for (var col = dots.length - 1; col >= 0; col--)
+        if (col >= settings.get("columns"))
+          dots.pop();
+        else
+          for (var row = dots[col].length - 1; row >= settings.get("rows"); row--)
+            dots[col].pop();
+
+      // Reset existing dot's positions
+      for (col = 0; col < dots.length; col++)
+        for (row = 0; row < dots[col].length; row++) {
+          dots[col][row].x = centerX - gridWidth / 2 + settings.get("dotSize") / 2 + col * settings.get("dotSize") * 2;
+          dots[col][row].y = centerY - gridHeight / 2 + settings.get("dotSize") / 2 + row * settings.get("dotSize") * 2;
+        }
+
+      // Fill holes in the grid
+      generateDots();
+    }
+  }
+
+  function generateDots(timeIncrease) {
+    if (!playing)
+      return;
+    if (timeIncrease == null)
+      timeIncrease = 0;
+
+    for (var col = 0; col < settings.get("columns"); col++) {
+      if (dots[col] == undefined)
+        dots[col] = [];
+      for (var row = 0; row < settings.get("rows"); row++) {
+        if (dots[col][row] == null) {
+          dots[col][row] = new Dot(
+            generateDotColor(),
+            col, row,
+            centerX - gridWidth / 2 + settings.get("dotSize") / 2 + col * settings.get("dotSize") * 2,
+            centerY - gridHeight / 2 + settings.get("dotSize") / 2 + row * settings.get("dotSize") * 2);
+          if (settings.get("animateDots")) {
+            dotAnimationsAreDone = false;
+            var dot = dots[col][row];
+            dots[col][row].transitions = [
+              new Transition(
+                -centerY - settings.get("dotSize") / 2,
+                dots[col][row].y,
+                settings.get("dotAnimationTime") + timeIncrease,
+                (settings.get("rows") - 1 - row) * ((settings.get("dotAnimationTime") + timeIncrease) / 20),
+                "y", settings.get("dotAnimationType")),
+            ];
+          }
+        } else {
+          dots[col][row].x = (centerX - gridWidth / 2 + settings.get("dotSize") / 2) + (col * settings.get("dotSize") * 2);
+          dots[col][row].y = (centerY - gridHeight / 2 + settings.get("dotSize") / 2) + (row * settings.get("dotSize") * 2);
+        }
+      }
+    }
+    if (settings.get("animateDots"))
+      if (dot == null)
+        dotAnimationsAreDone = true;
+      else
+        dot.transitions[0].callback = function () { dotAnimationsAreDone = true };
+  }
+
+  generateDotColor.lastTwoColors = [];
+  function generateDotColor() {
+    console.log(generateDotColor.lastTwoColors);
+    var color;
+    while ("I still feel like it") {
+      color = Math.floor(Math.random() * settings.get("dotColors")) * (360 / Math.floor(settings.get("dotColors")));
+      if (settings.get("dotColors") < 3 ||
+         (color != generateDotColor.lastTwoColors[0] &&
+          color != generateDotColor.lastTwoColors[1]))
+        return color;
+    }
+
   }
 
   function play() {
     if (!playing) {
-      for (var col = 0; col < Settings.columns.val; col++) {
-        dots[col] = [];
-        for (var row = 0; row < Settings.rows.val; row++)
-          dots[col][row] = null;
-      }
+      playing = true;
       generateDots(300);
       inGameMenu.visibility = true;
       inGameMenu.startTransitions();
-      playing = true;
     }
     showOverlay = false;
     mainMenu.visibility = false;
@@ -587,39 +648,6 @@ function Endless() {
     return true;
   }
 
-  function generateDots(timeIncrease) {
-    if (timeIncrease == null)
-      timeIncrease = 0;
-    dotAnimationsAreDone = false;
-    var dot = null;
-    for (var col = 0; col < Settings.columns.val; col++)
-      for (var row = 0; row < Settings.rows.val; row++) {
-        if (dots[col][row] == null) {
-          dots[col][row] = new Dot(
-            (Math.floor(Math.random() * Settings.dotColors.val) * (360 / Settings.dotColors.val) + Settings.hueShift.val) % 360,
-            col, row,
-            (centerX - gridWidth / 2 + Settings.dotSize.val / 2) + (col * Settings.dotSize.val * 2) - centerX,
-            (centerY - gridHeight / 2 + Settings.dotSize.val / 2) + (row * Settings.dotSize.val * 2) - centerY);
-          dot = dots[col][row];
-          if (Settings.animateDots.val)
-            dots[col][row].transitions = [
-              new Transition(
-                -centerY - Settings.dotSize.val / 2,
-                dots[col][row].y,
-                Settings.dotAnimationTime.val + timeIncrease,
-                (Settings.rows.val - 1 - row) * ((Settings.dotAnimationTime.val + timeIncrease) / 20),
-                "y", Settings.dotAnimationType.val),
-            ];
-          }
-      }
-      if (dot == null)
-        dotAnimationsAreDone = true;
-      else
-        dot.transitions[0].callback = function () {
-          dotAnimationsAreDone = true;
-        };
-  }
-
   // Calls each drawing function every frame, if needed.
   function draw() {
     drawBackground();
@@ -642,17 +670,18 @@ function Endless() {
 
   // Fills the canvas with whatever backgroundColor is set to
   function drawBackground() {
-    if (Settings.acid.val)
-      ctx.globalAlpha = 0.09;
-    if (Settings.backgroundColor.val == "rainbow") {
-      if (!backgroundChangingColor.started || backgroundChangingColor.finished)
-        backgroundChangingColor.start();
-      ctx.fillStyle = "hsl(" + backgroundChangingColor.value % 360 + ", 50%, 25%)";
+
+    if (settings.get("acid"))
+      ctx.globalAlpha = 0.01;
+    if (settings.get("backgroundColor") == "rainbow") {
+      if (!drawBackground.hue.started || drawBackground.hue.finished)
+        drawBackground.hue.start();
+      ctx.fillStyle = "hsl(" + drawBackground.hue.value % 360 + ", 50%, 25%)";
     } else {
-      ctx.fillStyle = Settings.backgroundColor.val;
+      ctx.fillStyle = settings.get("backgroundColor");
     }
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    if (Settings.acid.val)
+    if (settings.get("acid"))
       ctx.globalAlpha = 1;
   }
 
@@ -671,13 +700,13 @@ function Endless() {
   }
 
   function drawDotSelectionLine() {
-    ctx.strokeStyle = "hsla(" + dotSelection[0].color + ", 100%, 50%," + dotSelection[0].opacity + ")";
-    ctx.lineWidth = Settings.dotSize.val / 3;
+    ctx.strokeStyle = "hsla(" + (dotSelection[0].color + settings.get("hueShift") % 360) + ", 100%, 50%," + dotSelection[0].opacity + ")";
+    ctx.lineWidth = settings.get("dotSize") / 3;
     ctx.lineJoin = "round";
     ctx.beginPath();
-    ctx.moveTo(dotSelection[0].x  + centerX, dotSelection[0].y + centerY);
+    ctx.moveTo(dotSelection[0].x, dotSelection[0].y);
     for (var i = 0; i < dotSelection.length; i++)
-      ctx.lineTo(dotSelection[i].x  + centerX, dotSelection[i].y + centerY)
+      ctx.lineTo(dotSelection[i].x, dotSelection[i].y)
     ctx.lineTo(mousePosX, mousePosY);
     ctx.stroke();
   }
@@ -691,9 +720,9 @@ function Endless() {
 
     // Background hue is set to some random number, then will slowly move its
     // way along the spectrum
-    if (Settings.backgroundColor.val == "rainbow") {
+    if (settings.get("backgroundColor") == "rainbow") {
       var randomInitialHue = Math.floor(Math.random() * 360);
-      backgroundChangingColor = new Transition(randomInitialHue, randomInitialHue + 360, 9e5);
+      drawBackground.hue = new Transition(randomInitialHue, randomInitialHue + 360, 9e5);
     }
 
     // MenuObject(horizontalPercent, verticalPercent, xOffset, yOffset, text, fontSize, clickableWidth, clickableHeight, onClickFuction)
@@ -716,36 +745,25 @@ function Endless() {
       new MenuObject(1, 0, -15, 25, "Score: " + score, 128)
     ], false);
 
-    if (Settings.animateMenuObjects.val) {
+    if (settings.get("animateMenuObjects")) {
       mainMenu.menuObjects[0].transitions = [new Transition(0, 1, 2000, 0, "opacity")];
       mainMenu.menuObjects[1].transitions = [new Transition(0, 1, 2000, 500, "opacity")];
       mainMenu.menuObjects[2].transitions = [new Transition(0, 1, 2000, 1000, "opacity")];
       mainMenu.menuObjects[3].transitions = [new Transition(0, 1, 2000, 1000, "opacity")];
       bottomMenu.menuObjects[0].transitions = [new Transition(0, 1, 2000, 2000, "opacity")];
       bottomMenu.menuObjects[1].transitions = [new Transition(0, 1, 2000, 2000, "opacity")];
-      inGameMenu.menuObjects[0].transitions = [new Transition(-100, inGameMenu.menuObjects[0].fixedOffsetY, 1000, Settings.animateDots.val ? 1000 : 0, "fixedOffsetY", "logistic")];
-      inGameMenu.menuObjects[1].transitions = [new Transition(-100, inGameMenu.menuObjects[1].fixedOffsetY, 1000, Settings.animateDots.val ? 1100 : 100, "fixedOffsetY", "logistic")];
+      inGameMenu.menuObjects[0].transitions = [new Transition(-100, inGameMenu.menuObjects[0].fixedOffsetY, 1000, settings.get("animateDots") ? 1000 : 0, "fixedOffsetY", "logistic")];
+      inGameMenu.menuObjects[1].transitions = [new Transition(-100, inGameMenu.menuObjects[1].fixedOffsetY, 1000, settings.get("animateDots") ? 1100 : 100, "fixedOffsetY", "logistic")];
     }
 
     menuObjectGroups = [mainMenu, bottomMenu, inGameMenu];
 
-    updateGridDimensions();
+    updateGrid();
     mainMenu.startTransitions();
     bottomMenu.startTransitions();
     requestAnimationFrame(draw);
   }
-
-  if (!window.localStorage) {
-    console.error("This browser doesn't support Web Storage, so Settings and " +
-                  "statistics cannot be saved to browser.");
-    supportsStorage = false;
-  } else {
-    supportsStorage = true;
-    loadDataFromStorage();
-  }
-
-  setupGraphics();
-  setupEventListeners();
 }
 
-document.addEventListener("DOMContentLoaded", Endless);
+var endless = new Endless().init();
+// document.addEventListener("DOMContentLoaded", Endless.init());
