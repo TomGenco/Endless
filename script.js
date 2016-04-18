@@ -104,6 +104,7 @@ function Endless() {
   var EventHandlers = {
     mouseX: null, mouseY: null,
 
+
     init: function () {
       Graphics.canvas.addEventListener("mousedown", EventHandlers.MouseDown, false);
       Graphics.canvas.addEventListener("mouseup", EventHandlers.MouseUp, false);
@@ -368,31 +369,37 @@ function Endless() {
     },
 
     generateDots: function() {
+      var delay = 0, updateDelay;
       for (var col = 0; col < Game.Settings.columns; col++) {
         if (Grid.dots[col] == undefined)
           Grid.dots[col] = [];
+        updateDelay = false;
         for (var row = 0; row < Game.Settings.rows; row++)
-        if (!Grid.dots[col][row]) {
-          var color;
-          while ("I still feel like it") {
-            color = Math.floor(Math.random() * Game.Settings.dotColors) * (360 / Math.floor(Game.Settings.dotColors));
-            if (Game.Settings.dotColors < 3 ||
-              (color != Grid.lastTwoColors[0] &&
-                color != Grid.lastTwoColors[1]))
-                break;
-              }
-              Grid.dots[col][row] = new Dot(color, col, row,
-                Grid.gridX + Game.Settings.dotSize / 2 + col * Game.Settings.dotSize * 2,
-                Grid.gridY + Game.Settings.dotSize / 2 + row * Game.Settings.dotSize * 2);
-                if (Game.Settings.animations)
-                Grid.dots[col][row].transition = new Transition(
-                  Grid.dots[col][row],
-                  "y",
-                  -Game.Settings.dotSize / 2 - Game.Settings.dotSize / 2 * (Game.Settings.rows - 1 - row),
-                  Grid.dots[col][row].y,
-                  500 + col * 100, 0, "logistic"
-                );
-        }
+          if (!Grid.dots[col][row]) {
+            var color;
+            while ("I still feel like it") {
+              color = Math.floor(Math.random() * Game.Settings.dotColors) * (360 / Math.floor(Game.Settings.dotColors));
+              if (Game.Settings.dotColors < 3 ||
+                (color != Grid.lastTwoColors[0] &&
+                 color != Grid.lastTwoColors[1]))
+                 break;
+            }
+            Grid.dots[col][row] = new Dot(color, col, row,
+              Grid.gridX + Game.Settings.dotSize / 2 + col * Game.Settings.dotSize * 2,
+              Grid.gridY + Game.Settings.dotSize / 2 + row * Game.Settings.dotSize * 2);
+            if (Game.Settings.animations)
+              Grid.dots[col][row].transition = new Transition(
+                Grid.dots[col][row],
+                "y",
+                -Game.Settings.dotSize / 2 - Game.Settings.dotSize / 2 * (Game.Settings.rows - 1 - row),
+                Grid.dots[col][row].y,
+                500 + delay * 100, 0, "logistic"
+              );
+            if (!updateDelay)
+              updateDelay = true;
+          }
+        if (updateDelay)
+          delay++;
       }
     },
 
@@ -469,9 +476,9 @@ function Endless() {
                 Grid.dots[col][row].transition = new Transition(
                   Grid.dots[col][row],
                   "y",
-                  Grid.dots[col][row].y,
-                  Grid.dots[col][row].y + (countNulls * Game.Settings.dotSize * 2),
-                  300 + col * 80, 0, "logistic");
+                  Grid.gridY + Game.Settings.dotSize / 2 + (row - countNulls) * Game.Settings.dotSize * 2,
+                  Grid.gridY + Game.Settings.dotSize / 2 + row * Game.Settings.dotSize * 2,
+                  400, 0, "logistic");
                 Grid.dots[col][row].draw.finished = false;
                 Grid.dots[col][row].transition.start();
               }
