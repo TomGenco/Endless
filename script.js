@@ -147,7 +147,7 @@ function Endless() {
           }
           Game.updateScore(Game.dotSelection.length == 2? 2 : 2 * dotsCleared);
           Grid.fillNulls();
-          Util.vibrate(30 + (Game.dotSelection.length * 30));
+          Util.vibrate(20 + (Game.dotSelection.length * 20));
         } else
           Game.dotSelection[0].selected = false;
         Game.dotSelection = [];
@@ -241,7 +241,7 @@ function Endless() {
             Game.dotSelection[Game.dotSelection.length - 1].selected = false;
             Game.dotSelection.pop();
           } else if (Grid.checkConnection(Game.dotSelection[Game.dotSelection.length - 1], Game.dotMouseover)) {
-            Util.vibrate(30);
+            Util.vibrate(20);
             Game.dotMouseover.selected = true;
             Game.dotSelection.push(Game.dotMouseover);
           }
