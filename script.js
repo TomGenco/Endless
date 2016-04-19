@@ -10,7 +10,7 @@ function Endless() {
       dotColors: 5,
       dotSize: 80,
       hueShift: 60,
-      rows: 6
+      rows: 5
     },
 
     Screens: {},
@@ -27,6 +27,7 @@ function Endless() {
         Game.playing = true;
         Game.Screens.playing.show();
         Game.Screens.main.overlay = true;
+        Game.updateScore(0);
       }
       Game.Screens.main.hide();
     },
@@ -34,7 +35,7 @@ function Endless() {
     updateScore: function(newPoints) {
       Game.score += newPoints;
       if (Game.playing)
-        Game.Screens.playing.contents[1].text = "Score: " + Game.score;
+        Game.Screens.playing.contents[1].text = Game.score;
       localStorage.setItem("Endless--score", Game.score);
     }
   }
@@ -47,6 +48,7 @@ function Endless() {
       if (/^Endless--/.test(storage.key(i))) {
         if (storage.key(i) == "Endless--score") {
           Game.updateScore(parseFloat(storage.getItem(storage.key(i))));
+
           continue;
         }
         value = storage.getItem(storage.key(i));
@@ -147,7 +149,7 @@ function Endless() {
           }
           Game.updateScore(Game.dotSelection.length == 2? 2 : 2 * dotsCleared);
           Grid.fillNulls();
-          Util.vibrate(20 + (Game.dotSelection.length * 20));
+          Util.vibrate(20, 20, 20);
         } else
           Game.dotSelection[0].selected = false;
         Game.dotSelection = [];
@@ -260,10 +262,10 @@ function Endless() {
       Graphics.updateCanvasSize();
       Grid.init();
 
-      var menu =       new MenuObject("Menu",                 0, 0,  15,  25, 128),
-          score =      new MenuObject("Score: " + Game.score, 1, 0, -15,  25, 128),
-          siteLink =   new MenuObject("tomgenco.com",         0, 1,  15, -15, 64,  function() { window.location.href = "http://tomgenco.com"; }),
-          sourceLink = new MenuObject("Source code",          1, 1, -15, -15, 64,  function() { window.location.href = "http://github.com/TomGenco/Endless"; });
+      var menu =       new MenuObject("Menu",         0, 0,  15,  25, 128),
+          score =      new MenuObject("",             1, 0, -15,  25, 128),
+          siteLink =   new MenuObject("tomgenco.com", 0, 1,  15, -15, 64,  function() { window.location.href = "http://tomgenco.com"; }),
+          sourceLink = new MenuObject("Source code",  1, 1, -15, -15, 64,  function() { window.location.href = "http://github.com/TomGenco/Endless"; });
 
       Game.Screens.main = new Screen(
         new MenuObject("endless",      0.5, 0.30,    0,   0, 256),
