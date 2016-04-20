@@ -231,7 +231,9 @@ function Endless() {
     },
 
     TouchEnd: function(e) {
-      EventHandlers.MouseUp(e);
+      for (var i = 0; i < event.changedTouches.length; i++)
+        if (event.changedTouches[i].identifier == 0)
+          EventHandlers.MouseUp(e);
     },
 
     TouchMove: function(e) {
@@ -279,14 +281,13 @@ function Endless() {
         "subtitle",   new MenuObject("By Tom Genco", 0.5, 0.30,  200, 130,  64),
         "play",       new MenuObject("Play",         0.5, 0.65, -150,   0, 128, Game.play),
         "reset",      new MenuObject("Reset",        0.5, 0.65,  150,   0, 128, Util.clearStorage),
-        "siteLink",   new MenuObject("tomgenco.com",   0,    1,   15, -15,  64, function() { window.location.href = "http://tomgenco.com"; }),
-        "sourceLink", new MenuObject("Source code",    1,    1,  -15, -15,  64, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
+        "siteLink",   new MenuObject("tomgenco.com",   0,    1,   15,  -5,  64, function() { window.location.href = "http://tomgenco.com"; }),
+        "sourceLink", new MenuObject("Source code",    1,    1,  -15,  -5,  64, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
       ]);
-
       playing.add([
-        "menu",           new MenuObject("Menu",         0, 0,  15,  25, 128),
-        "score",          new MenuObject("",             1, 0, -15,  25, 128),
-        "scoreIndicator", new MenuObject("hi",           1, 0, -15, 130, 128),
+        "menu",           new MenuObject("Menu",       0,    0,   15,   0, 128),
+        "score",          new MenuObject("",           1,    0,  -15,   0, 128),
+        "scoreIndicator", new MenuObject("hi",         1,    0,  -15, 130, 128),
         "grid",           Grid,
         "siteLink",       main.contents.siteLink,
         "sourceLink",     main.contents.sourceLink
@@ -300,8 +301,8 @@ function Endless() {
         main.contents[object].transition = new Transition(main.contents[object], "opacity", 0, 1, 2000, i++ * 250);
       }
 
-      playing.contents.menu.transition =  new Transition(playing.contents.menu,  "fixedOffsetY", -128, 25, 1000, 100, "logistic");
-      playing.contents.score.transition = new Transition(playing.contents.score, "fixedOffsetY", -128, 25, 1000, 100, "logistic");
+      playing.contents.menu.transition =  new Transition(playing.contents.menu,  "fixedOffsetY", -128, 10, 1000, 100, "logistic");
+      playing.contents.score.transition = new Transition(playing.contents.score, "fixedOffsetY", -128, 10, 1000, 150, "logistic");
 
       main.show();
       requestAnimationFrame(Graphics.draw);
