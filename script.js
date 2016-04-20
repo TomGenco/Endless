@@ -8,7 +8,6 @@ function Endless() {
       backgroundColor: "#333",
       columns: 5,
       dotColors: 5,
-      dotSize: 80,
       hueShift: 60,
       rows: 5
     },
@@ -128,7 +127,7 @@ function Endless() {
     mouseX: null, mouseY: null,
 
 
-    init: function () {
+    init: function() {
       Graphics.canvas.addEventListener("mousedown", EventHandlers.MouseDown, false);
       Graphics.canvas.addEventListener("mouseup", EventHandlers.MouseUp, false);
       Graphics.canvas.addEventListener("mousemove", EventHandlers.MouseMove, false);
@@ -138,7 +137,7 @@ function Endless() {
       Graphics.canvas.addEventListener("touchend", EventHandlers.TouchEnd, false);
       Graphics.canvas.addEventListener("touchmove", EventHandlers.TouchMove, false);
       Graphics.canvas.addEventListener("touchcancel", EventHandlers.TouchEnd, false);
-      window.onresize = function () {
+      window.onresize = function() {
         Graphics.updateCanvasSize();
         Grid.calculateDimensions();
         Grid.calculatePositions();
@@ -281,6 +280,8 @@ function Endless() {
   var Graphics = {
     canvas: null,
     ctx: null,
+    dotSize: 0,
+
 
     init: function() {
       Graphics.canvas = document.getElementsByTagName("canvas")[0];
@@ -309,7 +310,7 @@ function Endless() {
       ]);
 
       playing.contents.scoreIndicator.visible = false;
-      playing.contents.menu.activate = function () { main.show(); };
+      playing.contents.menu.activate = function() { main.show(); };
 
       var i = 0;
       for (var object in main.contents) {
@@ -364,7 +365,7 @@ function Endless() {
         this.contents[name] = object;
     }
 
-    this.draw = function () {
+    this.draw = function() {
       if (this.overlay) {
         Graphics.ctx.fillStyle = "rgba(0,0,0,.75)";
         Graphics.ctx.fillRect(0, 0, Graphics.canvas.width, Graphics.canvas.height);
@@ -407,6 +408,7 @@ function Endless() {
     },
 
     init: function() {
+      Grid.calculateDotSize();
       Grid.calculateDimensions();
       Grid.generateDots();
     },
@@ -428,13 +430,13 @@ function Endless() {
                  break;
             }
             Grid.dots[col][row] = new Dot(hue, col, row,
-              Grid.gridX + Game.Settings.dotSize / 2 + col * Game.Settings.dotSize * 2,
-              Grid.gridY + Game.Settings.dotSize / 2 + row * Game.Settings.dotSize * 2);
+              Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
+              Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
             if (Game.Settings.animations)
               Grid.dots[col][row].transition = new Transition(
                 Grid.dots[col][row],
                 "y",
-                -Game.Settings.dotSize / 2 - Game.Settings.dotSize / 2 * (Game.Settings.rows - 1 - row),
+                -Graphics.dotSize / 2 - Graphics.dotSize / 2 * (Game.Settings.rows - 1 - row),
                 Grid.dots[col][row].y,
                 500 + delay * 100, 0, "logistic"
               );
@@ -461,7 +463,7 @@ function Endless() {
 
     drawSelectionLine: function() {
       Graphics.ctx.strokeStyle = "hsla(" + (Game.dotSelection[0].hue + Game.Settings.hueShift % 360) + ", 100%, 50%, 1)";
-      Graphics.ctx.lineWidth = Game.Settings.dotSize / 3;
+      Graphics.ctx.lineWidth = Graphics.dotSize / 3;
       Graphics.ctx.lineJoin = "round";
       Graphics.ctx.beginPath();
       Graphics.ctx.moveTo(Game.dotSelection[0].x, Game.dotSelection[0].y);
@@ -471,9 +473,20 @@ function Endless() {
       Graphics.ctx.stroke();
     },
 
+    calculateDotSize: function() {
+      // This will need some work (what if grid isn't a square?)
+      var height = Graphics.canvas.height - 100;
+      var width = Graphics.canvas.width - 100;
+
+      Graphics.dotSize = (Math.min(Graphics.canvas.height, Graphics.canvas.width)) /
+        (Math.max(Game.Settings.rows, Game.Settings.columns) * 2.5);
+
+      console.log(Graphics.dotSize);
+    },
+
     calculateDimensions: function() {
-      Grid.width = Game.Settings.columns * Game.Settings.dotSize * 2 - Game.Settings.dotSize;
-      Grid.height = Game.Settings.rows * Game.Settings.dotSize * 2 - Game.Settings.dotSize;
+      Grid.width = Game.Settings.columns * Graphics.dotSize * 2 - Graphics.dotSize;
+      Grid.height = Game.Settings.rows * Graphics.dotSize * 2 - Graphics.dotSize;
       Grid.gridX = window.innerWidth / 2 - Grid.width / 2;
       Grid.gridY = window.innerHeight / 2 - Grid.height / 2;
     },
@@ -493,8 +506,8 @@ function Endless() {
     calculatePositions: function() {
       for (var col = 0; col < Grid.dots.length; col++)
         for (var row = 0; row < Grid.dots[col].length; row++) {
-          Grid.dots[col][row].x = Grid.gridX + Game.Settings.dotSize / 2 + col * Game.Settings.dotSize * 2;
-          Grid.dots[col][row].y = Grid.gridY + Game.Settings.dotSize / 2 + row * Game.Settings.dotSize * 2;
+          Grid.dots[col][row].x = Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2;
+          Grid.dots[col][row].y = Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
         }
     },
 
@@ -519,8 +532,8 @@ function Endless() {
                 Grid.dots[col][row].transition = new Transition(
                   Grid.dots[col][row],
                   "y",
-                  Grid.gridY + Game.Settings.dotSize / 2 + (row - countNulls) * Game.Settings.dotSize * 2,
-                  Grid.gridY + Game.Settings.dotSize / 2 + row * Game.Settings.dotSize * 2,
+                  Grid.gridY + Graphics.dotSize / 2 + (row - countNulls) * Graphics.dotSize * 2,
+                  Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2,
                   400, 0, "logistic");
                 Grid.dots[col][row].draw.finished = false;
                 Grid.dots[col][row].transition.start();
@@ -534,17 +547,17 @@ function Endless() {
     },
 
     searchAtPosition: function(mouseX, mouseY) {
-      var gridPosX = mouseX - Grid.gridX + Game.Settings.dotSize / 2,
-          gridPosY = mouseY - Grid.gridY + Game.Settings.dotSize / 2;
+      var gridPosX = mouseX - Grid.gridX + Graphics.dotSize / 2,
+          gridPosY = mouseY - Grid.gridY + Graphics.dotSize / 2;
 
-      if (gridPosX > 0 && gridPosX < Grid.width  + Game.Settings.dotSize &&
-          gridPosY > 0 && gridPosY < Grid.height + Game.Settings.dotSize) {
+      if (gridPosX > 0 && gridPosX < Grid.width  + Graphics.dotSize &&
+          gridPosY > 0 && gridPosY < Grid.height + Graphics.dotSize) {
         var dot = Grid.dots[
-           Math.floor(gridPosX / ((Grid.width  + Game.Settings.dotSize) / Game.Settings.columns))]
-          [Math.floor(gridPosY / ((Grid.height + Game.Settings.dotSize) / Game.Settings.rows))
+           Math.floor(gridPosX / ((Grid.width  + Graphics.dotSize) / Game.Settings.columns))]
+          [Math.floor(gridPosY / ((Grid.height + Graphics.dotSize) / Game.Settings.rows))
         ];
 
-        if (dot && Math.sqrt(Math.pow(dot.x - mouseX, 2) + Math.pow(dot.y - mouseY, 2)) < Game.Settings.dotSize / 2 * 1.75)
+        if (dot && Math.sqrt(Math.pow(dot.x - mouseX, 2) + Math.pow(dot.y - mouseY, 2)) < Graphics.dotSize / 2 * 1.75)
           return dot;
       }
       return false;
@@ -572,7 +585,7 @@ function Endless() {
         (this.selected? "50%"  : "60%") + ", " +               // Lightness
          "1)";                                   // Alpha (opacity)
       Graphics.ctx.beginPath();
-      Graphics.ctx.arc(this.x, this.y, Game.Settings.dotSize / 2, 0, Math.PI * 2, false);
+      Graphics.ctx.arc(this.x, this.y, Graphics.dotSize / 2, 0, Math.PI * 2, false);
       Graphics.ctx.fill();
     }
   }
