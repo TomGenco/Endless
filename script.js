@@ -139,8 +139,7 @@ function Endless() {
       Graphics.canvas.addEventListener("touchcancel", EventHandlers.TouchEnd, false);
       window.onresize = function() {
         Graphics.updateCanvasSize();
-        Grid.calculateDimensions();
-        Grid.calculatePositions();
+        Grid.init();
       }
     },
 
@@ -410,6 +409,7 @@ function Endless() {
     init: function() {
       Grid.calculateDotSize();
       Grid.calculateDimensions();
+      Grid.calculatePositions();
       Grid.generateDots();
     },
 
@@ -448,69 +448,6 @@ function Endless() {
       }
     },
 
-    draw: function() {
-      // Run each dot's transitions if needed
-      for (var i = 0; i < Grid.dots.length; i++)
-        for (var j = 0; j < Grid.dots[i].length; j++)
-          if (Grid.dots[i][j]) {
-            Grid.dots[i][j].transition.update();
-            Grid.dots[i][j].draw();
-          }
-
-      if (Game.selectingDots)
-        Grid.drawSelectionLine();
-    },
-
-    drawSelectionLine: function() {
-      Graphics.ctx.strokeStyle = "hsla(" + (Game.dotSelection[0].hue + Game.Settings.hueShift % 360) + ", 100%, 50%, 1)";
-      Graphics.ctx.lineWidth = Graphics.dotSize / 3;
-      Graphics.ctx.lineJoin = "round";
-      Graphics.ctx.beginPath();
-      Graphics.ctx.moveTo(Game.dotSelection[0].x, Game.dotSelection[0].y);
-      for (var i = 0; i < Game.dotSelection.length; i++)
-        Graphics.ctx.lineTo(Game.dotSelection[i].x, Game.dotSelection[i].y)
-      Graphics.ctx.lineTo(EventHandlers.mouseX, EventHandlers.mouseY);
-      Graphics.ctx.stroke();
-    },
-
-    calculateDotSize: function() {
-      // This will need some work (what if grid isn't a square?)
-      var height = Graphics.canvas.height - 100;
-      var width = Graphics.canvas.width - 100;
-
-      Graphics.dotSize = (Math.min(Graphics.canvas.height, Graphics.canvas.width)) /
-        (Math.max(Game.Settings.rows, Game.Settings.columns) * 2.5);
-
-      console.log(Graphics.dotSize);
-    },
-
-    calculateDimensions: function() {
-      Grid.width = Game.Settings.columns * Graphics.dotSize * 2 - Graphics.dotSize;
-      Grid.height = Game.Settings.rows * Graphics.dotSize * 2 - Graphics.dotSize;
-      Grid.gridX = window.innerWidth / 2 - Grid.width / 2;
-      Grid.gridY = window.innerHeight / 2 - Grid.height / 2;
-    },
-
-    cleanUp: function() {
-      // Remove any dot that shouldn't exist
-      for (var col = dots.length - 1; col >= 0; col--)
-        if (col >= Game.Settings.columns)
-          dots.pop();
-        else
-          for (var row = Grid.dots[col].length - 1; row >= Game.Settings.rows; row--)
-            Grid.dots[col].pop();
-
-      Grid.generateDots();
-    },
-
-    calculatePositions: function() {
-      for (var col = 0; col < Grid.dots.length; col++)
-        for (var row = 0; row < Grid.dots[col].length; row++) {
-          Grid.dots[col][row].x = Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2;
-          Grid.dots[col][row].y = Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
-        }
-    },
-
     fillNulls: function() {
       // Iterate through each spot in Grid.dots[][], from the bottom to top
       for (var row = Grid.dots[0].length - 1; row >= 0; row--)
@@ -546,6 +483,54 @@ function Endless() {
 
     },
 
+    draw: function() {
+      // Run each dot's transitions if needed
+      for (var i = 0; i < Grid.dots.length; i++)
+        for (var j = 0; j < Grid.dots[i].length; j++)
+          if (Grid.dots[i][j]) {
+            Grid.dots[i][j].transition.update();
+            Grid.dots[i][j].draw();
+          }
+
+      if (Game.selectingDots)
+        Grid.drawSelectionLine();
+    },
+
+    drawSelectionLine: function() {
+      Graphics.ctx.strokeStyle = "hsla(" + (Game.dotSelection[0].hue + Game.Settings.hueShift % 360) + ", 100%, 50%, 1)";
+      Graphics.ctx.lineWidth = Graphics.dotSize / 3;
+      Graphics.ctx.lineJoin = "round";
+      Graphics.ctx.beginPath();
+      Graphics.ctx.moveTo(Game.dotSelection[0].x, Game.dotSelection[0].y);
+      for (var i = 0; i < Game.dotSelection.length; i++)
+        Graphics.ctx.lineTo(Game.dotSelection[i].x, Game.dotSelection[i].y)
+      Graphics.ctx.lineTo(EventHandlers.mouseX, EventHandlers.mouseY);
+      Graphics.ctx.stroke();
+    },
+
+    calculateDotSize: function() {
+      // This will need some work (what if grid isn't a square?)
+      Graphics.dotSize = (Math.min(Graphics.canvas.height, Graphics.canvas.width)) /
+        (Math.max(Game.Settings.rows, Game.Settings.columns) * 2.4);
+
+      console.log(Graphics.dotSize);
+    },
+
+    calculateDimensions: function() {
+      Grid.width = Game.Settings.columns * Graphics.dotSize * 2 - Graphics.dotSize;
+      Grid.height = Game.Settings.rows * Graphics.dotSize * 2 - Graphics.dotSize;
+      Grid.gridX = window.innerWidth / 2 - Grid.width / 2;
+      Grid.gridY = window.innerHeight / 2 - Grid.height / 2;
+    },
+
+    calculatePositions: function() {
+      for (var col = 0; col < Grid.dots.length; col++)
+        for (var row = 0; row < Grid.dots[col].length; row++) {
+          Grid.dots[col][row].x = Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2;
+          Grid.dots[col][row].y = Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
+        }
+    },
+
     searchAtPosition: function(mouseX, mouseY) {
       var gridPosX = mouseX - Grid.gridX + Graphics.dotSize / 2,
           gridPosY = mouseY - Grid.gridY + Graphics.dotSize / 2;
@@ -566,6 +551,18 @@ function Endless() {
     checkConnection: function(dot1, dot2) {
       return dot2 && dot1.hue == dot2.hue && !dot2.selected &&
         Math.abs(dot2.col - dot1.col) < 2 && Math.abs(dot2.row - dot1.row) < 2;
+    },
+
+    cleanUp: function() {
+      // Remove any dot that shouldn't exist
+      for (var col = dots.length - 1; col >= 0; col--)
+        if (col >= Game.Settings.columns)
+          dots.pop();
+        else
+          for (var row = Grid.dots[col].length - 1; row >= Game.Settings.rows; row--)
+            Grid.dots[col].pop();
+
+      Grid.generateDots();
     }
   }
 
