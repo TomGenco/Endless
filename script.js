@@ -20,30 +20,40 @@ function Endless() {
     menuObjectMouseover: null,
     dotMouseover: null,
     dotSelection: [],
+    dotSelectionHue: 100,
     playing: false,
 
     play: function() {
       if (!Game.playing) {
+        Game.updateScore(0);
         Game.playing = true;
         Game.Screens.playing.show();
         Game.Screens.main.overlay = true;
-        Game.updateScore(0);
       }
       Game.Screens.main.hide();
     },
 
     updateScore: function(dotsCleared) {
       Game.score += dotsCleared == 2? 2 : 2 * dotsCleared;
-      if (Game.playing)
+      if (Game.playing) {
         Game.Screens.playing.contents.score.text = Game.score;
+        Game.Screens.playing.contents.score.hue = Game.dotSelectionHue + Game.Settings.hueShift % 360;
+        Game.Screens.playing.contents.score.lightness = 60;
+        Game.Screens.playing.contents.score.transition = new Transition(
+          Game.Screens.playing.contents.score,
+          "lightness", 60, 100, 800, 0);
+        Game.Screens.playing.contents.score.transition.start();
+      }
       localStorage.setItem("Endless--score", Game.score);
     },
 
     updateScoreIndicator: function(dotsCleared) {
       if (dotsCleared != 0) {
-        Game.Screens.playing.contents.scoreIndicator.visible = true;
-        Game.Screens.playing.contents.scoreIndicator.color = "hsl(" + (Game.dotSelection[0].color + Game.Settings.hueShift % 360) + ", 60%, 60%)";
         Game.Screens.playing.contents.scoreIndicator.text = "+" + (dotsCleared == 2? 2 : 2 * dotsCleared);
+        Game.Screens.playing.contents.scoreIndicator.visible = true;
+        Game.Screens.playing.contents.scoreIndicator.hue = Game.dotSelection[0].hue + Game.Settings.hueShift % 360;
+        Game.Screens.playing.contents.scoreIndicator.saturation = 60;
+        Game.Screens.playing.contents.scoreIndicator.lightness = 60;
       } else {
         Game.Screens.playing.contents.scoreIndicator.visible = false;
       }
@@ -152,14 +162,15 @@ function Endless() {
         Game.updateScoreIndicator(0);
         Game.selectingDots = false;
         if (Game.dotSelection.length > 1) {
-          Grid.lastTwoColors[1] = Grid.lastTwoColors[0];
-          Grid.lastTwoColors[0] = Game.dotSelection[0].color;
+          Grid.lastTwoHues[1] = Grid.lastTwoHues[0];
+          Grid.lastTwoHues[0] = Game.dotSelection[0].hue;
+          Game.dotSelectionHue = Game.dotSelection[0].hue;
           var dotsCleared = 0;
           for (var i = 0; i < Game.dotSelection.length; i++) {
             Grid.dots[Game.dotSelection[i].col][Game.dotSelection[i].row] = null;
             dotsCleared++;
           }
-          Game.updateScore(Game.dotSelection.length);
+          Game.updateScore(dotsCleared);
           Grid.fillNulls();
           Util.vibrate([20, 40, 20]);
         } else
@@ -286,7 +297,7 @@ function Endless() {
       ]);
       playing.add([
         "menu",           new MenuObject("Menu",       0,    0,   15,   0, 128),
-        "score",          new MenuObject("",           1,    0,  -15,   0, 128),
+        "score",          new MenuObject(Game.score,        1,    0,  -15,   0, 128),
         "scoreIndicator", new MenuObject("hi",         1,    0,  -15, 130, 128),
         "grid",           Grid,
         "siteLink",       main.contents.siteLink,
@@ -380,7 +391,7 @@ function Endless() {
   }
 
   var Grid = {
-    gridX: null, gridY: null, width: null, height: null, dots: [], lastTwoColors: [], visible: true,
+    gridX: null, gridY: null, width: null, height: null, dots: [], lastTwoHues: [], visible: true,
 
     transition: {
       started: false,
@@ -404,15 +415,15 @@ function Endless() {
         updateDelay = false;
         for (var row = 0; row < Game.Settings.rows; row++)
           if (!Grid.dots[col][row]) {
-            var color;
+            var hue;
             while ("I still feel like it") {
-              color = Math.floor(Math.random() * Game.Settings.dotColors) * (360 / Math.floor(Game.Settings.dotColors));
+              hue = Math.floor(Math.random() * Game.Settings.dotColors) * (360 / Math.floor(Game.Settings.dotColors));
               if (Game.Settings.dotColors < 3 ||
-                (color != Grid.lastTwoColors[0] &&
-                 color != Grid.lastTwoColors[1]))
+                (hue != Grid.lastTwoHues[0] &&
+                 hue != Grid.lastTwoHues[1]))
                  break;
             }
-            Grid.dots[col][row] = new Dot(color, col, row,
+            Grid.dots[col][row] = new Dot(hue, col, row,
               Grid.gridX + Game.Settings.dotSize / 2 + col * Game.Settings.dotSize * 2,
               Grid.gridY + Game.Settings.dotSize / 2 + row * Game.Settings.dotSize * 2);
             if (Game.Settings.animations)
@@ -445,7 +456,7 @@ function Endless() {
     },
 
     drawSelectionLine: function() {
-      Graphics.ctx.strokeStyle = "hsla(" + (Game.dotSelection[0].color + Game.Settings.hueShift % 360) + ", 100%, 50%, 1)";
+      Graphics.ctx.strokeStyle = "hsla(" + (Game.dotSelection[0].hue + Game.Settings.hueShift % 360) + ", 100%, 50%, 1)";
       Graphics.ctx.lineWidth = Game.Settings.dotSize / 3;
       Graphics.ctx.lineJoin = "round";
       Graphics.ctx.beginPath();
@@ -536,13 +547,13 @@ function Endless() {
     },
 
     checkConnection: function(dot1, dot2) {
-      return dot2 && dot1.color == dot2.color && !dot2.selected &&
+      return dot2 && dot1.hue == dot2.hue && !dot2.selected &&
         Math.abs(dot2.col - dot1.col) < 2 && Math.abs(dot2.row - dot1.row) < 2;
     }
   }
 
-  function Dot(color, column, row, x, y) {
-    this.color = color;
+  function Dot(hue, column, row, x, y) {
+    this.hue = hue;
     this.col = column;
     this.row = row;
     this.x = x;
@@ -552,7 +563,7 @@ function Endless() {
 
     this.draw = function() {
       Graphics.ctx.fillStyle = "hsla(" +
-        (this.color + Game.Settings.hueShift % 360) + ", " + // Hue
+        (this.hue + Game.Settings.hueShift % 360) + ", " + // Hue
         (this.selected? "100%" : "60%") + ", " +               // Saturation
         (this.selected? "50%"  : "60%") + ", " +               // Lightness
          "1)";                                   // Alpha (opacity)
@@ -570,7 +581,9 @@ function Endless() {
     this.transition;
     this.visible = true
     this.text = text;
-    this.color = "hsl(0, 0%, 100%)";
+    this.hue = 0;
+    this.saturation = 100;
+    this.lightness = 100;
 
     Graphics.ctx.font = (fontSize >= 64 ? "100 " : "300 ") + fontSize + "px Josefin Sans";
     var width    = Graphics.ctx.measureText(text).width,
@@ -617,7 +630,7 @@ function Endless() {
       Graphics.ctx.textBaseline = baseline;
       Graphics.ctx.font = (fontSize >= 64 ? "100 " : "300 ") + fontSize + "px Josefin Sans";
       Graphics.ctx.globalAlpha = this.opacity;
-      Graphics.ctx.fillStyle = this.color;
+      Graphics.ctx.fillStyle = "hsl(" + this.hue + "," + this.saturation + "%," + this.lightness + "%)";
       Graphics.ctx.fillText(this.text, relativeX * Graphics.canvas.width + this.fixedOffsetX, relativeY * Graphics.canvas.height + this.fixedOffsetY);
       // Graphics.ctx.strokeRect(menuX, menuY - fontSize / 10, width, height + fontSize / 10);
     };
