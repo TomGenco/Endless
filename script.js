@@ -161,7 +161,7 @@ function Endless() {
           }
           Game.updateScore(Game.dotSelection.length);
           Grid.fillNulls();
-          Util.vibrate(20, 40, 20);
+          Util.vibrate([20, 40, 20]);
         } else
           Game.dotSelection[0].selected = false;
         Game.dotSelection = [];
