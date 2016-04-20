@@ -138,7 +138,11 @@ function Endless() {
       Graphics.canvas.addEventListener("touchend", EventHandlers.TouchEnd, false);
       Graphics.canvas.addEventListener("touchmove", EventHandlers.TouchMove, false);
       Graphics.canvas.addEventListener("touchcancel", EventHandlers.TouchEnd, false);
-      window.onresize = Graphics.updateCanvasSize;
+      window.onresize = function () {
+        Graphics.updateCanvasSize();
+        Grid.calculateDimensions();
+        Grid.calculatePositions();
+      }
     },
 
     MouseDown: function(e) {
@@ -487,8 +491,8 @@ function Endless() {
     },
 
     calculatePositions: function() {
-      for (col = 0; col < dots.length; col++)
-        for (row = 0; row < Grid.dots[col].length; row++) {
+      for (var col = 0; col < Grid.dots.length; col++)
+        for (var row = 0; row < Grid.dots[col].length; row++) {
           Grid.dots[col][row].x = Grid.gridX + Game.Settings.dotSize / 2 + col * Game.Settings.dotSize * 2;
           Grid.dots[col][row].y = Grid.gridY + Game.Settings.dotSize / 2 + row * Game.Settings.dotSize * 2;
         }
