@@ -151,8 +151,8 @@ function Endless() {
         Game.menuObjectMouseover.activate();
 
       if (Game.dotMouseover) {
-        EventHandlers.mouseX = Game.dotMouseover.x;
-        EventHandlers.mouseY = Game.dotMouseover.y;
+        EventHandlers.mouseX = Game.dotMouseover.clientX;
+        EventHandlers.mouseY = Game.dotMouseover.clientY;
         Game.selectingDots = true;
         Game.dotSelection[0] = Game.dotMouseover;
         Game.dotMouseover.selected = true;
@@ -184,12 +184,12 @@ function Endless() {
 
     MouseMove: function(e) {
       // Skip all this if onTouchEnd called handleMouseUp
-      if (e.x == null)
+      if (e.changedTouches != null)
         return;
 
       var menuObject;
 
-      if (!Game.selectingDots && (menuObject = MenuObject.searchAtPosition(e.x, e.y)) && menuObject.activate) {
+      if (!Game.selectingDots && (menuObject = MenuObject.searchAtPosition(e.clientX, e.clientY)) && menuObject.activate) {
         Game.menuObjectMouseover = menuObject;
         Game.dotMouseover = null;
         Graphics.canvas.style.cursor = "pointer";
@@ -198,9 +198,9 @@ function Endless() {
         Graphics.canvas.removeAttribute("style");
 
         if (Game.selectingDots)
-          EventHandlers.mouseX = e.x, EventHandlers.mouseY = e.y;
+          EventHandlers.mouseX = e.clientX, EventHandlers.mouseY = e.clientY;
 
-        if (Game.playing && !Game.Screens.main.visible && (Game.dotMouseover = Grid.searchAtPosition(e.x, e.y))) {
+        if (Game.playing && !Game.Screens.main.visible && (Game.dotMouseover = Grid.searchAtPosition(e.clientX, e.clientY))) {
           Graphics.canvas.style.cursor = "pointer";
           if (Game.dotMouseover == Game.dotSelection[Game.dotSelection.length - 2]) {
             Game.dotSelection[Game.dotSelection.length - 1].selected = false;
