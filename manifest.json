@@ -5,7 +5,6 @@
   "display": "fullscreen",
   "orientation": "portrait",
   "background_color": "#333",
-  "theme_color": "#A55CD7",
   "icons": [
     {
       "src": "assets/endless-96.png",
