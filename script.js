@@ -692,6 +692,7 @@ function Endless() {
       var that = this;
       setTimeout(function() {
         that.finished = true;
+        that.object[that.property] = that.endVal;
         if (that.callback)
           that.callback();
       }, that.delay + that.duration);
