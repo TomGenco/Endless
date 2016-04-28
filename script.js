@@ -3,13 +3,12 @@
 function Endless() {
   var Game = {
     Settings: {
-      acid: false,
       animations: true,
-      backgroundColor: "#333",
       columns: 5,
       dotColors: 5,
       hueShift: 60,
-      rows: 5
+      rows: 5,
+      vibrate: true
     },
 
     Screens: {},
@@ -35,12 +34,14 @@ function Endless() {
       Game.score += dotsCleared == 2? 2 : 2 * dotsCleared;
       if (Game.playing) {
         Game.Screens.playing.contents.score.text = Game.score;
-        Game.Screens.playing.contents.score.hue = Game.dotSelectionHue + Game.Settings.hueShift % 360;
-        Game.Screens.playing.contents.score.lightness = 60;
-        Game.Screens.playing.contents.score.transition = new Transition(
-          Game.Screens.playing.contents.score,
-          "lightness", 60, 100, 800, 0);
-        Game.Screens.playing.contents.score.transition.start();
+        if (Game.Settings.animations) {
+          Game.Screens.playing.contents.score.hue = Game.dotSelectionHue + Game.Settings.hueShift % 360;
+          Game.Screens.playing.contents.score.lightness = 60;
+          Game.Screens.playing.contents.score.transition = new Transition(
+            Game.Screens.playing.contents.score,
+            "lightness", 60, 100, 800, 0);
+          Game.Screens.playing.contents.score.transition.start();
+          }
       }
       localStorage.setItem("Endless--score", Game.score);
     },
@@ -111,7 +112,9 @@ function Endless() {
     },
 
     vibrate: function(time) {
-      if (navigator.vibrate)
+      if (!Game.Settings.vibrate)
+        return;
+      else if (navigator.vibrate)
         navigator.vibrate(time);
       else if (navigator.mozVibrate)
         navigator.mozVibrate(time);
@@ -309,14 +312,14 @@ function Endless() {
       playing.contents.scoreIndicator.visible = false;
       playing.contents.menu.activate = function() { main.show(); };
 
-      var i = 0;
-      for (var object in main.contents) {
-        main.contents[object].transition = new Transition(main.contents[object], "opacity", 0, 1, 2000, i++ * 250);
-      }
+      if (Game.Settings.animations) {
+        var i = 0;
+        for (var object in main.contents)
+          main.contents[object].transition = new Transition(main.contents[object], "opacity", 0, 1, 2000, i++ * 250);
 
-      playing.contents.menu.transition =  new Transition(playing.contents.menu,  "fixedOffsetY", -128, 10, 1000, 100, "logistic");
-      playing.contents.score.transition = new Transition(playing.contents.score, "fixedOffsetY", -128, 10, 1000, 150, "logistic");
-
+        playing.contents.menu.transition =  new Transition(playing.contents.menu,  "fixedOffsetY", -128, 10, 1000, 100, "logistic");
+        playing.contents.score.transition = new Transition(playing.contents.score, "fixedOffsetY", -128, 10, 1000, 150, "logistic");
+    }
       main.show();
       requestAnimationFrame(Graphics.draw);
     },
@@ -397,7 +400,8 @@ function Endless() {
       start: function() {
         for (var i = 0; i < Grid.dots.length; i++)
           for (var j = 0; j < Grid.dots[i].length; j++)
-            Grid.dots[i][j] && Grid.dots[i][j].transition.start();
+            if (Grid.dots[i][j] && Game.Settings.animations)
+              Grid.dots[i][j].transition.start();
       }
     },
 
@@ -469,6 +473,8 @@ function Endless() {
                   400, 0, "logistic");
                 Grid.dots[col][row].draw.finished = false;
                 Grid.dots[col][row].transition.start();
+              } else {
+                Grid.dots[col][row].y = Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
               }
             }
           }
@@ -483,7 +489,8 @@ function Endless() {
       for (var i = 0; i < Grid.dots.length; i++)
         for (var j = 0; j < Grid.dots[i].length; j++)
           if (Grid.dots[i][j]) {
-            Grid.dots[i][j].transition.update();
+            if (Game.Settings.animations)
+              Grid.dots[i][j].transition.update();
             Grid.dots[i][j].draw();
           }
 
@@ -699,6 +706,7 @@ function Endless() {
       var that = this;
       setTimeout(function() {
         that.finished = true;
+        this.object[this.property] = this.endVal;
         if (that.callback)
           that.callback();
       }, that.delay + that.duration);
