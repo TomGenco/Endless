@@ -4,5 +4,12 @@
   "start_url": "/index.html",
   "display": "fullscreen",
   "orientation": "portrait",
-  "background_color": "#333"
+  "background_color": "#333",
+  "icons": [
+    {
+      "src": "assets/endless.png",
+      "sizes": "196x196",
+      "type": "image/png"
+    }
+  ]
 }
