@@ -7,6 +7,16 @@
   "background_color": "#333",
   "icons": [
     {
+      "src": "assets/endless-96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/endless-144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
       "src": "assets/endless-192.png",
       "sizes": "192x192",
       "type": "image/png"
