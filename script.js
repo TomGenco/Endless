@@ -13,7 +13,6 @@ function Endless() {
     },
 
     Screens: {},
-
     score: 0,
     selectingDots: false,
     menuObjectMouseover: null,
@@ -281,7 +280,6 @@ function Endless() {
     ctx: null,
     dotSize: 0,
 
-
     init: function() {
       Graphics.canvas = document.getElementsByTagName("canvas")[0];
       Graphics.ctx = Graphics.canvas.getContext("2d");
@@ -301,7 +299,7 @@ function Endless() {
       ]);
       playing.add([
         "menu",           new MenuObject("Menu",       0,    0,   15,   0, 128),
-        "score",          new MenuObject(Game.score,        1,    0,  -15,   0, 128),
+        "score",          new MenuObject(Game.score,   1,    0,  -15,   0, 128),
         "scoreIndicator", new MenuObject("hi",         1,    0,  -15, 130, 128),
         "grid",           Grid,
         "siteLink",       main.contents.siteLink,
@@ -332,9 +330,6 @@ function Endless() {
     draw: function() {
       Graphics.ctx.clearRect(0,0,Graphics.canvas.width,Graphics.canvas.height);
 
-      // for (var screen in Game.Screens)
-      //   if (Game.Screens[screen].visible)
-      //     Game.Screens[screen].draw();
       if (Game.Screens.playing.visible)
         Game.Screens.playing.draw();
       if (Game.Screens.main.visible)
@@ -512,8 +507,6 @@ function Endless() {
       // This will need some work (what if grid isn't a square?)
       Graphics.dotSize = (Math.min(Graphics.canvas.height, Graphics.canvas.width)) /
         (Math.max(Game.Settings.rows, Game.Settings.columns) * 2.4);
-
-      console.log(Graphics.dotSize);
     },
 
     calculateDimensions: function() {
@@ -715,8 +708,6 @@ function Endless() {
     this.update = function() {
       if (!this.finished)
         this.object[this.property] = this.value;
-      else
-        this.object[this.property] = this.endVal;
     }
   }
 
