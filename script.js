@@ -61,36 +61,36 @@ function Endless() {
 
   var Util = {
     loadDataFromStorage: function() {
-      var storage = window.localStorage, value;
-
-      for (var i = 0; i < storage.length; i++)
-      if (/^Endless--/.test(storage.key(i))) {
-        if (storage.key(i) == "Endless--score") {
-          Game.score = parseFloat(storage.getItem(storage.key(i)));
-          Game.updateScore(0);
-
-          continue;
+      for (var i = 0; i < localStorage.length; i++)
+        if (/^Endless--/.test(localStorage.key(i))) {
+          if (localStorage.key(i) == "Endless--score") {
+            Game.score = parseFloat(localStorage.getItem("Endless--score"));
+            Game.updateScore(0);
+            continue;
+          } else if (localStorage.key(i) == "Endless--grid") {
+            Grid.importing = true;
+            continue;
+          }
+          var value = localStorage.getItem(localStorage.key(i));
+          switch (value) {
+            case "true":
+            value = true;
+            break;
+            case "false":
+            value = false;
+            break;
+            case "null":
+            value = null;
+            break;
+            default:
+            value = isNaN(parseFloat(value)) ? value : parseFloat(value);
+          }
+          try {
+            settings.set([localStorage.key(i).substr(9)], value);
+          } catch (e) {
+            console.warn("Setting \"" + localStorage.key(i).substr(9) + "\" from Local Storage doesn't exist");
+          }
         }
-        value = storage.getItem(storage.key(i));
-        switch (value) {
-          case "true":
-          value = true;
-          break;
-          case "false":
-          value = false;
-          break;
-          case "null":
-          value = null;
-          break;
-          default:
-          value = isNaN(parseFloat(value)) ? value : parseFloat(value);
-        }
-        try {
-          settings.set([storage.key(i).substr(9)], value);
-        } catch (e) {
-          console.warn("Setting \"" + storage.key(i).substr(9) + "\" from Local Storage doesn't exist");
-        }
-      }
     },
 
     saveDataToStorage: function() {
@@ -98,13 +98,12 @@ function Endless() {
         localStorage.setItem("Endless--" + setting, Game.Setting[setting]);
     },
 
-    clearStorage: function() {
-      var storage = window.localStorage;
+    clearStorage: function() {;
       var reallyWannaDoThat = confirm("Do you really want to reset settings and score?");
       if (reallyWannaDoThat) {
-        for (var i = 0; i < storage.length; i++)
-          if (/^Endless--/.test(storage.key(i))) {
-            localStorage.removeItem(storage.key(i));
+        for (var i = 0; i < localStorage.length; i++)
+          if (/^Endless--/.test(localStorage.key(i))) {
+            localStorage.removeItem(localStorage.key(i));
             i--;
           }
         location.reload();
@@ -393,7 +392,7 @@ function Endless() {
   }
 
   var Grid = {
-    gridX: null, gridY: null, width: null, height: null, dots: [], lastTwoHues: [], visible: true,
+    gridX: null, gridY: null, width: null, height: null, dots: [], lastTwoHues: [], visible: true, importing: false,
 
     transition: {
       started: false,
@@ -445,6 +444,11 @@ function Endless() {
         if (updateDelay)
           delay++;
       }
+      if (Grid.importing) {
+        Grid.importing = false;
+        Grid.importFromJSON();
+      } else
+        Grid.exportToJSON();
     },
 
     fillNulls: function() {
@@ -563,6 +567,25 @@ function Endless() {
             Grid.dots[col].pop();
 
       Grid.generateDots();
+    },
+
+    importFromJSON: function(gridString) {
+      var grid = JSON.parse(localStorage.getItem("Endless--grid"));
+      for (var col = 0; col < grid.length; col++)
+        for (var row = 0; row < grid[0].length; row++)
+          Grid.dots[col][row].hue = grid[col][row].hue;
+    },
+
+    exportToJSON: function() {
+      var grid = [];
+      for (var col = 0; col < Grid.dots.length; col++) {
+        grid[col] = [];
+        for (var row = 0; row < Grid.dots[0].length; row++)
+          grid[col][row] = {
+            hue: Grid.dots[col][row].hue
+          };
+      }
+      localStorage.setItem("Endless--grid", JSON.stringify(grid));
     }
   }
 
