@@ -3,18 +3,15 @@
 function Endless() {
   var Game = {
     Settings: {
-      acid: false,
       animations: true,
-      backgroundColor: "#333",
       columns: 5,
       dotColors: 5,
-      dotSize: 80,
       hueShift: 60,
-      rows: 5
+      rows: 5,
+      vibrate: true
     },
 
     Screens: {},
-
     score: 0,
     selectingDots: false,
     menuObjectMouseover: null,
@@ -37,12 +34,14 @@ function Endless() {
       Game.score += dotsCleared == 2? 2 : 2 * dotsCleared;
       if (Game.playing) {
         Game.Screens.playing.contents.score.text = Game.score;
-        Game.Screens.playing.contents.score.hue = Game.dotSelectionHue + Game.Settings.hueShift % 360;
-        Game.Screens.playing.contents.score.lightness = 60;
-        Game.Screens.playing.contents.score.transition = new Transition(
-          Game.Screens.playing.contents.score,
-          "lightness", 60, 100, 800, 0);
-        Game.Screens.playing.contents.score.transition.start();
+        if (Game.Settings.animations) {
+          Game.Screens.playing.contents.score.hue = Game.dotSelectionHue + Game.Settings.hueShift % 360;
+          Game.Screens.playing.contents.score.lightness = 60;
+          Game.Screens.playing.contents.score.transition = new Transition(
+            Game.Screens.playing.contents.score,
+            "lightness", 60, 100, 800, 0);
+          Game.Screens.playing.contents.score.transition.start();
+          }
       }
       localStorage.setItem("Endless--score", Game.score);
     },
@@ -113,7 +112,9 @@ function Endless() {
     },
 
     vibrate: function(time) {
-      if (navigator.vibrate)
+      if (!Game.Settings.vibrate)
+        return;
+      else if (navigator.vibrate)
         navigator.vibrate(time);
       else if (navigator.mozVibrate)
         navigator.mozVibrate(time);
@@ -128,7 +129,7 @@ function Endless() {
     mouseX: null, mouseY: null,
 
 
-    init: function () {
+    init: function() {
       Graphics.canvas.addEventListener("mousedown", EventHandlers.MouseDown, false);
       Graphics.canvas.addEventListener("mouseup", EventHandlers.MouseUp, false);
       Graphics.canvas.addEventListener("mousemove", EventHandlers.MouseMove, false);
@@ -138,7 +139,10 @@ function Endless() {
       Graphics.canvas.addEventListener("touchend", EventHandlers.TouchEnd, false);
       Graphics.canvas.addEventListener("touchmove", EventHandlers.TouchMove, false);
       Graphics.canvas.addEventListener("touchcancel", EventHandlers.TouchEnd, false);
-      window.onresize = Graphics.updateCanvasSize;
+      window.onresize = function() {
+        Graphics.updateCanvasSize();
+        Grid.init();
+      }
     },
 
     MouseDown: function(e) {
@@ -149,8 +153,8 @@ function Endless() {
         Game.menuObjectMouseover.activate();
 
       if (Game.dotMouseover) {
-        EventHandlers.mouseX = Game.dotMouseover.x;
-        EventHandlers.mouseY = Game.dotMouseover.y;
+        EventHandlers.mouseX = Game.dotMouseover.clientX;
+        EventHandlers.mouseY = Game.dotMouseover.clientY;
         Game.selectingDots = true;
         Game.dotSelection[0] = Game.dotMouseover;
         Game.dotMouseover.selected = true;
@@ -182,12 +186,12 @@ function Endless() {
 
     MouseMove: function(e) {
       // Skip all this if onTouchEnd called handleMouseUp
-      if (e.x == null)
+      if (e.changedTouches != null)
         return;
 
       var menuObject;
 
-      if (!Game.selectingDots && (menuObject = MenuObject.searchAtPosition(e.x, e.y)) && menuObject.activate) {
+      if (!Game.selectingDots && (menuObject = MenuObject.searchAtPosition(e.clientX, e.clientY)) && menuObject.activate) {
         Game.menuObjectMouseover = menuObject;
         Game.dotMouseover = null;
         Graphics.canvas.style.cursor = "pointer";
@@ -196,9 +200,9 @@ function Endless() {
         Graphics.canvas.removeAttribute("style");
 
         if (Game.selectingDots)
-          EventHandlers.mouseX = e.x, EventHandlers.mouseY = e.y;
+          EventHandlers.mouseX = e.clientX, EventHandlers.mouseY = e.clientY;
 
-        if (Game.playing && !Game.Screens.main.visible && (Game.dotMouseover = Grid.searchAtPosition(e.x, e.y))) {
+        if (Game.playing && !Game.Screens.main.visible && (Game.dotMouseover = Grid.searchAtPosition(e.clientX, e.clientY))) {
           Graphics.canvas.style.cursor = "pointer";
           if (Game.dotMouseover == Game.dotSelection[Game.dotSelection.length - 2]) {
             Game.dotSelection[Game.dotSelection.length - 1].selected = false;
@@ -277,6 +281,7 @@ function Endless() {
   var Graphics = {
     canvas: null,
     ctx: null,
+    dotSize: 0,
 
     init: function() {
       Graphics.canvas = document.getElementsByTagName("canvas")[0];
@@ -297,7 +302,7 @@ function Endless() {
       ]);
       playing.add([
         "menu",           new MenuObject("Menu",       0,    0,   15,   0, 128),
-        "score",          new MenuObject(Game.score,        1,    0,  -15,   0, 128),
+        "score",          new MenuObject(Game.score,   1,    0,  -15,   0, 128),
         "scoreIndicator", new MenuObject("hi",         1,    0,  -15, 130, 128),
         "grid",           Grid,
         "siteLink",       main.contents.siteLink,
@@ -305,16 +310,16 @@ function Endless() {
       ]);
 
       playing.contents.scoreIndicator.visible = false;
-      playing.contents.menu.activate = function () { main.show(); };
+      playing.contents.menu.activate = function() { main.show(); };
 
-      var i = 0;
-      for (var object in main.contents) {
-        main.contents[object].transition = new Transition(main.contents[object], "opacity", 0, 1, 2000, i++ * 250);
-      }
+      if (Game.Settings.animations) {
+        var i = 0;
+        for (var object in main.contents)
+          main.contents[object].transition = new Transition(main.contents[object], "opacity", 0, 1, 2000, i++ * 250);
 
-      playing.contents.menu.transition =  new Transition(playing.contents.menu,  "fixedOffsetY", -128, 10, 1000, 100, "logistic");
-      playing.contents.score.transition = new Transition(playing.contents.score, "fixedOffsetY", -128, 10, 1000, 150, "logistic");
-
+        playing.contents.menu.transition =  new Transition(playing.contents.menu,  "fixedOffsetY", -128, 10, 1000, 100, "logistic");
+        playing.contents.score.transition = new Transition(playing.contents.score, "fixedOffsetY", -128, 10, 1000, 150, "logistic");
+    }
       main.show();
       requestAnimationFrame(Graphics.draw);
     },
@@ -328,9 +333,6 @@ function Endless() {
     draw: function() {
       Graphics.ctx.clearRect(0,0,Graphics.canvas.width,Graphics.canvas.height);
 
-      // for (var screen in Game.Screens)
-      //   if (Game.Screens[screen].visible)
-      //     Game.Screens[screen].draw();
       if (Game.Screens.playing.visible)
         Game.Screens.playing.draw();
       if (Game.Screens.main.visible)
@@ -360,7 +362,7 @@ function Endless() {
         this.contents[name] = object;
     }
 
-    this.draw = function () {
+    this.draw = function() {
       if (this.overlay) {
         Graphics.ctx.fillStyle = "rgba(0,0,0,.75)";
         Graphics.ctx.fillRect(0, 0, Graphics.canvas.width, Graphics.canvas.height);
@@ -398,12 +400,15 @@ function Endless() {
       start: function() {
         for (var i = 0; i < Grid.dots.length; i++)
           for (var j = 0; j < Grid.dots[i].length; j++)
-            Grid.dots[i][j] && Grid.dots[i][j].transition.start();
+            if (Grid.dots[i][j] && Game.Settings.animations)
+              Grid.dots[i][j].transition.start();
       }
     },
 
     init: function() {
+      Grid.calculateDotSize();
       Grid.calculateDimensions();
+      Grid.calculatePositions();
       Grid.generateDots();
     },
 
@@ -424,13 +429,13 @@ function Endless() {
                  break;
             }
             Grid.dots[col][row] = new Dot(hue, col, row,
-              Grid.gridX + Game.Settings.dotSize / 2 + col * Game.Settings.dotSize * 2,
-              Grid.gridY + Game.Settings.dotSize / 2 + row * Game.Settings.dotSize * 2);
+              Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
+              Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
             if (Game.Settings.animations)
               Grid.dots[col][row].transition = new Transition(
                 Grid.dots[col][row],
                 "y",
-                -Game.Settings.dotSize / 2 - Game.Settings.dotSize / 2 * (Game.Settings.rows - 1 - row),
+                -Graphics.dotSize / 2 - Graphics.dotSize / 2 * (Game.Settings.rows - 1 - row),
                 Grid.dots[col][row].y,
                 500 + delay * 100, 0, "logistic"
               );
@@ -440,58 +445,6 @@ function Endless() {
         if (updateDelay)
           delay++;
       }
-    },
-
-    draw: function() {
-      // Run each dot's transitions if needed
-      for (var i = 0; i < Grid.dots.length; i++)
-        for (var j = 0; j < Grid.dots[i].length; j++)
-          if (Grid.dots[i][j]) {
-            Grid.dots[i][j].transition.update();
-            Grid.dots[i][j].draw();
-          }
-
-      if (Game.selectingDots)
-        Grid.drawSelectionLine();
-    },
-
-    drawSelectionLine: function() {
-      Graphics.ctx.strokeStyle = "hsla(" + (Game.dotSelection[0].hue + Game.Settings.hueShift % 360) + ", 100%, 50%, 1)";
-      Graphics.ctx.lineWidth = Game.Settings.dotSize / 3;
-      Graphics.ctx.lineJoin = "round";
-      Graphics.ctx.beginPath();
-      Graphics.ctx.moveTo(Game.dotSelection[0].x, Game.dotSelection[0].y);
-      for (var i = 0; i < Game.dotSelection.length; i++)
-        Graphics.ctx.lineTo(Game.dotSelection[i].x, Game.dotSelection[i].y)
-      Graphics.ctx.lineTo(EventHandlers.mouseX, EventHandlers.mouseY);
-      Graphics.ctx.stroke();
-    },
-
-    calculateDimensions: function() {
-      Grid.width = Game.Settings.columns * Game.Settings.dotSize * 2 - Game.Settings.dotSize;
-      Grid.height = Game.Settings.rows * Game.Settings.dotSize * 2 - Game.Settings.dotSize;
-      Grid.gridX = window.innerWidth / 2 - Grid.width / 2;
-      Grid.gridY = window.innerHeight / 2 - Grid.height / 2;
-    },
-
-    cleanUp: function() {
-      // Remove any dot that shouldn't exist
-      for (var col = dots.length - 1; col >= 0; col--)
-        if (col >= Game.Settings.columns)
-          dots.pop();
-        else
-          for (var row = Grid.dots[col].length - 1; row >= Game.Settings.rows; row--)
-            Grid.dots[col].pop();
-
-      Grid.generateDots();
-    },
-
-    calculatePositions: function() {
-      for (col = 0; col < dots.length; col++)
-        for (row = 0; row < Grid.dots[col].length; row++) {
-          Grid.dots[col][row].x = Grid.gridX + Game.Settings.dotSize / 2 + col * Game.Settings.dotSize * 2;
-          Grid.dots[col][row].y = Grid.gridY + Game.Settings.dotSize / 2 + row * Game.Settings.dotSize * 2;
-        }
     },
 
     fillNulls: function() {
@@ -515,11 +468,13 @@ function Endless() {
                 Grid.dots[col][row].transition = new Transition(
                   Grid.dots[col][row],
                   "y",
-                  Grid.gridY + Game.Settings.dotSize / 2 + (row - countNulls) * Game.Settings.dotSize * 2,
-                  Grid.gridY + Game.Settings.dotSize / 2 + row * Game.Settings.dotSize * 2,
+                  Grid.gridY + Graphics.dotSize / 2 + (row - countNulls) * Graphics.dotSize * 2,
+                  Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2,
                   400, 0, "logistic");
                 Grid.dots[col][row].draw.finished = false;
                 Grid.dots[col][row].transition.start();
+              } else {
+                Grid.dots[col][row].y = Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
               }
             }
           }
@@ -529,18 +484,65 @@ function Endless() {
 
     },
 
-    searchAtPosition: function(mouseX, mouseY) {
-      var gridPosX = mouseX - Grid.gridX + Game.Settings.dotSize / 2,
-          gridPosY = mouseY - Grid.gridY + Game.Settings.dotSize / 2;
+    draw: function() {
+      // Run each dot's transitions if needed
+      for (var i = 0; i < Grid.dots.length; i++)
+        for (var j = 0; j < Grid.dots[i].length; j++)
+          if (Grid.dots[i][j]) {
+            if (Game.Settings.animations)
+              Grid.dots[i][j].transition.update();
+            Grid.dots[i][j].draw();
+          }
 
-      if (gridPosX > 0 && gridPosX < Grid.width  + Game.Settings.dotSize &&
-          gridPosY > 0 && gridPosY < Grid.height + Game.Settings.dotSize) {
+      if (Game.selectingDots)
+        Grid.drawSelectionLine();
+    },
+
+    drawSelectionLine: function() {
+      Graphics.ctx.strokeStyle = "hsla(" + (Game.dotSelection[0].hue + Game.Settings.hueShift % 360) + ", 100%, 50%, 1)";
+      Graphics.ctx.lineWidth = Graphics.dotSize / 3;
+      Graphics.ctx.lineJoin = "round";
+      Graphics.ctx.beginPath();
+      Graphics.ctx.moveTo(Game.dotSelection[0].x, Game.dotSelection[0].y);
+      for (var i = 0; i < Game.dotSelection.length; i++)
+        Graphics.ctx.lineTo(Game.dotSelection[i].x, Game.dotSelection[i].y)
+      Graphics.ctx.lineTo(EventHandlers.mouseX, EventHandlers.mouseY);
+      Graphics.ctx.stroke();
+    },
+
+    calculateDotSize: function() {
+      // This will need some work (what if grid isn't a square?)
+      Graphics.dotSize = (Math.min(Graphics.canvas.height, Graphics.canvas.width)) /
+        (Math.max(Game.Settings.rows, Game.Settings.columns) * 2.4);
+    },
+
+    calculateDimensions: function() {
+      Grid.width = Game.Settings.columns * Graphics.dotSize * 2 - Graphics.dotSize;
+      Grid.height = Game.Settings.rows * Graphics.dotSize * 2 - Graphics.dotSize;
+      Grid.gridX = window.innerWidth / 2 - Grid.width / 2;
+      Grid.gridY = window.innerHeight / 2 - Grid.height / 2;
+    },
+
+    calculatePositions: function() {
+      for (var col = 0; col < Grid.dots.length; col++)
+        for (var row = 0; row < Grid.dots[col].length; row++) {
+          Grid.dots[col][row].x = Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2;
+          Grid.dots[col][row].y = Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
+        }
+    },
+
+    searchAtPosition: function(mouseX, mouseY) {
+      var gridPosX = mouseX - Grid.gridX + Graphics.dotSize / 2,
+          gridPosY = mouseY - Grid.gridY + Graphics.dotSize / 2;
+
+      if (gridPosX > 0 && gridPosX < Grid.width  + Graphics.dotSize &&
+          gridPosY > 0 && gridPosY < Grid.height + Graphics.dotSize) {
         var dot = Grid.dots[
-           Math.floor(gridPosX / ((Grid.width  + Game.Settings.dotSize) / Game.Settings.columns))]
-          [Math.floor(gridPosY / ((Grid.height + Game.Settings.dotSize) / Game.Settings.rows))
+           Math.floor(gridPosX / ((Grid.width  + Graphics.dotSize) / Game.Settings.columns))]
+          [Math.floor(gridPosY / ((Grid.height + Graphics.dotSize) / Game.Settings.rows))
         ];
 
-        if (dot && Math.sqrt(Math.pow(dot.x - mouseX, 2) + Math.pow(dot.y - mouseY, 2)) < Game.Settings.dotSize / 2 * 1.75)
+        if (dot && Math.sqrt(Math.pow(dot.x - mouseX, 2) + Math.pow(dot.y - mouseY, 2)) < Graphics.dotSize / 2 * 1.75)
           return dot;
       }
       return false;
@@ -549,6 +551,18 @@ function Endless() {
     checkConnection: function(dot1, dot2) {
       return dot2 && dot1.hue == dot2.hue && !dot2.selected &&
         Math.abs(dot2.col - dot1.col) < 2 && Math.abs(dot2.row - dot1.row) < 2;
+    },
+
+    cleanUp: function() {
+      // Remove any dot that shouldn't exist
+      for (var col = dots.length - 1; col >= 0; col--)
+        if (col >= Game.Settings.columns)
+          dots.pop();
+        else
+          for (var row = Grid.dots[col].length - 1; row >= Game.Settings.rows; row--)
+            Grid.dots[col].pop();
+
+      Grid.generateDots();
     }
   }
 
@@ -568,7 +582,7 @@ function Endless() {
         (this.selected? "50%"  : "60%") + ", " +               // Lightness
          "1)";                                   // Alpha (opacity)
       Graphics.ctx.beginPath();
-      Graphics.ctx.arc(this.x, this.y, Game.Settings.dotSize / 2, 0, Math.PI * 2, false);
+      Graphics.ctx.arc(this.x, this.y, Graphics.dotSize / 2, 0, Math.PI * 2, false);
       Graphics.ctx.fill();
     }
   }
@@ -692,6 +706,7 @@ function Endless() {
       var that = this;
       setTimeout(function() {
         that.finished = true;
+        this.object[this.property] = this.endVal;
         if (that.callback)
           that.callback();
       }, that.delay + that.duration);
@@ -701,8 +716,6 @@ function Endless() {
     this.update = function() {
       if (!this.finished)
         this.object[this.property] = this.value;
-      else
-        this.object[this.property] = this.endVal;
     }
   }
 
