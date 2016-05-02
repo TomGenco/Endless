@@ -19,6 +19,7 @@ function Endless() {
     dotSelection: [],
     dotSelectionHue: 100,
     playing: false,
+    paused: false,
 
     play: function() {
       if (!Game.playing) {
@@ -27,6 +28,7 @@ function Endless() {
         Game.Screens.playing.show();
         Game.Screens.main.overlay = true;
       }
+      Game.paused = false;
       Game.Screens.main.hide();
     },
 
@@ -144,83 +146,45 @@ function Endless() {
       }
     },
 
-    MouseDown: function(e) {
-      if (e.button != 0)
-        EventHandlers.MouseUp(e);
-
-      if (Game.menuObjectMouseover)
-        Game.menuObjectMouseover.activate();
-
-      if (Game.dotMouseover) {
-        EventHandlers.mouseX = Game.dotMouseover.clientX;
-        EventHandlers.mouseY = Game.dotMouseover.clientY;
-        Game.selectingDots = true;
-        Game.dotSelection[0] = Game.dotMouseover;
-        Game.dotMouseover.selected = true;
-      }
-    },
-
-    MouseUp: function(e) {
-      if (Game.selectingDots) {
-        Game.updateScoreIndicator(0);
-        Game.selectingDots = false;
-        if (Game.dotSelection.length > 1) {
-          Grid.lastTwoHues[1] = Grid.lastTwoHues[0];
-          Grid.lastTwoHues[0] = Game.dotSelection[0].hue;
-          Game.dotSelectionHue = Game.dotSelection[0].hue;
-          var dotsCleared = 0;
-          for (var i = 0; i < Game.dotSelection.length; i++) {
-            Grid.dots[Game.dotSelection[i].col][Game.dotSelection[i].row] = null;
-            dotsCleared++;
-          }
-          Game.updateScore(dotsCleared);
-          Grid.fillNulls();
-          Util.vibrate([20, 40, 20]);
-        } else
-          Game.dotSelection[0].selected = false;
-        Game.dotSelection = [];
-      }
-      EventHandlers.MouseMove(e);
-    },
-
-    MouseMove: function(e) {
-      // Skip all this if onTouchEnd called handleMouseUp
-      if (e.changedTouches != null)
+    MouseDown: function(event) {
+      if (event.button != 0)
         return;
 
-      var menuObject;
+      if (Game.menuObjectMouseover && Game.menuObjectMouseover.activate)
+        Game.menuObjectMouseover.activate();
 
-      if (!Game.selectingDots && (menuObject = MenuObject.searchAtPosition(e.clientX, e.clientY)) && menuObject.activate) {
-        Game.menuObjectMouseover = menuObject;
+      if (Game.dotMouseover && !Game.dotSelection[0])
+        Grid.startSelection(Game.dotMouseover);
+    },
+
+    MouseUp: function(event) {
+      if ((event.button == 0 || event instanceof TouchEvent) && Game.selectingDots)
+        Grid.endSelection();
+    },
+
+    MouseMove: function(event) {
+      if (Game.selectingDots)
+        EventHandlers.mouseX = event.clientX, EventHandlers.mouseY = event.clientY;
+
+      if (Game.menuObjectMouseover = MenuObject.searchAtPosition(event.clientX, event.clientY)) {
         Game.dotMouseover = null;
-        Graphics.canvas.style.cursor = "pointer";
-      } else {
-        Game.menuObjectMouseover = null;
-        Graphics.canvas.removeAttribute("style");
-
-        if (Game.selectingDots)
-          EventHandlers.mouseX = e.clientX, EventHandlers.mouseY = e.clientY;
-
-        if (Game.playing && !Game.Screens.main.visible && (Game.dotMouseover = Grid.searchAtPosition(e.clientX, e.clientY))) {
+        if (Game.menuObjectMouseover.activate)
           Graphics.canvas.style.cursor = "pointer";
-          if (Game.dotMouseover == Game.dotSelection[Game.dotSelection.length - 2]) {
-            Game.dotSelection[Game.dotSelection.length - 1].selected = false;
-            Game.dotSelection.pop();
-            Game.updateScoreIndicator(Game.dotSelection.length);
-          }
-          if (Game.selectingDots && Grid.checkConnection(Game.dotSelection[Game.dotSelection.length - 1], Game.dotMouseover)) {
-            Game.dotMouseover.selected = true;
-            Game.dotSelection.push(Game.dotMouseover);
-            Game.updateScoreIndicator(Game.dotSelection.length);
-          }
-        } else {
-          Game.dotMouseover = null;
-          Graphics.canvas.removeAttribute("style");
+        if (Game.selectingDots)
+          Grid.cancelSelection();
+      } else if (Game.dotMouseover = Grid.searchAtPosition(event.clientX, event.clientY)) {
+        Game.menuObjectMouseover = null;
+        if (Game.playing && !Game.paused) {
+          Graphics.canvas.style.cursor = "pointer";
+          if (Game.selectingDots)
+            Grid.handleDotMouseover(Game.dotMouseover);
         }
+      } else {
+        Graphics.canvas.removeAttribute("style");
       }
     },
 
-    TouchStart: function(e) {
+    TouchStart: function(event) {
       var x, y;
       for (var i = 0; i < event.changedTouches.length; i++)
         if (event.changedTouches[i].identifier == 0)
@@ -234,23 +198,18 @@ function Endless() {
         menuObject.activate();
       } else if (Game.playing && !Game.Screens.main.visible) {
         event.preventDefault();
-        if (Game.dotSelection[0] = Grid.searchAtPosition(x, y)) {
-          EventHandlers.mouseX = x;
-          EventHandlers.mouseY = y;
-          Game.dotSelection[0].selected = true;
-          Game.selectingDots = true;
-          Util.vibrate(30);
-        }
+        if (Game.dotSelection[0] = Grid.searchAtPosition(x, y))
+          Grid.startSelection(Game.dotSelection[0]);
       }
     },
 
-    TouchEnd: function(e) {
+    TouchEnd: function(event) {
       for (var i = 0; i < event.changedTouches.length; i++)
         if (event.changedTouches[i].identifier == 0)
-          EventHandlers.MouseUp(e);
+          EventHandlers.MouseUp(event);
     },
 
-    TouchMove: function(e) {
+    TouchMove: function(event) {
       var x, y;
       for (var i = 0; i < event.changedTouches.length; i++)
         if (event.changedTouches[i].identifier == 0)
@@ -262,16 +221,7 @@ function Endless() {
         EventHandlers.mouseX = x, EventHandlers.mouseY = y;
         if (Game.dotMouseover = Grid.searchAtPosition(x, y)) {
           event.preventDefault();
-          if (Game.dotMouseover == Game.dotSelection[Game.dotSelection.length - 2]) {
-            Game.dotSelection[Game.dotSelection.length - 1].selected = false;
-            Game.dotSelection.pop();
-            Game.updateScoreIndicator(Game.dotSelection.length);
-          } else if (Grid.checkConnection(Game.dotSelection[Game.dotSelection.length - 1], Game.dotMouseover)) {
-            Util.vibrate(20);
-            Game.dotMouseover.selected = true;
-            Game.dotSelection.push(Game.dotMouseover);
-            Game.updateScoreIndicator(Game.dotSelection.length);
-          }
+          Grid.handleDotMouseover(Game.dotMouseover);
         }
       }
     }
@@ -309,7 +259,7 @@ function Endless() {
       ]);
 
       playing.contents.scoreIndicator.visible = false;
-      playing.contents.menu.activate = function() { main.show(); };
+      playing.contents.menu.activate = function() { Game.paused = true, main.show(); };
 
       if (Game.Settings.animations) {
         var i = 0;
@@ -586,7 +536,51 @@ function Endless() {
           };
       }
       localStorage.setItem("Endless--grid", JSON.stringify(grid));
+    },
+
+    startSelection: function(dot) {
+      EventHandlers.mouseX = undefined;
+      EventHandlers.mouseY = undefined;
+      Game.selectingDots = true;
+      Game.dotSelection[0] = dot;
+      dot.selected = true;
+      if (Game.Settings.vibrate)
+        Util.vibrate(30);
+    },
+
+    endSelection: function() {
+      Game.updateScoreIndicator(0);
+      Game.selectingDots = false;
+      if (Game.dotSelection.length > 1) {
+        Grid.lastTwoHues[1] = Grid.lastTwoHues[0];
+        Grid.lastTwoHues[0] = Game.dotSelection[0].hue;
+        Game.dotSelectionHue = Game.dotSelection[0].hue;
+        var dotsCleared = 0;
+        for (var i = 0; i < Game.dotSelection.length; i++) {
+          Grid.dots[Game.dotSelection[i].col][Game.dotSelection[i].row] = null;
+          dotsCleared++;
+        }
+        Game.updateScore(dotsCleared);
+        Grid.fillNulls();
+        Util.vibrate([20, 40, 20]);
+      } else
+        Game.dotSelection[0].selected = false;
+      Game.dotSelection = [];
+    },
+
+    handleDotMouseover: function(dot) {
+      if (dot == Game.dotSelection[Game.dotSelection.length - 2]) {
+        Game.dotSelection.pop().selected = false;
+        Game.updateScoreIndicator(Game.dotSelection.length);
+      } else if (Grid.checkConnection(Game.dotSelection[Game.dotSelection.length - 1], dot)) {
+        dot.selected = true;
+        Game.dotSelection.push(dot);
+        Game.updateScoreIndicator(Game.dotSelection.length);
+        if (Game.Settings.vibrate)
+          Util.vibrate(20);
+      }
     }
+
   }
 
   function Dot(hue, column, row, x, y) {
