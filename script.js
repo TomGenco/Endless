@@ -46,10 +46,11 @@ function Endless() {
           }
       }
       localStorage.setItem("Endless--score", Game.score);
+      localStorage.setItem("Endless--lastTwoHues", JSON.stringify(Grid.lastTwoHues));
     },
 
     updateScoreIndicator: function(dotsCleared) {
-      if (dotsCleared != 0) {
+      if (dotsCleared > 1) {
         Game.Screens.playing.contents.scoreIndicator.text = "+" + (dotsCleared == 2? 2 : 2 * dotsCleared);
         Game.Screens.playing.contents.scoreIndicator.visible = true;
         Game.Screens.playing.contents.scoreIndicator.hue = Game.dotSelection[0].hue + Game.Settings.hueShift % 360;
@@ -71,6 +72,9 @@ function Endless() {
             continue;
           } else if (localStorage.key(i) == "Endless--grid") {
             Grid.importing = true;
+            continue;
+          } else if (localStorage.key(i) == "Endless--lastTwoHues") {
+            Grid.lastTwoHues = JSON.parse(localStorage.getItem("Endless--lastTwoHues"));
             continue;
           }
           var value = localStorage.getItem(localStorage.key(i));
@@ -134,8 +138,8 @@ function Endless() {
       Graphics.canvas.addEventListener("mousedown", EventHandlers.MouseDown, false);
       Graphics.canvas.addEventListener("mouseup", EventHandlers.MouseUp, false);
       Graphics.canvas.addEventListener("mousemove", EventHandlers.MouseMove, false);
-      Graphics.canvas.addEventListener("mouseout", EventHandlers.MouseUp, false);
-      Graphics.canvas.addEventListener("blur", EventHandlers.MouseUp, false);
+      Graphics.canvas.addEventListener("mouseout", EventHandlers.Blur, false);
+      Graphics.canvas.addEventListener("blur", EventHandlers.Blur, false);
       Graphics.canvas.addEventListener("touchstart", EventHandlers.TouchStart, false);
       Graphics.canvas.addEventListener("touchend", EventHandlers.TouchEnd, false);
       Graphics.canvas.addEventListener("touchmove", EventHandlers.TouchMove, false);
@@ -147,8 +151,10 @@ function Endless() {
     },
 
     MouseDown: function(event) {
-      if (event.button != 0)
+      if (event.button != 0) {
+        Grid.cancelSelection();
         return;
+      }
 
       if (Game.menuObjectMouseover && Game.menuObjectMouseover.activate)
         Game.menuObjectMouseover.activate();
@@ -224,6 +230,11 @@ function Endless() {
           Grid.handleDotMouseover(Game.dotMouseover);
         }
       }
+    },
+
+    Blur: function () {
+      if (Game.selectingDots)
+        Grid.cancelSelection();
     }
   };
 
@@ -568,6 +579,14 @@ function Endless() {
       Game.dotSelection = [];
     },
 
+    cancelSelection: function() {
+      Game.updateScoreIndicator(0);
+      Game.selectingDots = false;
+      for (var i = 0; i < Game.dotSelection.length; i++)
+        Game.dotSelection[i].selected = false;
+      Game.dotSelection = [];
+    },
+
     handleDotMouseover: function(dot) {
       if (dot == Game.dotSelection[Game.dotSelection.length - 2]) {
         Game.dotSelection.pop().selected = false;
@@ -722,10 +741,13 @@ function Endless() {
       this.finished = false;
       var that = this;
       setTimeout(function() {
-        that.finished = true;
-        that.object[that.property] = that.endVal;
-        if (that.callback)
-          that.callback();
+        // Checks if this transition has been replaced before it's finished
+        if (that == that.object.transition) {
+          that.finished = true;
+          that.object[that.property] = that.endVal;
+          if (that.callback)
+            that.callback();
+        }
       }, that.delay + that.duration);
       this.initTime = Date.now();
     };
