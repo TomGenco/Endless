@@ -143,7 +143,7 @@ function Endless() {
       Graphics.canvas.addEventListener("touchstart", EventHandlers.TouchStart, false);
       Graphics.canvas.addEventListener("touchend", EventHandlers.TouchEnd, false);
       Graphics.canvas.addEventListener("touchmove", EventHandlers.TouchMove, false);
-      Graphics.canvas.addEventListener("touchcancel", EventHandlers.TouchEnd, false);
+      Graphics.canvas.addEventListener("touchcancel", EventHandlers.TouchCancel, false);
       window.onresize = function() {
         Graphics.updateCanvasSize();
         Grid.init();
@@ -224,12 +224,22 @@ function Endless() {
         return;
 
       if (Game.selectingDots) {
+        if (MenuObject.searchAtPosition(x, y)) {
+          Grid.cancelSelection();
+          return;
+        }
         EventHandlers.mouseX = x, EventHandlers.mouseY = y;
         if (Game.dotMouseover = Grid.searchAtPosition(x, y)) {
           event.preventDefault();
           Grid.handleDotMouseover(Game.dotMouseover);
         }
       }
+    },
+
+    TouchCancel: function(event) {
+      for (var i = 0; i < event.changedTouches.length; i++)
+        if (event.changedTouches[i].identifier == 0 && Game.selectingDots)
+          Grid.cancelSelection();
     },
 
     Blur: function () {
