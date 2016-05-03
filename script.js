@@ -489,7 +489,7 @@ function Endless() {
     calculateDimensions: function() {
       // This will need some work (what if grid isn't a square?)
       Graphics.dotSize = (Math.min(Graphics.canvas.height, Graphics.canvas.width)) /
-        (Math.max(Game.Settings.rows, Game.Settings.columns) * 2.4);
+        (Math.max(Game.Settings.rows, Game.Settings.columns) * 2.3);
 
       Grid.width = Game.Settings.columns * Graphics.dotSize * 2 - Graphics.dotSize;
       Grid.height = Game.Settings.rows * Graphics.dotSize * 2 - Graphics.dotSize;
@@ -675,7 +675,7 @@ function Endless() {
     };
 
     this.calculateDimensions = function() {
-      fontSize = textSize * (Graphics.canvas.height / 820 + 0.8);
+      fontSize = textSize * (Graphics.canvas.height / 1000 + 1);
 
       console.log(this.text, fontSize);
       Graphics.ctx.font = (fontSize >= 64 ? "100 " : "300 ") + fontSize + "px Josefin Sans";
