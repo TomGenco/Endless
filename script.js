@@ -275,7 +275,7 @@ function Endless() {
       playing.add([
         "menu",           new MenuObject("Menu",       0,    0,   15,   0, 50),
         "score",          new MenuObject(Game.score,   1,    0,  -15,   0, 50),
-        "scoreIndicator", new MenuObject("hi",         1,    0,  -15, 130, 50),
+        "scoreIndicator", new MenuObject("hi",         1,    0.07,  -15, 70, 50),
         "grid",           Grid,
         "siteLink",       main.contents.siteLink,
         "sourceLink",     main.contents.sourceLink
