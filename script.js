@@ -265,17 +265,17 @@ function Endless() {
           playing = Game.Screens.playing = new Screen();
 
       main.add([
-        "title",      new MenuObject("endless",      0.5, 0.30,    0,   0, 256),
-        "subtitle",   new MenuObject("By Tom Genco", 0.5, 0.30,  200, 130,  64),
-        "play",       new MenuObject("Play",         0.5, 0.65, -150,   0, 128, Game.play),
-        "reset",      new MenuObject("Reset",        0.5, 0.65,  150,   0, 128, Util.clearStorage),
-        "siteLink",   new MenuObject("tomgenco.com",   0,    1,   15,  -5,  64, function() { window.location.href = "http://tomgenco.com"; }),
-        "sourceLink", new MenuObject("Source code",    1,    1,  -15,  -5,  64, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
+        "title",      new MenuObject("endless",      0.5, 0.30,    0,  0, 100),
+        "subtitle",   new MenuObject("By Tom Genco", 0.6, 0.36,    0, 30,  25),
+        "play",       new MenuObject("Play",         0.5, 0.60, -150, 40,  50, Game.play),
+        "reset",      new MenuObject("Reset",        0.5, 0.60,  150, 40,  50, Util.clearStorage),
+        "siteLink",   new MenuObject("tomgenco.com",   0,    1,   15, -5,  25, function() { window.location.href = "http://tomgenco.com"; }),
+        "sourceLink", new MenuObject("Source code",    1,    1,  -15, -5,  25, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
       ]);
       playing.add([
-        "menu",           new MenuObject("Menu",       0,    0,   15,   0, 128),
-        "score",          new MenuObject(Game.score,   1,    0,  -15,   0, 128),
-        "scoreIndicator", new MenuObject("hi",         1,    0,  -15, 130, 128),
+        "menu",           new MenuObject("Menu",       0,    0,   15,   0, 50),
+        "score",          new MenuObject(Game.score,   1,    0,  -15,   0, 50),
+        "scoreIndicator", new MenuObject("hi",         1,    0,  -15, 130, 50),
         "grid",           Grid,
         "siteLink",       main.contents.siteLink,
         "sourceLink",     main.contents.sourceLink
@@ -642,7 +642,7 @@ function Endless() {
     }
   }
 
-  function MenuObject(text, relativeX, relativeY, fixedOffsetX, fixedOffsetY, fontSize, activate) {
+  function MenuObject(text, relativeX, relativeY, fixedOffsetX, fixedOffsetY, textSize, activate) {
     this.fixedOffsetX = fixedOffsetX;
     this.fixedOffsetY = fixedOffsetY;
     this.activate = activate;
@@ -650,10 +650,11 @@ function Endless() {
     this.transition;
     this.visible = true
     this.text = text;
+    this.textSize = textSize;
     this.hue = 0;
     this.saturation = 100;
     this.lightness = 100;
-    var width, height, align, baseline, menuX, menuY;
+    var fontSize, width, height, align, baseline, menuX, menuY;
 
     this.inRange = function(mouseX, mouseY) {
       return mouseX > menuX && mouseX < menuX + width &&
@@ -666,7 +667,7 @@ function Endless() {
 
       Graphics.ctx.textAlign = align;
       Graphics.ctx.textBaseline = baseline;
-      Graphics.ctx.font = (fontSize >= 64 ? "100 " : "300 ") + fontSize + "px Josefin Sans";
+      Graphics.ctx.font = "300 " + fontSize + "px Josefin Sans";
       Graphics.ctx.globalAlpha = this.opacity;
       Graphics.ctx.fillStyle = "hsl(" + this.hue + "," + this.saturation + "%," + this.lightness + "%)";
       Graphics.ctx.fillText(this.text, relativeX * Graphics.canvas.width + this.fixedOffsetX, relativeY * Graphics.canvas.height + this.fixedOffsetY);
@@ -674,6 +675,9 @@ function Endless() {
     };
 
     this.calculateDimensions = function() {
+      fontSize = textSize * (Graphics.canvas.height / 820 + 0.8);
+
+      console.log(this.text, fontSize);
       Graphics.ctx.font = (fontSize >= 64 ? "100 " : "300 ") + fontSize + "px Josefin Sans";
       width    = Graphics.ctx.measureText(text).width;
       height   = fontSize;
