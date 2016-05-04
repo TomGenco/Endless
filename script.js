@@ -14,7 +14,7 @@ function Endless() {
     Screens: {},
     score: 0,
     selectingDots: false,
-    menuObjectMouseover: null,
+    textObjectMouseover: null,
     dotMouseover: null,
     dotSelection: [],
     dotSelectionHue: 100,
@@ -157,8 +157,8 @@ function Endless() {
         return;
       }
 
-      if (Game.menuObjectMouseover && Game.menuObjectMouseover.activate)
-        Game.menuObjectMouseover.activate();
+      if (Game.textObjectMouseover && Game.textObjectMouseover.activate)
+        Game.textObjectMouseover.activate();
 
       if (Game.dotMouseover && !Game.dotSelection[0])
         Grid.startSelection(Game.dotMouseover);
@@ -173,14 +173,14 @@ function Endless() {
       if (Game.selectingDots)
         EventHandlers.mouseX = event.clientX, EventHandlers.mouseY = event.clientY;
 
-      if (Game.menuObjectMouseover = MenuObject.searchAtPosition(event.clientX, event.clientY)) {
+      if (Game.textObjectMouseover = TextObject.searchAtPosition(event.clientX, event.clientY)) {
         Game.dotMouseover = null;
-        if (Game.menuObjectMouseover.activate)
+        if (Game.textObjectMouseover.activate)
           Graphics.canvas.style.cursor = "pointer";
         if (Game.selectingDots)
           Grid.cancelSelection();
       } else if (Game.dotMouseover = Grid.searchAtPosition(event.clientX, event.clientY)) {
-        Game.menuObjectMouseover = null;
+        Game.textObjectMouseover = null;
         if (Game.playing && !Game.paused) {
           Graphics.canvas.style.cursor = "pointer";
           if (Game.selectingDots)
@@ -199,10 +199,10 @@ function Endless() {
       if (x == undefined)
         return;
 
-      var menuObject;
-      if ((menuObject = MenuObject.searchAtPosition(x, y)) && menuObject.activate) {
+      var textObject;
+      if ((textObject = TextObject.searchAtPosition(x, y)) && textObject.activate) {
         event.preventDefault();
-        menuObject.activate();
+        textObject.activate();
       } else if (Game.playing && !Game.Screens.main.visible) {
         event.preventDefault();
         if (Game.dotSelection[0] = Grid.searchAtPosition(x, y))
@@ -225,7 +225,7 @@ function Endless() {
         return;
 
       if (Game.selectingDots) {
-        if (MenuObject.searchAtPosition(x, y)) {
+        if (TextObject.searchAtPosition(x, y)) {
           Grid.cancelSelection();
           return;
         }
@@ -265,17 +265,17 @@ function Endless() {
           playing = Game.Screens.playing = new Screen();
 
       main.add([
-        "title",      new MenuObject("endless",      0.5, 0.30,    0,  0, 100),
-        "subtitle",   new MenuObject("By Tom Genco", 0.6, 0.36,    0, 30,  25),
-        "play",       new MenuObject("Play",         0.5, 0.60, -150, 40,  50, Game.play),
-        "reset",      new MenuObject("Reset",        0.5, 0.60,  150, 40,  50, Util.clearStorage),
-        "siteLink",   new MenuObject("tomgenco.com",   0,    1,   15, -5,  25, function() { window.location.href = "http://tomgenco.com"; }),
-        "sourceLink", new MenuObject("Source code",    1,    1,  -15, -5,  25, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
+        "title",      new TextObject("endless",      0.5, 0.30,    0,  0, 100),
+        "subtitle",   new TextObject("By Tom Genco", 0.6, 0.36,    0, 30,  25),
+        "play",       new TextObject("Play",         0.5, 0.60, -150, 40,  50, Game.play),
+        "reset",      new TextObject("Reset",        0.5, 0.60,  150, 40,  50, Util.clearStorage),
+        "siteLink",   new TextObject("tomgenco.com",   0,    1,   15, -5,  30, function() { window.location.href = "http://tomgenco.com"; }),
+        "sourceLink", new TextObject("Source code",    1,    1,  -15, -5,  30, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
       ]);
       playing.add([
-        "menu",           new MenuObject("Menu",       0,    0,   15,   0, 50),
-        "score",          new MenuObject(Game.score,   1,    0,  -15,   0, 50),
-        "scoreIndicator", new MenuObject("hi",         1,    0.07,  -15, 70, 50),
+        "menu",           new TextObject("Menu",       0,    0,   15,   0, 50),
+        "score",          new TextObject(Game.score,   1,    0,  -15,   0, 50),
+        "scoreIndicator", new TextObject("hi",         1,    0.07,  -15, 70, 50),
         "grid",           Grid,
         "siteLink",       main.contents.siteLink,
         "sourceLink",     main.contents.sourceLink
@@ -642,7 +642,7 @@ function Endless() {
     }
   }
 
-  function MenuObject(text, relativeX, relativeY, fixedOffsetX, fixedOffsetY, textSize, activate) {
+  function TextObject(text, relativeX, relativeY, fixedOffsetX, fixedOffsetY, textSize, activate) {
     this.fixedOffsetX = fixedOffsetX;
     this.fixedOffsetY = fixedOffsetY;
     this.activate = activate;
@@ -654,11 +654,11 @@ function Endless() {
     this.hue = 0;
     this.saturation = 100;
     this.lightness = 100;
-    var fontSize, width, height, align, baseline, menuX, menuY;
+    var fontSize, width, height, align, baseline, screenX, screenY;
 
     this.inRange = function(mouseX, mouseY) {
-      return mouseX > menuX && mouseX < menuX + width &&
-             mouseY > (menuY - fontSize / 10) && mouseY < menuY + height;
+      return mouseX > screenX && mouseX < screenX + width &&
+             mouseY > (screenY - fontSize / 10) && mouseY < screenY + height;
     }
 
     this.draw = function() {
@@ -671,13 +671,12 @@ function Endless() {
       Graphics.ctx.globalAlpha = this.opacity;
       Graphics.ctx.fillStyle = "hsl(" + this.hue + "," + this.saturation + "%," + this.lightness + "%)";
       Graphics.ctx.fillText(this.text, relativeX * Graphics.canvas.width + this.fixedOffsetX, relativeY * Graphics.canvas.height + this.fixedOffsetY);
-      // Graphics.ctx.strokeRect(menuX, menuY - fontSize / 10, width, height + fontSize / 10);
+      // Graphics.ctx.strokeRect(screenX, screenY - fontSize / 10, width, height + fontSize / 10);
     };
 
     this.calculateDimensions = function() {
       fontSize = textSize * (Graphics.canvas.height / 1000 + 1);
 
-      console.log(this.text, fontSize);
       Graphics.ctx.font = (fontSize >= 64 ? "100 " : "300 ") + fontSize + "px Josefin Sans";
       width    = Graphics.ctx.measureText(text).width;
       height   = fontSize;
@@ -686,31 +685,31 @@ function Endless() {
 
       switch (align) {
         case "center":
-          menuX = relativeX * Graphics.canvas.width + fixedOffsetX - width / 2;
+          screenX = relativeX * Graphics.canvas.width + fixedOffsetX - width / 2;
           break;
         case "left":
-          menuX = relativeX * Graphics.canvas.width + fixedOffsetX;
+          screenX = relativeX * Graphics.canvas.width + fixedOffsetX;
           break;
         case "right":
-          menuX = relativeX * Graphics.canvas.width + fixedOffsetX - width;
+          screenX = relativeX * Graphics.canvas.width + fixedOffsetX - width;
           break;
       }
 
       switch (baseline) {
         case "middle":
-          menuY = relativeY * Graphics.canvas.height + fixedOffsetY - height / 2;
+          screenY = relativeY * Graphics.canvas.height + fixedOffsetY - height / 2;
           break;
         case "top":
-          menuY = relativeY * Graphics.canvas.height + fixedOffsetY;
+          screenY = relativeY * Graphics.canvas.height + fixedOffsetY;
           break;
         case "bottom":
-          menuY = relativeY * Graphics.canvas.height + fixedOffsetY - height;
+          screenY = relativeY * Graphics.canvas.height + fixedOffsetY - height;
           break;
       }
     };
     this.calculateDimensions();
 
-    MenuObject.searchAtPosition = function(mouseX, mouseY) {
+    TextObject.searchAtPosition = function(mouseX, mouseY) {
       for (var screen in Game.Screens)
         for (var object in Game.Screens[screen].contents)
           if (Game.Screens[screen].contents[object].opacity && Game.Screens[screen].contents[object].inRange(mouseX, mouseY) &&

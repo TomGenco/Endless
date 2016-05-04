@@ -3,7 +3,6 @@
   "name": "Endless by Tom Genco",
   "start_url": "/index.html",
   "display": "fullscreen",
-  "orientation": "portrait",
   "background_color": "#333",
   "icons": [
     {
