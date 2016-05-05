@@ -133,7 +133,6 @@ function Endless() {
   var EventHandlers = {
     mouseX: null, mouseY: null,
 
-
     init: function() {
       Graphics.canvas.addEventListener("mousedown", EventHandlers.MouseDown, false);
       Graphics.canvas.addEventListener("mouseup", EventHandlers.MouseUp, false);
@@ -152,24 +151,29 @@ function Endless() {
     },
 
     MouseDown: function(event) {
-      if (event.button != 0) {
-        Grid.cancelSelection();
+      if (!Graphics.ready)
         return;
-      }
 
-      if (Game.textObjectMouseover && Game.textObjectMouseover.activate)
+      if (event.button != 0)
+        Grid.cancelSelection();
+      else if (Game.textObjectMouseover && Game.textObjectMouseover.activate)
         Game.textObjectMouseover.activate();
-
-      if (Game.dotMouseover && !Game.dotSelection[0])
+      else if (Game.dotMouseover && !Game.dotSelection[0])
         Grid.startSelection(Game.dotMouseover);
     },
 
     MouseUp: function(event) {
+      if (!Graphics.ready)
+        return;
+
       if ((event.button == 0 || event instanceof TouchEvent) && Game.selectingDots)
         Grid.endSelection();
     },
 
     MouseMove: function(event) {
+      if (!Graphics.ready)
+        return;
+
       if (Game.selectingDots)
         EventHandlers.mouseX = event.clientX, EventHandlers.mouseY = event.clientY;
 
@@ -179,19 +183,20 @@ function Endless() {
           Graphics.canvas.style.cursor = "pointer";
         if (Game.selectingDots)
           Grid.cancelSelection();
-      } else if (Game.dotMouseover = Grid.searchAtPosition(event.clientX, event.clientY)) {
+      } else if ((Game.dotMouseover = Grid.searchAtPosition(event.clientX, event.clientY)) && Game.playing && !Game.paused) {
         Game.textObjectMouseover = null;
-        if (Game.playing && !Game.paused) {
-          Graphics.canvas.style.cursor = "pointer";
-          if (Game.selectingDots)
-            Grid.handleDotMouseover(Game.dotMouseover);
-        }
+        Graphics.canvas.style.cursor = "pointer";
+        if (Game.selectingDots)
+          Grid.handleDotMouseover(Game.dotMouseover);
       } else {
         Graphics.canvas.removeAttribute("style");
       }
     },
 
     TouchStart: function(event) {
+      if (!Graphics.ready)
+        return;
+
       var x, y;
       for (var i = 0; i < event.changedTouches.length; i++)
         if (event.changedTouches[i].identifier == 0)
@@ -211,12 +216,18 @@ function Endless() {
     },
 
     TouchEnd: function(event) {
+      if (!Graphics.ready)
+        return;
+
       for (var i = 0; i < event.changedTouches.length; i++)
         if (event.changedTouches[i].identifier == 0)
           EventHandlers.MouseUp(event);
     },
 
     TouchMove: function(event) {
+      if (!Graphics.ready)
+        return;
+
       var x, y;
       for (var i = 0; i < event.changedTouches.length; i++)
         if (event.changedTouches[i].identifier == 0)
@@ -238,18 +249,25 @@ function Endless() {
     },
 
     TouchCancel: function(event) {
+      if (!Graphics.ready)
+        return;
+
       for (var i = 0; i < event.changedTouches.length; i++)
         if (event.changedTouches[i].identifier == 0 && Game.selectingDots)
           Grid.cancelSelection();
     },
 
     Blur: function () {
+      if (!Graphics.ready)
+        return;
+
       if (Game.selectingDots)
         Grid.cancelSelection();
     }
   };
 
   var Graphics = {
+    ready: false,
     canvas: null,
     ctx: null,
     dotSize: 0,
@@ -261,39 +279,47 @@ function Endless() {
       Grid.calculateDimensions();
       Grid.generateDots();
 
-      var main =    Game.Screens.main =    new Screen(),
-          playing = Game.Screens.playing = new Screen();
+      WebFont.load({
+        google: {
+          families: ["Josefin Sans:300"]
+        },
+        active: function () {
+          var main =    Game.Screens.main =    new Screen(),
+              playing = Game.Screens.playing = new Screen();
 
-      main.add([
-        "title",      new TextObject("endless",      0.5, 0.30,    0,  0, 100),
-        "subtitle",   new TextObject("By Tom Genco", 0.6, 0.36,    0, 30,  25),
-        "play",       new TextObject("Play",         0.5, 0.60, -150, 40,  50, Game.play),
-        "reset",      new TextObject("Reset",        0.5, 0.60,  150, 40,  50, Util.clearStorage),
-        "siteLink",   new TextObject("tomgenco.com",   0,    1,   15, -5,  30, function() { window.location.href = "http://tomgenco.com"; }),
-        "sourceLink", new TextObject("Source code",    1,    1,  -15, -5,  30, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
-      ]);
-      playing.add([
-        "menu",           new TextObject("Menu",       0,    0,   15,   0, 50),
-        "score",          new TextObject(Game.score,   1,    0,  -15,   0, 50),
-        "scoreIndicator", new TextObject("hi",         1,    0.07,  -15, 70, 50),
-        "grid",           Grid,
-        "siteLink",       main.contents.siteLink,
-        "sourceLink",     main.contents.sourceLink
-      ]);
+          main.add([
+            "title",      new TextObject("endless",      0.5, 0.30,    0,  0, 100),
+            "subtitle",   new TextObject("By Tom Genco", 0.6, 0.36,    0, 30,  25),
+            "play",       new TextObject("Play",         0.5, 0.60, -150, 40,  50, Game.play),
+            "reset",      new TextObject("Reset",        0.5, 0.60,  150, 40,  50, Util.clearStorage),
+            "siteLink",   new TextObject("tomgenco.com",   0,    1,   15, -5,  30, function() { window.location.href = "http://tomgenco.com"; }),
+            "sourceLink", new TextObject("Source code",    1,    1,  -15, -5,  30, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
+          ]);
+          playing.add([
+            "menu",           new TextObject("Menu",       0,    0,   15,   0, 50),
+            "score",          new TextObject(Game.score,   1,    0,  -15,   0, 50),
+            "scoreIndicator", new TextObject("hi",         1,    0.07,  -15, 70, 50),
+            "grid",           Grid,
+            "siteLink",       main.contents.siteLink,
+            "sourceLink",     main.contents.sourceLink
+          ]);
 
-      playing.contents.scoreIndicator.visible = false;
-      playing.contents.menu.activate = function() { Game.paused = true, main.show(); };
+          playing.contents.scoreIndicator.visible = false;
+          playing.contents.menu.activate = function() { Game.paused = true, main.show(); };
 
-      if (Game.Settings.animations) {
-        var i = 0;
-        for (var object in main.contents)
-          main.contents[object].transition = new Transition(main.contents[object], "opacity", 0, 1, 2000, i++ * 250);
+          if (Game.Settings.animations) {
+            var i = 0;
+            for (var object in main.contents)
+              main.contents[object].transition = new Transition(main.contents[object], "opacity", 0, 1, 2000, i++ * 250);
 
-        playing.contents.menu.transition =  new Transition(playing.contents.menu,  "fixedOffsetY", -128, 10, 1000, 100, "logistic");
-        playing.contents.score.transition = new Transition(playing.contents.score, "fixedOffsetY", -128, 10, 1000, 150, "logistic");
-    }
-      main.show();
-      requestAnimationFrame(Graphics.draw);
+            playing.contents.menu.transition =  new Transition(playing.contents.menu,  "fixedOffsetY", -128, 10, 1000, 100, "logistic");
+            playing.contents.score.transition = new Transition(playing.contents.score, "fixedOffsetY", -128, 10, 1000, 150, "logistic");
+          }
+          main.show();
+          requestAnimationFrame(Graphics.draw);
+          Graphics.ready = true;
+        }
+      });
     },
 
     updateCanvasSize: function() {
@@ -309,7 +335,6 @@ function Endless() {
         Game.Screens.playing.draw();
       if (Game.Screens.main.visible)
         Game.Screens.main.draw();
-
 
       requestAnimationFrame(Graphics.draw);
     }
@@ -667,17 +692,17 @@ function Endless() {
 
       Graphics.ctx.textAlign = align;
       Graphics.ctx.textBaseline = baseline;
-      Graphics.ctx.font = "300 " + fontSize + "px Josefin Sans";
+      Graphics.ctx.font = fontSize + "px Josefin Sans";
       Graphics.ctx.globalAlpha = this.opacity;
       Graphics.ctx.fillStyle = "hsl(" + this.hue + "," + this.saturation + "%," + this.lightness + "%)";
       Graphics.ctx.fillText(this.text, relativeX * Graphics.canvas.width + this.fixedOffsetX, relativeY * Graphics.canvas.height + this.fixedOffsetY);
-      // Graphics.ctx.strokeRect(screenX, screenY - fontSize / 10, width, height + fontSize / 10);
+      // Graphics.ctx.strokeRect(screenX, screenY - fontSize / 10, width, height + fontSize / 10); // (click detection rectangle)
+      // Graphics.ctx.strokeRect(screenX, screenY, width, height); // (canvas update detection rectangle)
     };
 
     this.calculateDimensions = function() {
-      fontSize = textSize * (Graphics.canvas.height / 1000 + 1);
-
-      Graphics.ctx.font = (fontSize >= 64 ? "100 " : "300 ") + fontSize + "px Josefin Sans";
+      fontSize = textSize * (Graphics.canvas.height / 980 + 1);
+      Graphics.ctx.font = fontSize + "px Josefin Sans";
       width    = Graphics.ctx.measureText(text).width;
       height   = fontSize;
       align    = relativeX == 0 ? "left" : relativeX == 1 ? "right" : "center";
@@ -712,7 +737,7 @@ function Endless() {
     TextObject.searchAtPosition = function(mouseX, mouseY) {
       for (var screen in Game.Screens)
         for (var object in Game.Screens[screen].contents)
-          if (Game.Screens[screen].contents[object].opacity && Game.Screens[screen].contents[object].inRange(mouseX, mouseY) &&
+          if (Game.Screens[screen].contents[object] instanceof TextObject && Game.Screens[screen].contents[object].inRange(mouseX, mouseY) &&
               Game.Screens[screen].visible)
             return Game.Screens[screen].contents[object];
     };
