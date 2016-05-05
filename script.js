@@ -158,7 +158,7 @@ function Endless() {
         Grid.cancelSelection();
       else if (Game.textObjectMouseover && Game.textObjectMouseover.activate)
         Game.textObjectMouseover.activate();
-      else if (Game.dotMouseover && !Game.dotSelection[0])
+      else if (Game.dotMouseover && !Game.dotSelection[0] && Game.playing && !Game.paused)
         Grid.startSelection(Game.dotMouseover);
     },
 
@@ -194,6 +194,7 @@ function Endless() {
     },
 
     TouchStart: function(event) {
+      event.stopPropagation();
       if (!Graphics.ready)
         return;
 
@@ -216,6 +217,7 @@ function Endless() {
     },
 
     TouchEnd: function(event) {
+      event.stopPropagation();
       if (!Graphics.ready)
         return;
 
@@ -318,6 +320,7 @@ function Endless() {
           main.show();
           requestAnimationFrame(Graphics.draw);
           Graphics.ready = true;
+          document.getElementsByTagName("h1")[0].style.display = "none";
         }
       });
     },
@@ -810,6 +813,7 @@ function Endless() {
   Util.loadDataFromStorage();
   Graphics.init();
   EventHandlers.init();
+
 }
 
 Endless();
