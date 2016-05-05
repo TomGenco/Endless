@@ -362,7 +362,7 @@ function Endless() {
 
     this.draw = function() {
       if (this.overlay) {
-        Graphics.ctx.fillStyle = "rgba(20,20,20,.75)";
+        Graphics.ctx.fillStyle = "rgba(20,20,20,.8)";
         Graphics.ctx.fillRect(0, 0, Graphics.canvas.width, Graphics.canvas.height);
       }
 
@@ -443,14 +443,18 @@ function Endless() {
                   break;
               }
             } else {
-              if (Math.floor(Math.random() * 12) == 0)
-                Grid.dots[col][row] = new SuperDot(col, row,
-                  Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
-                  Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
-              else
-                Grid.dots[col][row] = new ColorDot(col, row,
-                  Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
-                  Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
+              switch (Math.floor(Math.random() * 20)) {
+                case 0:
+                  Grid.dots[col][row] = new SuperDot(col, row,
+                    Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
+                    Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
+                  break;
+                default:
+                  Grid.dots[col][row] = new ColorDot(col, row,
+                    Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
+                    Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
+                  break;
+              }
             }
             if (Game.Settings.animations)
               Grid.dots[col][row].transition = new Transition(
