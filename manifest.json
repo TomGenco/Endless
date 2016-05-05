@@ -3,7 +3,7 @@
   "name": "Endless by Tom Genco",
   "start_url": "/index.html",
   "display": "fullscreen",
-  "background_color": "#333",
+  "background_color": "#282828",
   "icons": [
     {
       "src": "assets/endless-96.png",

@@ -11,53 +11,53 @@ function Endless() {
       vibrate: true
     },
 
-    Screens: {},
+    screens: {},
     score: 0,
-    selectingDots: false,
-    textObjectMouseover: null,
-    dotMouseover: null,
-    dotSelection: [],
-    dotSelectionHue: 100,
     playing: false,
     paused: false,
 
     play: function() {
       if (!Game.playing) {
-        Game.updateScore(0);
+        Game.updateScore();
         Game.playing = true;
-        Game.Screens.playing.show();
-        Game.Screens.main.overlay = true;
+        Game.screens.playing.show();
+        Game.screens.main.overlay = true;
       }
       Game.paused = false;
-      Game.Screens.main.hide();
+      Game.screens.main.hide();
     },
 
-    updateScore: function(dotsCleared) {
-      Game.score += dotsCleared == 2? 2 : 2 * dotsCleared;
+    updateScore: function() {
+      for (var i = 0; i < Grid.dotSelection.length; i++)
+        Game.score += Grid.dotSelection[i].points;
       if (Game.playing) {
-        Game.Screens.playing.contents.score.text = Game.score;
-        if (Game.Settings.animations) {
-          Game.Screens.playing.contents.score.hue = Game.dotSelectionHue + Game.Settings.hueShift % 360;
-          Game.Screens.playing.contents.score.lightness = 60;
-          Game.Screens.playing.contents.score.transition = new Transition(
-            Game.Screens.playing.contents.score,
+        Game.screens.playing.contents.score.text = Game.score;
+        if (Game.Settings.animations && Grid.dotSelectionHue != null) {
+          Game.screens.playing.contents.score.hue = Grid.dotSelectionHue + Game.Settings.hueShift % 360;
+          Game.screens.playing.contents.score.lightness = 60;
+          Game.screens.playing.contents.score.transition = new Transition(
+            Game.screens.playing.contents.score,
             "lightness", 60, 100, 800, 0);
-          Game.Screens.playing.contents.score.transition.start();
+          Game.screens.playing.contents.score.transition.start();
           }
       }
       localStorage.setItem("Endless--score", Game.score);
       localStorage.setItem("Endless--lastTwoHues", JSON.stringify(Grid.lastTwoHues));
     },
 
-    updateScoreIndicator: function(dotsCleared) {
-      if (dotsCleared > 1) {
-        Game.Screens.playing.contents.scoreIndicator.text = "+" + (dotsCleared == 2? 2 : 2 * dotsCleared);
-        Game.Screens.playing.contents.scoreIndicator.visible = true;
-        Game.Screens.playing.contents.scoreIndicator.hue = Game.dotSelection[0].hue + Game.Settings.hueShift % 360;
-        Game.Screens.playing.contents.scoreIndicator.saturation = 60;
-        Game.Screens.playing.contents.scoreIndicator.lightness = 60;
+    updateScoreIndicator: function() {
+      var possibleScore = 0;
+      for (var i = 0; i < Grid.dotSelection.length; i++)
+        possibleScore += Grid.dotSelection[i].points;
+
+      if (possibleScore > 3) {
+        Game.screens.playing.contents.scoreIndicator.text = "+" + possibleScore;
+        Game.screens.playing.contents.scoreIndicator.visible = true;
+        Game.screens.playing.contents.scoreIndicator.hue = Grid.dotSelectionHue + Game.Settings.hueShift % 360;
+        Game.screens.playing.contents.scoreIndicator.saturation = 60;
+        Game.screens.playing.contents.scoreIndicator.lightness = 60;
       } else {
-        Game.Screens.playing.contents.scoreIndicator.visible = false;
+        Game.screens.playing.contents.scoreIndicator.visible = false;
       }
     }
   }
@@ -68,7 +68,7 @@ function Endless() {
         if (/^Endless--/.test(localStorage.key(i))) {
           if (localStorage.key(i) == "Endless--score") {
             Game.score = parseFloat(localStorage.getItem("Endless--score"));
-            Game.updateScore(0);
+            Game.updateScore();
             continue;
           } else if (localStorage.key(i) == "Endless--grid") {
             Grid.importing = true;
@@ -131,7 +131,7 @@ function Endless() {
   }
 
   var EventHandlers = {
-    mouseX: null, mouseY: null,
+    mouseX: null, mouseY: null, textObjectMouseover: null, dotMouseover: null,
 
     init: function() {
       Graphics.canvas.addEventListener("mousedown", EventHandlers.MouseDown, false);
@@ -145,8 +145,8 @@ function Endless() {
       Graphics.canvas.addEventListener("touchcancel", EventHandlers.TouchCancel, false);
       window.onresize = function() {
         Graphics.updateCanvasSize();
-        for (var screen in Game.Screens)
-          Game.Screens[screen].onResize();
+        for (var screen in Game.screens)
+          Game.screens[screen].onResize();
       }
     },
 
@@ -156,17 +156,17 @@ function Endless() {
 
       if (event.button != 0)
         Grid.cancelSelection();
-      else if (Game.textObjectMouseover && Game.textObjectMouseover.activate)
-        Game.textObjectMouseover.activate();
-      else if (Game.dotMouseover && !Game.dotSelection[0] && Game.playing && !Game.paused)
-        Grid.startSelection(Game.dotMouseover);
+      else if (EventHandlers.textObjectMouseover && EventHandlers.textObjectMouseover.activate)
+        EventHandlers.textObjectMouseover.activate();
+      else if (EventHandlers.dotMouseover && !Grid.dotSelection[0] && Game.playing && !Game.paused)
+        Grid.startSelection(EventHandlers.dotMouseover);
     },
 
     MouseUp: function(event) {
       if (!Graphics.ready)
         return;
 
-      if ((event.button == 0 || event instanceof TouchEvent) && Game.selectingDots)
+      if ((event.button == 0 || event instanceof TouchEvent) && Grid.selectingDots)
         Grid.endSelection();
     },
 
@@ -174,20 +174,20 @@ function Endless() {
       if (!Graphics.ready)
         return;
 
-      if (Game.selectingDots)
+      if (Grid.selectingDots)
         EventHandlers.mouseX = event.clientX, EventHandlers.mouseY = event.clientY;
 
-      if (Game.textObjectMouseover = TextObject.searchAtPosition(event.clientX, event.clientY)) {
-        Game.dotMouseover = null;
-        if (Game.textObjectMouseover.activate)
+      if (EventHandlers.textObjectMouseover = TextObject.searchAtPosition(event.clientX, event.clientY)) {
+        EventHandlers.dotMouseover = null;
+        if (EventHandlers.textObjectMouseover.activate)
           Graphics.canvas.style.cursor = "pointer";
-        if (Game.selectingDots)
+        if (Grid.selectingDots)
           Grid.cancelSelection();
-      } else if ((Game.dotMouseover = Grid.searchAtPosition(event.clientX, event.clientY)) && Game.playing && !Game.paused) {
-        Game.textObjectMouseover = null;
+      } else if ((EventHandlers.dotMouseover = Grid.searchAtPosition(event.clientX, event.clientY)) && Game.playing && !Game.paused) {
+        EventHandlers.textObjectMouseover = null;
         Graphics.canvas.style.cursor = "pointer";
-        if (Game.selectingDots)
-          Grid.handleDotMouseover(Game.dotMouseover);
+        if (Grid.selectingDots)
+          Grid.handleDotMouseover(EventHandlers.dotMouseover);
       } else {
         Graphics.canvas.removeAttribute("style");
       }
@@ -209,10 +209,10 @@ function Endless() {
       if ((textObject = TextObject.searchAtPosition(x, y)) && textObject.activate) {
         event.preventDefault();
         textObject.activate();
-      } else if (Game.playing && !Game.Screens.main.visible) {
+      } else if (Game.playing && !Game.screens.main.visible) {
         event.preventDefault();
-        if (Game.dotSelection[0] = Grid.searchAtPosition(x, y))
-          Grid.startSelection(Game.dotSelection[0]);
+        if (Grid.dotSelection[0] = Grid.searchAtPosition(x, y))
+          Grid.startSelection(Grid.dotSelection[0]);
       }
     },
 
@@ -237,15 +237,15 @@ function Endless() {
       if (x == undefined)
         return;
 
-      if (Game.selectingDots) {
+      if (Grid.selectingDots) {
         if (TextObject.searchAtPosition(x, y)) {
           Grid.cancelSelection();
           return;
         }
         EventHandlers.mouseX = x, EventHandlers.mouseY = y;
-        if (Game.dotMouseover = Grid.searchAtPosition(x, y)) {
+        if (EventHandlers.dotMouseover = Grid.searchAtPosition(x, y)) {
           event.preventDefault();
-          Grid.handleDotMouseover(Game.dotMouseover);
+          Grid.handleDotMouseover(EventHandlers.dotMouseover);
         }
       }
     },
@@ -255,7 +255,7 @@ function Endless() {
         return;
 
       for (var i = 0; i < event.changedTouches.length; i++)
-        if (event.changedTouches[i].identifier == 0 && Game.selectingDots)
+        if (event.changedTouches[i].identifier == 0 && Grid.selectingDots)
           Grid.cancelSelection();
     },
 
@@ -263,7 +263,7 @@ function Endless() {
       if (!Graphics.ready)
         return;
 
-      if (Game.selectingDots)
+      if (Grid.selectingDots)
         Grid.cancelSelection();
     }
   };
@@ -286,24 +286,22 @@ function Endless() {
           families: ["Josefin Sans:300"]
         },
         active: function () {
-          var main =    Game.Screens.main =    new Screen(),
-              playing = Game.Screens.playing = new Screen();
+          var main =    Game.screens.main =    new Screen(),
+              playing = Game.screens.playing = new Screen();
 
           main.add([
-            "title",      new TextObject("endless",      0.5, 0.30,    0,  0, 100),
-            "subtitle",   new TextObject("By Tom Genco", 0.6, 0.36,    0, 30,  25),
-            "play",       new TextObject("Play",         0.5, 0.60, -150, 40,  50, Game.play),
-            "reset",      new TextObject("Reset",        0.5, 0.60,  150, 40,  50, Util.clearStorage),
+            "title",      new TextObject("endless",      0.5, 0.35,    0,  0, 120),
+            "subtitle",   new TextObject("by Tom Genco", 0.5, 0.40,    0, 50,  25),
+            "play",       new TextObject("Play",         0.4, 0.60, -100, 40,  50, Game.play),
+            "reset",      new TextObject("Reset",        0.6, 0.60,  100, 40,  50, Util.clearStorage),
             "siteLink",   new TextObject("tomgenco.com",   0,    1,   15, -5,  30, function() { window.location.href = "http://tomgenco.com"; }),
             "sourceLink", new TextObject("Source code",    1,    1,  -15, -5,  30, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
           ]);
           playing.add([
-            "menu",           new TextObject("Menu",       0,    0,   15,   0, 50),
-            "score",          new TextObject(Game.score,   1,    0,  -15,   0, 50),
-            "scoreIndicator", new TextObject("hi",         1,    0.07,  -15, 70, 50),
-            "grid",           Grid,
-            "siteLink",       main.contents.siteLink,
-            "sourceLink",     main.contents.sourceLink
+            "score",          new TextObject(Game.score,   0,    0,    15,  0, 50),
+            "scoreIndicator", new TextObject("hi",         0,    0.07, 15, 70, 50),
+            "menu",           new TextObject("Menu",       1,    0,   -15,  0, 50),
+            "grid",           Grid
           ]);
 
           playing.contents.scoreIndicator.visible = false;
@@ -334,10 +332,10 @@ function Endless() {
     draw: function() {
       Graphics.ctx.clearRect(0,0,Graphics.canvas.width,Graphics.canvas.height);
 
-      if (Game.Screens.playing.visible)
-        Game.Screens.playing.draw();
-      if (Game.Screens.main.visible)
-        Game.Screens.main.draw();
+      if (Game.screens.playing.visible)
+        Game.screens.playing.draw();
+      if (Game.screens.main.visible)
+        Game.screens.main.draw();
 
       requestAnimationFrame(Graphics.draw);
     }
@@ -364,7 +362,7 @@ function Endless() {
 
     this.draw = function() {
       if (this.overlay) {
-        Graphics.ctx.fillStyle = "rgba(0,0,0,.75)";
+        Graphics.ctx.fillStyle = "rgba(20,20,20,.75)";
         Graphics.ctx.fillRect(0, 0, Graphics.canvas.width, Graphics.canvas.height);
       }
 
@@ -399,7 +397,15 @@ function Endless() {
   }
 
   var Grid = {
-    gridX: null, gridY: null, width: null, height: null, dots: [], lastTwoHues: [], visible: true, importing: false,
+    gridX: null, gridY: null,
+    width: null, height: null,
+    visible: true,
+    importing: false,
+    dots: [],
+    selectingDots: false,
+    dotSelection: [],
+    dotSelectionHue: 100,
+    lastTwoHues: [],
 
     transition: {
       started: false,
@@ -413,23 +419,39 @@ function Endless() {
 
     generateDots: function() {
       var delay = 0, updateDelay;
+      if (Grid.importing)
+        var importedGrid = Grid.importFromJSON();
       for (var col = 0; col < Game.Settings.columns; col++) {
         if (Grid.dots[col] == undefined)
           Grid.dots[col] = [];
         updateDelay = false;
         for (var row = 0; row < Game.Settings.rows; row++)
           if (!Grid.dots[col][row]) {
-            var hue;
-            while ("I still feel like it") {
-              hue = Math.floor(Math.random() * Game.Settings.dotColors) * (360 / Math.floor(Game.Settings.dotColors));
-              if (Game.Settings.dotColors < 3 ||
-                (hue != Grid.lastTwoHues[0] &&
-                 hue != Grid.lastTwoHues[1]))
-                 break;
+            if (Grid.importing && importedGrid[col] && importedGrid[col][row]) {
+              switch (importedGrid[col][row].type) {
+                default:
+                case "ColorDot":
+                  Grid.dots[col][row] = new ColorDot(col, row,
+                    Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
+                    Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
+                  Grid.dots[col][row].hue = importedGrid[col][row].hue;
+                  break;
+                case "SuperDot":
+                  Grid.dots[col][row] = new SuperDot(col, row,
+                    Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
+                    Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
+                  break;
+              }
+            } else {
+              if (Math.floor(Math.random() * 12) == 0)
+                Grid.dots[col][row] = new SuperDot(col, row,
+                  Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
+                  Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
+              else
+                Grid.dots[col][row] = new ColorDot(col, row,
+                  Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
+                  Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
             }
-            Grid.dots[col][row] = new Dot(hue, col, row,
-              Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
-              Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
             if (Game.Settings.animations)
               Grid.dots[col][row].transition = new Transition(
                 Grid.dots[col][row],
@@ -444,11 +466,9 @@ function Endless() {
         if (updateDelay)
           delay++;
       }
-      if (Grid.importing) {
+      if (Grid.importing)
         Grid.importing = false;
-        Grid.importFromJSON();
-      } else
-        Grid.exportToJSON();
+      Grid.exportToJSON();
     },
 
     fillNulls: function() {
@@ -485,7 +505,6 @@ function Endless() {
 
       Grid.generateDots();
       Grid.transition.start();
-
     },
 
     draw: function() {
@@ -493,24 +512,32 @@ function Endless() {
       for (var i = 0; i < Grid.dots.length; i++)
         for (var j = 0; j < Grid.dots[i].length; j++)
           if (Grid.dots[i][j]) {
-            if (Game.Settings.animations)
+            if (Game.Settings.animations && Grid.dots[i][j].transition)
               Grid.dots[i][j].transition.update();
             Grid.dots[i][j].draw();
           }
 
-      if (Game.selectingDots)
+      if (Grid.selectingDots)
         Grid.drawSelectionLine();
     },
 
     drawSelectionLine: function() {
-      Graphics.ctx.strokeStyle = "hsla(" + (Game.dotSelection[0].hue + Game.Settings.hueShift % 360) + ", 100%, 50%, 1)";
       Graphics.ctx.lineWidth = Graphics.dotSize / 3;
       Graphics.ctx.lineJoin = "round";
       Graphics.ctx.beginPath();
-      Graphics.ctx.moveTo(Game.dotSelection[0].x, Game.dotSelection[0].y);
-      for (var i = 0; i < Game.dotSelection.length; i++)
-        Graphics.ctx.lineTo(Game.dotSelection[i].x, Game.dotSelection[i].y)
+      Graphics.ctx.moveTo(Grid.dotSelection[0].x, Grid.dotSelection[0].y);
+      for (var i = 1; i < Grid.dotSelection.length; i++) {
+        var gradient = Graphics.ctx.createLinearGradient(Grid.dotSelection[i-1].x, Grid.dotSelection[i-1].y, Grid.dotSelection[i].x, Grid.dotSelection[i].y);
+        gradient.addColorStop(0.2, Grid.dotSelection[i-1].getColor());
+        gradient.addColorStop(0.8, Grid.dotSelection[i].getColor());
+        Graphics.ctx.lineTo(Grid.dotSelection[i].x, Grid.dotSelection[i].y)
+        Graphics.ctx.strokeStyle = gradient;
+        Graphics.ctx.stroke();
+        Graphics.ctx.beginPath();
+        Graphics.ctx.moveTo(Grid.dotSelection[i].x, Grid.dotSelection[i].y);
+      }
       Graphics.ctx.lineTo(EventHandlers.mouseX, EventHandlers.mouseY);
+      Graphics.ctx.strokeStyle = Grid.dotSelection[Grid.dotSelection.length - 1].getColor();
       Graphics.ctx.stroke();
     },
 
@@ -560,11 +587,6 @@ function Endless() {
       return false;
     },
 
-    checkConnection: function(dot1, dot2) {
-      return dot2 && dot1.hue == dot2.hue && !dot2.selected &&
-        Math.abs(dot2.col - dot1.col) < 2 && Math.abs(dot2.row - dot1.row) < 2;
-    },
-
     cleanUp: function() {
       // Remove any dot that shouldn't exist
       for (var col = dots.length - 1; col >= 0; col--)
@@ -578,10 +600,7 @@ function Endless() {
     },
 
     importFromJSON: function(gridString) {
-      var grid = JSON.parse(localStorage.getItem("Endless--grid"));
-      for (var col = 0; col < grid.length; col++)
-        for (var row = 0; row < grid[0].length; row++)
-          Grid.dots[col][row].hue = grid[col][row].hue;
+      return JSON.parse(localStorage.getItem("Endless--grid"));
     },
 
     exportToJSON: function() {
@@ -590,6 +609,7 @@ function Endless() {
         grid[col] = [];
         for (var row = 0; row < Grid.dots[0].length; row++)
           grid[col][row] = {
+            type: Grid.dots[col][row].__proto__.constructor.name,
             hue: Grid.dots[col][row].hue
           };
       }
@@ -599,49 +619,52 @@ function Endless() {
     startSelection: function(dot) {
       EventHandlers.mouseX = undefined;
       EventHandlers.mouseY = undefined;
-      Game.selectingDots = true;
-      Game.dotSelection[0] = dot;
+      Grid.selectingDots = true;
+      Grid.dotSelection[0] = dot;
+      Grid.dotSelectionHue = dot.hue;
       dot.selected = true;
       if (Game.Settings.vibrate)
         Util.vibrate(30);
     },
 
     endSelection: function() {
-      Game.updateScoreIndicator(0);
-      Game.selectingDots = false;
-      if (Game.dotSelection.length > 1) {
-        Grid.lastTwoHues[1] = Grid.lastTwoHues[0];
-        Grid.lastTwoHues[0] = Game.dotSelection[0].hue;
-        Game.dotSelectionHue = Game.dotSelection[0].hue;
+      Grid.selectingDots = false;
+      if (Grid.dotSelection.length > 1) {
+        if (Grid.dotSelectionHue != null) {
+          Grid.lastTwoHues[1] = Grid.lastTwoHues[0];
+          Grid.lastTwoHues[0] = Grid.dotSelectionHue;
+        }
         var dotsCleared = 0;
-        for (var i = 0; i < Game.dotSelection.length; i++) {
-          Grid.dots[Game.dotSelection[i].col][Game.dotSelection[i].row] = null;
+        for (var i = 0; i < Grid.dotSelection.length; i++) {
+          Grid.dots[Grid.dotSelection[i].col][Grid.dotSelection[i].row] = null;
           dotsCleared++;
         }
-        Game.updateScore(dotsCleared);
+        Game.updateScore();
+        Grid.dotSelectionHue = null;
         Grid.fillNulls();
-        Util.vibrate([20, 40, 20]);
+        Util.vibrate([30, 60, 30]);
       } else
-        Game.dotSelection[0].selected = false;
-      Game.dotSelection = [];
+        Grid.dotSelection[0].selected = false;
+      Grid.dotSelection = [];
+      Game.updateScoreIndicator();
     },
 
     cancelSelection: function() {
-      Game.updateScoreIndicator(0);
-      Game.selectingDots = false;
-      for (var i = 0; i < Game.dotSelection.length; i++)
-        Game.dotSelection[i].selected = false;
-      Game.dotSelection = [];
+      Grid.selectingDots = false;
+      for (var i = 0; i < Grid.dotSelection.length; i++)
+        Grid.dotSelection[i].selected = false;
+      Grid.dotSelection = [];
+      Game.updateScoreIndicator();
     },
 
     handleDotMouseover: function(dot) {
-      if (dot == Game.dotSelection[Game.dotSelection.length - 2]) {
-        Game.dotSelection.pop().selected = false;
-        Game.updateScoreIndicator(Game.dotSelection.length);
-      } else if (Grid.checkConnection(Game.dotSelection[Game.dotSelection.length - 1], dot)) {
+      if (dot == Grid.dotSelection[Grid.dotSelection.length - 2]) {
+        Grid.dotSelection.pop().selected = false;
+        Game.updateScoreIndicator();
+      } else if (Grid.dotSelection[Grid.dotSelection.length - 1].canConnectTo(dot)) {
         dot.selected = true;
-        Game.dotSelection.push(dot);
-        Game.updateScoreIndicator(Game.dotSelection.length);
+        Grid.dotSelection.push(dot);
+        Game.updateScoreIndicator();
         if (Game.Settings.vibrate)
           Util.vibrate(20);
       }
@@ -649,14 +672,45 @@ function Endless() {
 
   }
 
-  function Dot(hue, column, row, x, y) {
-    this.hue = hue;
+  function Dot(column, row, x, y) {
     this.col = column;
     this.row = row;
     this.x = x;
     this.y = y;
+    this.points = 2;
     this.transition;
     this.selected = false;
+
+    this.draw = function() {
+      Graphics.ctx.fillStyle = "white";
+      Graphics.ctx.beginPath();
+      Graphics.ctx.arc(this.x, this.y, Graphics.dotSize / 2, 0, Math.PI * 2, false);
+      Graphics.ctx.fill();
+    };
+
+    this.canConnectTo = function(dot) {
+      return false;
+    };
+
+    this.getColor = function() {
+      return "white";
+    }
+  }
+
+  function ColorDot(column, row, x, y) {
+    Dot.call(this, column, row, x, y);
+
+    while (true) {
+      this.hue = Math.floor(Math.random() * Game.Settings.dotColors) * (360 / Math.floor(Game.Settings.dotColors));
+      if (Game.Settings.dotColors < 3 ||
+        (this.hue != Grid.lastTwoHues[0] &&
+         this.hue != Grid.lastTwoHues[1]))
+         break;
+    }
+
+    ColorDot.prototype = Object.create(Dot.prototype);
+    ColorDot.prototype.constructor = ColorDot;
+
 
     this.draw = function() {
       Graphics.ctx.fillStyle = "hsla(" +
@@ -667,8 +721,49 @@ function Endless() {
       Graphics.ctx.beginPath();
       Graphics.ctx.arc(this.x, this.y, Graphics.dotSize / 2, 0, Math.PI * 2, false);
       Graphics.ctx.fill();
-    }
+    };
+
+    this.canConnectTo = function(dot) {
+      if (dot && (this.hue == dot.hue || dot instanceof SuperDot) && !dot.selected &&
+          Math.abs(dot.col - this.col) < 2 && Math.abs(dot.row - this.row) < 2) {
+        if (dot.hue == null)
+          Grid.dotSelectionHue = undefined;
+        else
+          Grid.dotSelectionHue = dot.hue;
+        return true;
+      }
+    };
+
+    this.getColor = function() {
+      return "hsla(" + (this.hue + Game.Settings.hueShift % 360) + ", 100%, 50%, 1)";
+    };
   }
+
+  function SuperDot(column, row, x, y) {
+    Dot.call(this, column, row, x, y);
+
+    this.points = 10;
+
+    this.draw = function() {
+      Graphics.ctx.fillStyle = "white";
+      Graphics.ctx.beginPath();
+      Graphics.ctx.arc(this.x, this.y, Graphics.dotSize / 2, 0, Math.PI * 2, false);
+      Graphics.ctx.fill();
+    };
+
+    this.canConnectTo = function(dot) {
+      if (dot && !dot.selected && Math.abs(dot.col - this.col) < 2 && Math.abs(dot.row - this.row) < 2) {
+        if (dot.hue == null)
+          Grid.dotSelectionHue = undefined;
+        else
+          Grid.dotSelectionHue = dot.hue;
+        return true;
+      }
+    };
+  }
+
+  SuperDot.prototype = Object.create(Dot.prototype);
+  SuperDot.prototype.constructor = SuperDot;
 
   function TextObject(text, relativeX, relativeY, fixedOffsetX, fixedOffsetY, textSize, activate) {
     this.fixedOffsetX = fixedOffsetX;
@@ -738,11 +833,11 @@ function Endless() {
     this.calculateDimensions();
 
     TextObject.searchAtPosition = function(mouseX, mouseY) {
-      for (var screen in Game.Screens)
-        for (var object in Game.Screens[screen].contents)
-          if (Game.Screens[screen].contents[object] instanceof TextObject && Game.Screens[screen].contents[object].inRange(mouseX, mouseY) &&
-              Game.Screens[screen].visible)
-            return Game.Screens[screen].contents[object];
+      for (var screen in Game.screens)
+        for (var object in Game.screens[screen].contents)
+          if (Game.screens[screen].contents[object] instanceof TextObject && Game.screens[screen].contents[object].inRange(mouseX, mouseY) &&
+              Game.screens[screen].visible)
+            return Game.screens[screen].contents[object];
     };
   }
 
