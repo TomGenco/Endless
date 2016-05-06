@@ -289,22 +289,22 @@ function Endless() {
               playing = Game.screens.playing = new Screen();
 
           main.add([
-            "title",      new TextObject("endless",      0.5, 0.35,    0,  0, 100),
+            "title",      new TextObject("endless",      0.5, 0.30,    0,  0, 100),
             "subtitle",   new TextObject("by Tom Genco", 0.5,    0,    0,  0,  25),
-            "play",       new TextObject("Play",         0.4, 0.60, -100, 40,  35, Game.play),
-            "reset",      new TextObject("Reset",        0.6, 0.60,  100, 40,  35, Util.clearStorage),
-            "siteLink",   new TextObject("tomgenco.com",   0,    1,   15, -5,  25, function() { window.location.href = "http://tomgenco.com"; }),
-            "sourceLink", new TextObject("Source code",    1,    1,  -15, -5,  25, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
+            "play",       new TextObject("Play",         0.3, 0.7, 0, 0,  35, Game.play),
+            "reset",      new TextObject("Reset",        0.7, 0.7,  0, 0,  35, Util.clearStorage),
+            "siteLink",   new TextObject("tomgenco.com",   0,    1,   5, 0,  25, function() { window.location.href = "http://tomgenco.com"; }),
+            "sourceLink", new TextObject("Source code",    1,    1,  -5, 0,  25, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
           ]);
           playing.add([
-            "score",          new TextObject(Game.score,   0,    0,    15,  0, 35),
-            "scoreIndicator", new TextObject("hi",         0,    0,    15,  0, 35),
-            "menu",           new TextObject("Menu",       1,    0,   -15,  0, 35),
+            "score",          new TextObject(Game.score,   0,    0,    5,  5, 35),
+            "scoreIndicator", new TextObject("hi",         0,    0,    0,  5, 35),
+            "menu",           new TextObject("Menu",       1,    0,   -5,  5, 35),
             "grid",           Grid
           ]);
 
           main.contents.subtitle.putBelow(main.contents.title);
-          playing.contents.scoreIndicator.putBelow(playing.contents.score);
+          playing.contents.scoreIndicator.putAfter(playing.contents.score);
           playing.contents.scoreIndicator.visible = false;
           playing.contents.menu.activate = function() { Game.paused = true, main.show(); };
 
@@ -327,7 +327,7 @@ function Endless() {
     updateCanvasSize: function() {
       Graphics.canvas.setAttribute("height", window.innerHeight);
       if (window.innerWidth > window.innerHeight) {
-        var canvasWidth = Math.min(window.screen.height, 980);
+        var canvasWidth = Math.min(window.innerHeight, 980);
         Graphics.canvas.setAttribute("width", canvasWidth);
         Graphics.canvas.style["margin-left"] = ((window.innerWidth - canvasWidth) / 2) + "px";
       } else {
@@ -793,6 +793,7 @@ function Endless() {
     this.width;
     this.height;
     this.isBelow;
+    this.isAfter;
 
     this.inRange = function(mouseX, mouseY) {
       return mouseX > this.x && mouseX < this.x + this.width &&
@@ -843,11 +844,18 @@ function Endless() {
 
       if (this.isBelow)
         this.y += this.isBelow.y + this.isBelow.height - .2 * this.isBelow.height;
+      else if (this.isAfter)
+        this.x += this.isAfter.x + this.isAfter.width;
     };
     this.calculateDimensions();
 
     this.putBelow = function(textObject) {
       this.isBelow = textObject;
+      this.calculateDimensions();
+    }
+
+    this.putAfter = function(textObject) {
+      this.isAfter = textObject;
       this.calculateDimensions();
     }
 
