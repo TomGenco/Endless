@@ -313,8 +313,8 @@ function Endless() {
             for (var object in main.contents)
               main.contents[object].transition = new Transition(main.contents[object], "opacity", 0, 1, 2000, i++ * 250);
 
-            playing.contents.menu.transition =  new Transition(playing.contents.menu,  "fixedOffsetY", -128, 10, 1000, 100, "logistic");
-            playing.contents.score.transition = new Transition(playing.contents.score, "fixedOffsetY", -128, 10, 1000, 150, "logistic");
+            playing.contents.menu.transition =  new Transition(playing.contents.menu,  "y", -128, 5, 1000, 100, "logistic");
+            playing.contents.score.transition = new Transition(playing.contents.score, "y", -128, 5, 1000, 150, "logistic");
           }
           main.show();
           requestAnimationFrame(Graphics.draw);
@@ -672,6 +672,7 @@ function Endless() {
     handleDotMouseover: function(dot) {
       if (dot == Grid.dotSelection[Grid.dotSelection.length - 2]) {
         Grid.dotSelection.pop().selected = false;
+        Grid.dotSelectionHue = Grid.dotSelection[Grid.dotSelection.length - 1].hue;
         Game.updateScoreIndicator();
       } else if (Grid.dotSelection[Grid.dotSelection.length - 1].canConnectTo(dot)) {
         dot.selected = true;
