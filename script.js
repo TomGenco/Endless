@@ -31,7 +31,7 @@ function Endless() {
       for (var i = 0; i < Grid.dotSelection.length; i++)
         Game.score += Grid.dotSelection[i].points;
       if (Game.playing) {
-        Game.screens.playing.contents.score.text = Game.score;
+        Game.screens.playing.contents.score.setText(Game.score);
         if (Game.Settings.animations && Grid.dotSelectionHue != null) {
           Game.screens.playing.contents.score.hue = Grid.dotSelectionHue + Game.Settings.hueShift % 360;
           Game.screens.playing.contents.score.lightness = 60;
@@ -51,7 +51,7 @@ function Endless() {
         possibleScore += Grid.dotSelection[i].points;
 
       if (possibleScore > 3) {
-        Game.screens.playing.contents.scoreIndicator.text = "+" + possibleScore;
+        Game.screens.playing.contents.scoreIndicator.setText("+" + possibleScore);
         Game.screens.playing.contents.scoreIndicator.visible = true;
         Game.screens.playing.contents.scoreIndicator.hue = Grid.dotSelectionHue + Game.Settings.hueShift % 360;
         Game.screens.playing.contents.scoreIndicator.saturation = 60;
@@ -784,7 +784,6 @@ function Endless() {
     this.opacity = 1;
     this.transition;
     this.visible = true
-    this.text = text;
     this.hue = 0;
     this.saturation = 100;
     this.lightness = 100;
@@ -808,7 +807,7 @@ function Endless() {
       Graphics.ctx.font = this.height + "px Josefin Sans";
       Graphics.ctx.globalAlpha = this.opacity;
       Graphics.ctx.fillStyle = "hsl(" + this.hue + "," + this.saturation + "%," + this.lightness + "%)";
-      Graphics.ctx.fillText(this.text, this.x, this.y);
+      Graphics.ctx.fillText(text, this.x, this.y);
       // Graphics.ctx.strokeRect(this.x, this.y - this.height / 10, this.width, this.height + this.height / 10); // (click detection rectangle)
       // Graphics.ctx.strokeRect(this.x, this.y, this.width, this.height); // (canvas update detection rectangle)
     };
@@ -849,10 +848,15 @@ function Endless() {
     };
     this.calculateDimensions();
 
+    this.setText = function (newText) {
+      text = newText;
+      this.calculateDimensions();
+    };
+
     this.putBelow = function(textObject) {
       this.isBelow = textObject;
       this.calculateDimensions();
-    }
+    };
 
     this.putAfter = function(textObject) {
       this.isAfter = textObject;
