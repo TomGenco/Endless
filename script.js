@@ -34,10 +34,10 @@ function Endless() {
         Game.screens.playing.contents.topMenuBar.contents.score.setText(Game.score);
         if (Game.Settings.animations && Grid.dotSelectionHue != null) {
           Game.screens.playing.contents.topMenuBar.contents.score.hue = Grid.dotSelectionHue + Game.Settings.hueShift % 360;
-          Game.screens.playing.contents.topMenuBar.contents.score.lightness = 60;
+          Game.screens.playing.contents.topMenuBar.contents.score.lightness = 100;
           Game.screens.playing.contents.topMenuBar.contents.score.transition = new Transition(
             Game.screens.playing.contents.topMenuBar.contents.score,
-            "lightness", 60, 100, 800, 0);
+            "lightness", 60, 800, 0);
           Game.screens.playing.contents.topMenuBar.contents.score.transition.start();
           }
       }
@@ -312,10 +312,10 @@ function Endless() {
           if (Game.Settings.animations) {
             var i = 0;
             for (var object in main.contents)
-              main.contents[object].transition = new Transition(main.contents[object], "opacity", 0, 1, 2000, i++ * 250);
+              main.contents[object].transition = new Transition(main.contents[object], "opacity", 0, 2000, i++ * 250);
 
-            playing.contents.topMenuBar.contents.menu.transition =  new Transition(playing.contents.topMenuBar.contents.menu,  "y", -128, 5, 1000, 100, "logistic");
-            playing.contents.topMenuBar.contents.score.transition = new Transition(playing.contents.topMenuBar.contents.score, "y", -128, 5, 1000, 150, "logistic");
+            playing.contents.topMenuBar.contents.menu.transition =  new Transition(playing.contents.topMenuBar.contents.menu,  "y", -128, 1000, 100, "logistic");
+            playing.contents.topMenuBar.contents.score.transition = new Transition(playing.contents.topMenuBar.contents.score, "y", -128, 1000, 150, "logistic");
           }
 
           Grid.calculateDimensions();
@@ -470,7 +470,7 @@ function Endless() {
                 Grid.dots[col][row],
                 "y",
                 -Graphics.dotSize / 2 - Graphics.dotSize / 2 * (Game.Settings.rows - 1 - row),
-                Grid.dots[col][row].y,
+                // Grid.dots[col][row].y,
                 500 + delay * 100, 0, "logistic"
               );
             if (!updateDelay)
@@ -501,17 +501,16 @@ function Endless() {
               Grid.dots[col][row] = Grid.dots[col][row - countNulls];
               Grid.dots[col][row - countNulls] = null;
               Grid.dots[col][row].row = row;
+              Grid.dots[col][row].y = Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
               if (Game.Settings.animations) {
                 Grid.dots[col][row].transition = new Transition(
                   Grid.dots[col][row],
                   "y",
                   Grid.y + Graphics.dotSize / 2 + (row - countNulls) * Graphics.dotSize * 2,
-                  Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2,
+                  // Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2,
                   400, 0, "logistic");
                 Grid.dots[col][row].draw.finished = false;
                 Grid.dots[col][row].transition.start();
-              } else {
-                Grid.dots[col][row].y = Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
               }
             }
           }
@@ -811,8 +810,8 @@ function Endless() {
       Graphics.ctx.globalAlpha = this.opacity;
       Graphics.ctx.fillStyle = "hsl(" + this.hue + "," + this.saturation + "%," + this.lightness + "%)";
       Graphics.ctx.fillText(text, this.x, this.y);
-      // Graphics.ctx.strokeRect(this.x, this.y - this.height / 10, this.width, this.height + this.height / 10); // (click detection rectangle)
-      // Graphics.ctx.strokeRect(this.x, this.y, this.width, this.height); // (canvas update detection rectangle)
+      //Graphics.ctx.strokeRect(this.x, this.y - this.height / 10, this.width, this.height + this.height / 10); // (click detection rectangle)
+      //Graphics.ctx.strokeRect(this.x, this.y, this.width, this.height); // (canvas update detection rectangle)
     };
 
     this.calculateDimensions = function() {
@@ -913,10 +912,10 @@ function Endless() {
     };
   }
 
-  function Transition(object, property, startVal, endVal, duration, delay, motionType, callback) {
+  function Transition(object, property, startVal, duration, delay, motionType, callback) {
     this.object = object;
     this.startVal = startVal;
-    this.endVal = endVal;
+    this.endVal = object[property];
     this.duration = duration;
     this.delay = delay;
     this.property = property;
