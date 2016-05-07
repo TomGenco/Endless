@@ -7,7 +7,7 @@ function Endless() {
       columns: 5,
       dotColors: 5,
       hueShift: 60,
-      rows: 5,
+      rows: 6,
       vibrate: true
     },
 
@@ -31,14 +31,14 @@ function Endless() {
       for (var i = 0; i < Grid.dotSelection.length; i++)
         Game.score += Grid.dotSelection[i].points;
       if (Game.playing) {
-        Game.screens.playing.contents.score.setText(Game.score);
+        Game.screens.playing.contents.topMenuBar.contents.score.setText(Game.score);
         if (Game.Settings.animations && Grid.dotSelectionHue != null) {
-          Game.screens.playing.contents.score.hue = Grid.dotSelectionHue + Game.Settings.hueShift % 360;
-          Game.screens.playing.contents.score.lightness = 60;
-          Game.screens.playing.contents.score.transition = new Transition(
-            Game.screens.playing.contents.score,
-            "lightness", 60, 100, 800, 0);
-          Game.screens.playing.contents.score.transition.start();
+          Game.screens.playing.contents.topMenuBar.contents.score.hue = Grid.dotSelectionHue + Game.Settings.hueShift % 360;
+          Game.screens.playing.contents.topMenuBar.contents.score.lightness = 100;
+          Game.screens.playing.contents.topMenuBar.contents.score.transition = new Transition(
+            Game.screens.playing.contents.topMenuBar.contents.score,
+            "lightness", 60, 800, 0);
+          Game.screens.playing.contents.topMenuBar.contents.score.transition.start();
           }
       }
       localStorage.setItem("Endless--score", Game.score);
@@ -51,13 +51,13 @@ function Endless() {
         possibleScore += Grid.dotSelection[i].points;
 
       if (possibleScore > 3) {
-        Game.screens.playing.contents.scoreIndicator.setText("+" + possibleScore);
-        Game.screens.playing.contents.scoreIndicator.visible = true;
-        Game.screens.playing.contents.scoreIndicator.hue = Grid.dotSelectionHue + Game.Settings.hueShift % 360;
-        Game.screens.playing.contents.scoreIndicator.saturation = 60;
-        Game.screens.playing.contents.scoreIndicator.lightness = 60;
+        Game.screens.playing.contents.topMenuBar.contents.scoreIndicator.setText("+" + possibleScore);
+        Game.screens.playing.contents.topMenuBar.contents.scoreIndicator.visible = true;
+        Game.screens.playing.contents.topMenuBar.contents.scoreIndicator.hue = Grid.dotSelectionHue + Game.Settings.hueShift % 360;
+        Game.screens.playing.contents.topMenuBar.contents.scoreIndicator.saturation = 60;
+        Game.screens.playing.contents.topMenuBar.contents.scoreIndicator.lightness = 60;
       } else {
-        Game.screens.playing.contents.scoreIndicator.visible = false;
+        Game.screens.playing.contents.topMenuBar.contents.scoreIndicator.visible = false;
       }
     }
   }
@@ -277,8 +277,6 @@ function Endless() {
       Graphics.canvas = document.getElementsByTagName("canvas")[0];
       Graphics.ctx = Graphics.canvas.getContext("2d");
       Graphics.updateCanvasSize();
-      Grid.calculateDimensions();
-      Grid.generateDots();
 
       WebFont.load({
         google: {
@@ -288,34 +286,41 @@ function Endless() {
           var main =    Game.screens.main =    new Screen(),
               playing = Game.screens.playing = new Screen();
 
-          main.add([
+          main.add(
             "title",      new TextObject("endless",      0.5, 0.30,    0,  0, 100),
             "subtitle",   new TextObject("by Tom Genco", 0.5,    0,    0,  0,  25),
             "play",       new TextObject("Play",         0.3, 0.7, 0, 0,  35, Game.play),
             "reset",      new TextObject("Reset",        0.7, 0.7,  0, 0,  35, Util.clearStorage),
             "siteLink",   new TextObject("tomgenco.com",   0,    1,   5, 0,  25, function() { window.location.href = "http://tomgenco.com"; }),
             "sourceLink", new TextObject("Source code",    1,    1,  -5, 0,  25, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
-          ]);
-          playing.add([
-            "score",          new TextObject(Game.score,   0,    0,    5,  5, 35),
-            "scoreIndicator", new TextObject("hi",         0,    0,    0,  5, 35),
-            "menu",           new TextObject("Menu",       1,    0,   -5,  5, 35),
-            "grid",           Grid
-          ]);
+          );
+          playing.add(
+            "topMenuBar", new MenuBar(playing),
+            "grid",       Grid
+          );
+
+          playing.contents.topMenuBar.add(
+            // name           position object
+            "score",          "left",  new TextObject(Game.score, 0, 0,  10, 10, 35),
+            "scoreIndicator", "left",  new TextObject("",         0, 0,  10, 10, 35),
+            "menu",           "right", new TextObject("Menu",     1, 0, -10, 10, 35, function() { Game.paused = true, main.show(); })
+          );
 
           main.contents.subtitle.putBelow(main.contents.title);
-          playing.contents.scoreIndicator.putAfter(playing.contents.score);
-          playing.contents.scoreIndicator.visible = false;
-          playing.contents.menu.activate = function() { Game.paused = true, main.show(); };
+          playing.contents.topMenuBar.contents.scoreIndicator.putAfter(playing.contents.topMenuBar.contents.score);
 
           if (Game.Settings.animations) {
             var i = 0;
             for (var object in main.contents)
-              main.contents[object].transition = new Transition(main.contents[object], "opacity", 0, 1, 2000, i++ * 250);
+              main.contents[object].transition = new Transition(main.contents[object], "opacity", 0, 2000, i++ * 250);
 
-            playing.contents.menu.transition =  new Transition(playing.contents.menu,  "y", -128, 5, 1000, 100, "logistic");
-            playing.contents.score.transition = new Transition(playing.contents.score, "y", -128, 5, 1000, 150, "logistic");
+            playing.contents.topMenuBar.contents.menu.transition =  new Transition(playing.contents.topMenuBar.contents.menu,  "y", -128, 1000, 100, "logistic");
+            playing.contents.topMenuBar.contents.score.transition = new Transition(playing.contents.topMenuBar.contents.score, "y", -128, 1000, 150, "logistic");
           }
+
+          Grid.calculateDimensions();
+          Grid.generateDots();
+
           main.show();
           requestAnimationFrame(Graphics.draw);
           Graphics.ready = true;
@@ -351,21 +356,17 @@ function Endless() {
 
   function Screen() {
     this.contents    = {};
+    this.interactive = [];
     this.initialized = false
     this.visible     = false;
     this.overlay     = false;
 
-    this.add = function(name, object) {
-      if (Array.isArray(arguments[0])) {
-        for (var i = 0; i < arguments[0].length; i+=2)
-          this.add(arguments[0][i], arguments[0][i + 1]);
-        return;
+    this.add = function() {
+      for (var i = 0; i < arguments.length; i+=2) {
+        this.contents[arguments[i]] = arguments[i + 1];
+        if (arguments[i + 1].activate)
+          this.interactive.push(arguments[i + 1]);
       }
-
-      if (!object.draw)
-        console.error(name + " needs a draw function.");
-      else
-        this.contents[name] = object;
     }
 
     this.draw = function() {
@@ -382,7 +383,7 @@ function Endless() {
     this.initialize = function() {
       if (Game.Settings.animations)
         for (var object in this.contents)
-          if (this.contents[object].visible && !this.contents[object].transition.started)
+          if (this.contents[object].visible && this.contents[object].transition && !this.contents[object].transition.started)
             this.contents[object].transition.start();
       this.initialized = true;
     }
@@ -405,7 +406,7 @@ function Endless() {
   }
 
   var Grid = {
-    gridX: null, gridY: null,
+    x: null, y: null,
     width: null, height: null,
     visible: true,
     importing: false,
@@ -440,27 +441,27 @@ function Endless() {
                 default:
                 case "ColorDot":
                   Grid.dots[col][row] = new ColorDot(col, row,
-                    Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
-                    Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
+                    Grid.x + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
+                    Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
                   Grid.dots[col][row].hue = importedGrid[col][row].hue;
                   break;
                 case "SuperDot":
                   Grid.dots[col][row] = new SuperDot(col, row,
-                    Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
-                    Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
+                    Grid.x + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
+                    Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
                   break;
               }
             } else {
               switch (Math.floor(Math.random() * 20)) {
                 case 0:
                   Grid.dots[col][row] = new SuperDot(col, row,
-                    Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
-                    Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
+                    Grid.x + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
+                    Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
                   break;
                 default:
                   Grid.dots[col][row] = new ColorDot(col, row,
-                    Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
-                    Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
+                    Grid.x + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
+                    Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
                   break;
               }
             }
@@ -469,7 +470,7 @@ function Endless() {
                 Grid.dots[col][row],
                 "y",
                 -Graphics.dotSize / 2 - Graphics.dotSize / 2 * (Game.Settings.rows - 1 - row),
-                Grid.dots[col][row].y,
+                // Grid.dots[col][row].y,
                 500 + delay * 100, 0, "logistic"
               );
             if (!updateDelay)
@@ -500,17 +501,16 @@ function Endless() {
               Grid.dots[col][row] = Grid.dots[col][row - countNulls];
               Grid.dots[col][row - countNulls] = null;
               Grid.dots[col][row].row = row;
+              Grid.dots[col][row].y = Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
               if (Game.Settings.animations) {
                 Grid.dots[col][row].transition = new Transition(
                   Grid.dots[col][row],
                   "y",
-                  Grid.gridY + Graphics.dotSize / 2 + (row - countNulls) * Graphics.dotSize * 2,
-                  Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2,
+                  Grid.y + Graphics.dotSize / 2 + (row - countNulls) * Graphics.dotSize * 2,
+                  // Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2,
                   400, 0, "logistic");
                 Grid.dots[col][row].draw.finished = false;
                 Grid.dots[col][row].transition.start();
-              } else {
-                Grid.dots[col][row].y = Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
               }
             }
           }
@@ -554,14 +554,15 @@ function Endless() {
     },
 
     calculateDimensions: function() {
-      // This will need some work (what if grid isn't a square?)
-      Graphics.dotSize = (Math.min(Graphics.canvas.height, Graphics.canvas.width)) /
-        (Math.max(Game.Settings.rows, Game.Settings.columns) * 2.3);
+      Graphics.dotSize = Math.min(
+        Graphics.canvas.width / (Game.Settings.columns * 2),
+        (Graphics.canvas.height - Game.screens.playing.contents.topMenuBar.height) / (Game.Settings.rows * 2)
+      );
 
       Grid.width = Game.Settings.columns * Graphics.dotSize * 2 - Graphics.dotSize;
       Grid.height = Game.Settings.rows * Graphics.dotSize * 2 - Graphics.dotSize;
-      Grid.gridX = Graphics.canvas.width / 2 - Grid.width / 2;
-      Grid.gridY = Graphics.canvas.height / 2 - Grid.height / 2;
+      Grid.x = Graphics.canvas.width / 2 - Grid.width / 2;
+      Grid.y = Game.screens.playing.contents.topMenuBar.height / 2 + (Graphics.canvas.height) / 2 - Grid.height / 2;
 
       this.calculateDotPositions();
     },
@@ -569,22 +570,22 @@ function Endless() {
     calculateDotPositions: function() {
       for (var col = 0; col < Grid.dots.length; col++)
         for (var row = 0; row < Grid.dots[col].length; row++) {
-          Grid.dots[col][row].x = Grid.gridX + Graphics.dotSize / 2 + col * Graphics.dotSize * 2;
-          Grid.dots[col][row].y = Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
+          Grid.dots[col][row].x = Grid.x + Graphics.dotSize / 2 + col * Graphics.dotSize * 2;
+          Grid.dots[col][row].y = Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
           if (Game.Settings.animations)
             if (Grid.dots[col][row].transition.started) {
-              Grid.dots[col][row].transition.endVal = Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
+              Grid.dots[col][row].transition.endVal = Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
               Grid.dots[col][row].transition.finished = true;
             } else {
-              Grid.dots[col][row].transition.endVal = Grid.gridY + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
+              Grid.dots[col][row].transition.endVal = Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
               Grid.dots[col][row].transition.distance = Grid.dots[col][row].transition.endVal - Grid.dots[col][row].transition.startVal;
             }
         }
     },
 
     searchAtPosition: function(mouseX, mouseY) {
-      var gridPosX = mouseX - Grid.gridX + Graphics.dotSize / 2,
-          gridPosY = mouseY - Grid.gridY + Graphics.dotSize / 2;
+      var gridPosX = mouseX - Grid.x + Graphics.dotSize / 2,
+          gridPosY = mouseY - Grid.y + Graphics.dotSize / 2;
 
       if (gridPosX > 0 && gridPosX < Grid.width  + Graphics.dotSize &&
           gridPosY > 0 && gridPosY < Grid.height + Graphics.dotSize) {
@@ -809,8 +810,8 @@ function Endless() {
       Graphics.ctx.globalAlpha = this.opacity;
       Graphics.ctx.fillStyle = "hsl(" + this.hue + "," + this.saturation + "%," + this.lightness + "%)";
       Graphics.ctx.fillText(text, this.x, this.y);
-      // Graphics.ctx.strokeRect(this.x, this.y - this.height / 10, this.width, this.height + this.height / 10); // (click detection rectangle)
-      // Graphics.ctx.strokeRect(this.x, this.y, this.width, this.height); // (canvas update detection rectangle)
+      //Graphics.ctx.strokeRect(this.x, this.y - this.height / 10, this.width, this.height + this.height / 10); // (click detection rectangle)
+      //Graphics.ctx.strokeRect(this.x, this.y, this.width, this.height); // (canvas update detection rectangle)
     };
 
     this.calculateDimensions = function() {
@@ -866,21 +867,55 @@ function Endless() {
 
     TextObject.searchAtPosition = function(mouseX, mouseY) {
       for (var screen in Game.screens)
-        for (var object in Game.screens[screen].contents)
-          if (Game.screens[screen].contents[object] instanceof TextObject && Game.screens[screen].contents[object].inRange(mouseX, mouseY) &&
-              Game.screens[screen].visible)
-            return Game.screens[screen].contents[object];
+        if (Game.screens[screen].visible)
+          for (var i = 0; i < Game.screens[screen].interactive.length; i++)
+            if (Game.screens[screen].interactive[i].inRange(mouseX, mouseY))
+              return Game.screens[screen].interactive[i];
     };
   }
 
-  function MenuBar() {
-    // TODO:
+  function MenuBar(screen) {
+    this.contents = {};
+    this.visible = true;
+    this.color = "#222";
+    this.height = 0;
+
+    this.add = function() {
+      for (var i = 0; i < arguments.length; i+=3) {
+        this.contents[arguments[i]] = arguments[i + 2];
+        if (arguments[i + 2].height + arguments[i + 2].y > this.height)
+          this.height = arguments[i + 2].height + arguments[i + 2].y;
+        if (arguments[i + 2].activate)
+          screen.interactive.push(arguments[i + 2]);
+      }
+    };
+
+    this.calculateDimensions = function() {
+      this.height = 0;
+      for (var textObject in this.contents) {
+        this.contents[textObject].calculateDimensions();
+        if (this.contents[textObject].height + this.contents[textObject].y > this.height)
+          this.height = this.contents[textObject].height + this.contents[textObject].y;
+      }
+    }
+
+    this.draw = function() {
+      Graphics.ctx.fillStyle = this.color;
+      Graphics.ctx.fillRect(0,0,Graphics.canvas.width,this.height)
+
+      for (var object in this.contents) {
+        if (this.contents[object].transition && !this.contents[object].transition.started)
+          this.contents[object].transition.start();
+        if (this.contents[object].visible)
+          this.contents[object].draw();
+        }
+    };
   }
 
-  function Transition(object, property, startVal, endVal, duration, delay, motionType, callback) {
+  function Transition(object, property, startVal, duration, delay, motionType, callback) {
     this.object = object;
     this.startVal = startVal;
-    this.endVal = endVal;
+    this.endVal = object[property];
     this.duration = duration;
     this.delay = delay;
     this.property = property;

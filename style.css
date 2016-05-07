@@ -1,7 +1,7 @@
 /* Style settings for Endless by Tom Genco */
 
 body {
-  background-color: #282828;
+  background-color: #181818;
   margin: 0;
   position: absolute;
   font-family: 'Josefin Sans', sans-serif;
@@ -19,4 +19,5 @@ h1 {
 canvas {
   z-index: 0;
   position: absolute;
+  background-color: #282828;
 }
