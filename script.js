@@ -302,7 +302,7 @@ function Endless() {
           );
           playing.add(
             "topMenuBar", Graphics.topMenuBar,
-            "grid",       new Grid("endless", Game.Settings.columns, Game.Settings.rows, "auto")
+            "grid",       new Grid("endless", Game.Settings.columns, Game.Settings.rows, 1)
           );
 
           main.contents.subtitle.putBelow(main.contents.title);
@@ -401,7 +401,7 @@ function Endless() {
     }
   }
 
-  function Grid(name, cols, rows, dotSize, colors) {
+  function Grid(name, cols, rows, dotSizeRatio, colors) {
     this.cols = cols,
     this.rows = rows,
     this.colors = colors,
@@ -410,7 +410,6 @@ function Endless() {
     this.dotSelection = [],
     this.dotSelectionHue,
     this.lastTwoHues = [];
-    this.dotSize = dotSize;
     var importedGrid = JSON.parse(localStorage.getItem("Endless--grid_" + name)), imported = false;
 
     this.exportToJSON = function() {
@@ -427,10 +426,9 @@ function Endless() {
     };
 
     this.calculateDimensions = function() {
-      if (dotSize == "auto")
-        this.dotSize = Math.min(
-          Graphics.canvas.width / (cols * 2),
-         (Graphics.canvas.height - Graphics.topMenuBar.height) / (rows * 2));
+      this.dotSize = dotSizeRatio * Math.min(
+        Graphics.canvas.width / (cols * 2),
+       (Graphics.canvas.height - Graphics.topMenuBar.height) / (rows * 2));
 
       this.width = cols * this.dotSize * 2 - this.dotSize;
       this.height = rows * this.dotSize * 2 - this.dotSize;
