@@ -25,15 +25,15 @@ function Endless() {
         score: 0,
         topMenuBar: undefined,
         grid: undefined,
-        textObjectMouseover: undefined,
+        textMouseover: undefined,
         dotMouseover: undefined,
         mouseX: undefined, mouseY: undefined,
 
         mouseDown: function(event) {
           if (event.button != 0)
             this.grid.cancelSelection();
-          else if (this.textObjectMouseover && this.textObjectMouseover.activate)
-            this.textObjectMouseover.activate();
+          else if (this.textMouseover && this.textMouseover.activate)
+            this.textMouseover.activate();
           else if (this.dotMouseover && !this.grid.dotSelection[0])
             this.grid.startSelection(this.dotMouseover);
         },
@@ -50,12 +50,12 @@ function Endless() {
             this.mouseX = event.clientX - Graphics.canvas.offsetLeft, this.mouseY = event.clientY;
           }
 
-          if (this.textObjectMouseover = TextObject.searchAtPosition(event.clientX - Graphics.canvas.offsetLeft, event.clientY)) {
+          if (this.textMouseover = Text.searchAtPosition(event.clientX - Graphics.canvas.offsetLeft, event.clientY)) {
             this.dotMouseover = null;
-            if (this.textObjectMouseover.activate)
+            if (this.textMouseover.activate)
               Graphics.canvas.style.cursor = "pointer";
           } else if (this.dotMouseover = this.grid.searchAtPosition(event.clientX - Graphics.canvas.offsetLeft, event.clientY)) {
-            this.textObjectMouseover = null;
+            this.textMouseover = null;
             Graphics.canvas.style.cursor = "pointer";
             if (this.grid.selectingDots)
               this.grid.handleDotMouseover(this.dotMouseover);
@@ -66,9 +66,9 @@ function Endless() {
         touchStart: function(event, x, y) {
           event.preventDefault();
 
-          var textObject, dot;
-          if ((textObject = TextObject.searchAtPosition(x, y)) && textObject.activate)
-            textObject.activate();
+          var text, dot;
+          if ((text = Text.searchAtPosition(x, y)) && text.activate)
+            text.activate();
           else if (dot = this.grid.searchAtPosition(x, y))
             this.grid.startSelection(dot);
         },
@@ -143,9 +143,9 @@ function Endless() {
             this.score = 0;
 
           this.topMenuBar = new MenuBar(this.screen,
-            "score",          new TextObject(this.score, 0.01, 0.005, "left",  "top", 35),
-            "scoreIndicator", new TextObject("",         0,    0.005, "left",  "top", 35),
-            "menu",           new TextObject("Menu",     0.99, 0.005, "right", "top", 35, Game.pause)
+            "score",          new Text(this.score, 0.01, 0.005, "left",  "top", 35),
+            "scoreIndicator", new Text("",         0,    0.005, "left",  "top", 35),
+            "menu",           new Text("Menu",     0.99, 0.005, "right", "top", 35, Game.pause)
           );
           this.topMenuBar.contents.scoreIndicator.putAfter(this.topMenuBar.contents.score);
 
@@ -237,7 +237,7 @@ function Endless() {
   };
 
   var EventHandlers = {
-    mouseX: null, mouseY: null, textObjectMouseover: null,
+    mouseX: null, mouseY: null, textMouseover: null,
 
     setup: function() {
       window.addEventListener("mousedown", EventHandlers.MouseDown, false);
@@ -262,8 +262,8 @@ function Endless() {
         return;
 
       if (Game.screen.visible) {
-        if (event.button == 0 && EventHandlers.textObjectMouseover && EventHandlers.textObjectMouseover.activate)
-          EventHandlers.textObjectMouseover.activate();
+        if (event.button == 0 && EventHandlers.textMouseover && EventHandlers.textMouseover.activate)
+          EventHandlers.textMouseover.activate();
       } else if (Game.mode)
         Game.mode.mouseDown(event);
     },
@@ -281,8 +281,8 @@ function Endless() {
         return;
 
       if (Game.screen.visible) {
-        if ((EventHandlers.textObjectMouseover = TextObject.searchAtPosition(event.clientX - Graphics.canvas.offsetLeft, event.clientY)) &&
-            EventHandlers.textObjectMouseover.activate)
+        if ((EventHandlers.textMouseover = Text.searchAtPosition(event.clientX - Graphics.canvas.offsetLeft, event.clientY)) &&
+            EventHandlers.textMouseover.activate)
           Graphics.canvas.style.cursor = "pointer";
         else
           Graphics.canvas.style.cursor = "";
@@ -303,11 +303,11 @@ function Endless() {
         return;
 
       if (Game.screen.visible) {
-        var textObject;
+        var text;
 
-        if ((textObject = TextObject.searchAtPosition(x, y)) && textObject.activate) {
+        if ((text = Text.searchAtPosition(x, y)) && text.activate) {
           event.preventDefault();
-          textObject.activate();
+          text.activate();
         }
       } else if (Game.mode)
         Game.mode.touchStart(event, x, y);
@@ -371,12 +371,12 @@ function Endless() {
 
       Game.screen = new Screen();
       Game.screen.add(
-        "title",      new TextObject("endless",       0.5,   0.3, "center", "middle",  100),
-        "subtitle",   new TextObject("by Tom Genco",  0.5,     0, "center", "top"   ,   25),
-        "play",       new TextObject("Play",          0.3,   0.7, "center", "middle",   35, Game.play),
-        "reset",      new TextObject("Reset",         0.7,   0.7, "center", "middle",   35, Util.clearStorage),
-        "siteLink",   new TextObject("tomgenco.com", 0.02, 0.995, "left",   "bottom",   25, function() { window.location.href = "http://tomgenco.com"; }),
-        "sourceLink", new TextObject("Source code",  0.98, 0.995, "right",  "bottom",   25, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
+        "title",      new Text("endless",       0.5,   0.3, "center", "middle",  100),
+        "subtitle",   new Text("by Tom Genco",  0.5,     0, "center", "top"   ,   25),
+        "play",       new Text("Play",          0.3,   0.7, "center", "middle",   35, Game.play),
+        "reset",      new Text("Reset",         0.7,   0.7, "center", "middle",   35, Util.clearStorage),
+        "siteLink",   new Text("tomgenco.com", 0.02, 0.995, "left",   "bottom",   25, function() { window.location.href = "http://tomgenco.com"; }),
+        "sourceLink", new Text("Source code",  0.98, 0.995, "right",  "bottom",   25, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
       );
       Game.screen.contents.subtitle.putBelow(Game.screen.contents.title);
 
@@ -830,7 +830,7 @@ function Endless() {
   SuperDot.prototype = Object.create(Dot.prototype);
   SuperDot.prototype.constructor = SuperDot;
 
-  function TextObject(text, x, y, align, baseline, textSize, activate) {
+  function Text(text, x, y, align, baseline, textSize, activate) {
     this.activate = activate;
     this.opacity = 1;
     this.transition;
@@ -903,17 +903,17 @@ function Endless() {
       this.calculateDimensions();
     };
 
-    this.putBelow = function(textObject) {
-      this.isBelow = textObject;
+    this.putBelow = function(text) {
+      this.isBelow = text;
       this.calculateDimensions();
     };
 
-    this.putAfter = function(textObject) {
-      this.isAfter = textObject;
+    this.putAfter = function(text) {
+      this.isAfter = text;
       this.calculateDimensions();
     }
 
-    TextObject.searchAtPosition = function(mouseX, mouseY) {
+    Text.searchAtPosition = function(mouseX, mouseY) {
       if (Game.screen.visible) {
         for (var i = 0; i < Game.screen.interactive.length; i++)
           if (Game.screen.interactive[i].inRange(mouseX, mouseY))
@@ -945,10 +945,10 @@ function Endless() {
 
     this.calculateDimensions = function() {
       this.height = 0;
-      for (var textObject in this.contents) {
-        this.contents[textObject].calculateDimensions();
-        if (this.contents[textObject].height + this.contents[textObject].y > this.height)
-          this.height = this.contents[textObject].height + this.contents[textObject].y;
+      for (var text in this.contents) {
+        this.contents[text].calculateDimensions();
+        if (this.contents[text].height + this.contents[text].y > this.height)
+          this.height = this.contents[text].height + this.contents[text].y;
       }
     }
 
