@@ -151,7 +151,7 @@ function Endless() {
 
           this.grid = new Grid(this, "endless", this.settings.columns, this.settings.rows, 1);
 
-          this.screen.add("grid", this.grid, "topMenuBar", this.topMenuBar);
+          this.screen.add("topMenuBar", this.topMenuBar, "grid", this.grid);
 
           if (Settings.animations) {
             this.topMenuBar.contents.menu.transition =  new Transition(this.topMenuBar.contents.menu,  "y", -128, 1000, 100, "logistic");
@@ -209,8 +209,7 @@ function Endless() {
     },
 
     clearStorage: function() {;
-      var reallyWannaDoThat = confirm("Do you really want to reset settings and score?");
-      if (reallyWannaDoThat) {
+      if (confirm("Do you really want to reset settings and score?")) {
         for (var i = 0; i < localStorage.length; i++)
           if (/^Endless\./.test(localStorage.key(i))) {
             localStorage.removeItem(localStorage.key(i));
