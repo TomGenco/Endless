@@ -389,6 +389,7 @@ function Endless() {
           families: ["Josefin Sans:300"]
         },
         active: function () {
+          Game.screen.onResize();
           Game.screen.show();
           requestAnimationFrame(Graphics.draw);
           Graphics.ready = true;
