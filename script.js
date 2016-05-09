@@ -143,9 +143,9 @@ function Endless() {
             this.score = 0;
 
           this.topMenuBar = new MenuBar(this.screen,
-            "score",          "left",  new TextObject(this.score, 0, 0,  10, 10, 35),
-            "scoreIndicator", "left",  new TextObject("",         0, 0,  10, 10, 35),
-            "menu",           "right", new TextObject("Menu",     1, 0, -10, 10, 35, Game.pause)
+            "score",          new TextObject(this.score, 0.01, 0.005, "left",  "top", 35),
+            "scoreIndicator", new TextObject("",         0,    0.005, "left",  "top", 35),
+            "menu",           new TextObject("Menu",     0.99, 0.005, "right", "top", 35, Game.pause)
           );
           this.topMenuBar.contents.scoreIndicator.putAfter(this.topMenuBar.contents.score);
 
@@ -154,8 +154,9 @@ function Endless() {
           this.screen.add("topMenuBar", this.topMenuBar, "grid", this.grid);
 
           if (Settings.animations) {
-            this.topMenuBar.contents.menu.transition =  new Transition(this.topMenuBar.contents.menu,  "y", -128, 1000, 100, "logistic");
-            this.topMenuBar.contents.score.transition = new Transition(this.topMenuBar.contents.score, "y", -128, 1000, 150, "logistic");
+            this.topMenuBar.contents.menu.transition =  new Transition(this.topMenuBar.contents.menu,  "y", -this.topMenuBar.height, 1000, 100, "logistic");
+            this.topMenuBar.contents.score.transition = new Transition(this.topMenuBar.contents.score, "y", -this.topMenuBar.height, 1000, 100, "logistic");
+            this.topMenuBar.transition =                new Transition(this.topMenuBar,                "y", -this.topMenuBar.height, 1000, 100, "logistic");
           }
         }
       }
@@ -368,12 +369,12 @@ function Endless() {
 
       Game.screen = new Screen();
       Game.screen.add(
-        "title",      new TextObject("endless",      0.5, 0.3,  0, 0, 100),
-        "subtitle",   new TextObject("by Tom Genco", 0.5,   0,  0, 0,  25),
-        "play",       new TextObject("Play",         0.3, 0.7,  0, 0,  35, Game.play),
-        "reset",      new TextObject("Reset",        0.7, 0.7,  0, 0,  35, Util.clearStorage),
-        "siteLink",   new TextObject("tomgenco.com",   0,   1,  5, 0,  25, function() { window.location.href = "http://tomgenco.com"; }),
-        "sourceLink", new TextObject("Source code",    1,   1, -5, 0,  25, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
+        "title",      new TextObject("endless",       0.5,   0.3, "center", "middle",  100),
+        "subtitle",   new TextObject("by Tom Genco",  0.5,     0, "center", "top"   ,   25),
+        "play",       new TextObject("Play",          0.3,   0.7, "center", "middle",   35, Game.play),
+        "reset",      new TextObject("Reset",         0.7,   0.7, "center", "middle",   35, Util.clearStorage),
+        "siteLink",   new TextObject("tomgenco.com", 0.02, 0.995, "left",   "bottom",   25, function() { window.location.href = "http://tomgenco.com"; }),
+        "sourceLink", new TextObject("Source code",  0.98, 0.995, "right",  "bottom",   25, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
       );
       Game.screen.contents.subtitle.putBelow(Game.screen.contents.title);
 
@@ -523,14 +524,10 @@ function Endless() {
         for (var row = 0; row < this.dots[col].length; row++) {
           this.dots[col][row].x = this.x + this.dotSize / 2 + col * this.dotSize * 2;
           this.dots[col][row].y = this.y + this.dotSize / 2 + row * this.dotSize * 2;
-          if (Settings.animations)
-            if (this.dots[col][row].transition.started) {
-              this.dots[col][row].transition.endVal = this.y + this.dotSize / 2 + row * this.dotSize * 2;
-              this.dots[col][row].transition.finished = true;
-            } else {
-              this.dots[col][row].transition.endVal = this.y + this.dotSize / 2 + row * this.dotSize * 2;
-              this.dots[col][row].transition.distance = this.dots[col][row].transition.endVal - this.dots[col][row].transition.startVal;
-            }
+          if (this.dots[col][row].transition) {
+            this.dots[col][row].transition.endVal = this.y + this.dotSize / 2 + row * this.dotSize * 2;
+            this.dots[col][row].transition.distance = this.dots[col][row].transition.endVal - this.dots[col][row].transition.startVal;
+          }
         }
     };
 
@@ -684,8 +681,7 @@ function Endless() {
       this.dotSelection[0] = dot;
       this.dotSelectionHue = dot.hue;
       dot.selected = true;
-      if (Settings.vibrate)
-        Util.vibrate(30);
+      Util.vibrate(30);
     };
 
     this.endSelection = function() {
@@ -704,7 +700,7 @@ function Endless() {
         this.gameMode.updateScore();
         this.dotSelectionHue = null;
         this.fillNulls();
-        Util.vibrate([30, 60, 30]);
+        Util.vibrate([20, 100, 50]);
       } else
         this.dotSelection[0].selected = false;
       this.dotSelection = [];
@@ -729,8 +725,7 @@ function Endless() {
         dot.selected = true;
         this.dotSelection.push(dot);
         this.gameMode.updateScoreIndicator();
-        if (Settings.vibrate)
-          Util.vibrate(20);
+        Util.vibrate(20);
       }
     };
   }
@@ -828,9 +823,7 @@ function Endless() {
   SuperDot.prototype = Object.create(Dot.prototype);
   SuperDot.prototype.constructor = SuperDot;
 
-  function TextObject(text, relativeX, relativeY, fixedOffsetX, fixedOffsetY, textSize, activate) {
-    this.fixedOffsetX = fixedOffsetX;
-    this.fixedOffsetY = fixedOffsetY;
+  function TextObject(text, x, y, align, baseline, textSize, activate) {
     this.activate = activate;
     this.opacity = 1;
     this.transition;
@@ -868,27 +861,27 @@ function Endless() {
       Graphics.ctx.font = this.height + "px Josefin Sans";
       this.width  = Graphics.ctx.measureText(text).width;
 
-      switch (relativeX) {
-        case 0:
-          this.x = relativeX * Graphics.canvas.width + fixedOffsetX;
+      switch (align) {
+        case "left":
+          this.x = x * Graphics.canvas.width;
           break;
-        case 1:
-          this.x = relativeX * Graphics.canvas.width + fixedOffsetX - this.width;
+        case "right":
+          this.x = x * Graphics.canvas.width - this.width;
           break;
         default:
-          this.x = relativeX * Graphics.canvas.width + fixedOffsetX - this.width / 2;
+          this.x = x * Graphics.canvas.width - this.width / 2;
           break;
       }
 
-      switch (relativeY) {
-        case 0:
-          this.y = relativeY * Graphics.canvas.height + fixedOffsetY;
+      switch (baseline) {
+        case "top":
+          this.y = y * Graphics.canvas.height;
           break;
-        case 1:
-          this.y = relativeY * Graphics.canvas.height + fixedOffsetY - this.height;
+        case "bottom":
+          this.y = y * Graphics.canvas.height - this.height;
           break;
         default:
-          this.y = relativeY * Graphics.canvas.height + fixedOffsetY - this.height / 2;
+          this.y = y * Graphics.canvas.height - this.height / 2;
           break;
       }
 
@@ -933,13 +926,15 @@ function Endless() {
     this.visible = true;
     this.color = "#222";
     this.height = 0;
+    this.y = 0;
+    this.transition;
 
-    for (var i = 1; i < arguments.length; i+=3) {
-      this.contents[arguments[i]] = arguments[i + 2];
-      if (arguments[i + 2].height + arguments[i + 2].y > this.height)
-        this.height = arguments[i + 2].height + arguments[i + 2].y;
-      if (arguments[i + 2].activate)
-        screen.interactive.push(arguments[i + 2]);
+    for (var i = 1; i < arguments.length; i+=2) {
+      this.contents[arguments[i]] = arguments[i + 1];
+      if (arguments[i + 1].height + arguments[i + 1].y > this.height)
+        this.height = arguments[i + 1].height + arguments[i + 1].y;
+      if (arguments[i + 1].activate)
+        screen.interactive.push(arguments[i + 1]);
     }
 
     this.calculateDimensions = function() {
@@ -952,8 +947,11 @@ function Endless() {
     }
 
     this.draw = function() {
+      if (this.transition)
+        this.transition.update();
+
       Graphics.ctx.fillStyle = this.color;
-      Graphics.ctx.fillRect(0,0,Graphics.canvas.width,this.height)
+      Graphics.ctx.fillRect(0, 0, Graphics.canvas.width, this.y + this.height)
 
       for (var object in this.contents) {
         if (this.contents[object].transition && !this.contents[object].transition.started)
@@ -972,7 +970,6 @@ function Endless() {
     this.delay = delay;
     this.property = property;
     this.motionType = motionType || "linear";
-    this.finished = false;
     this.started = false;
     this.initTime = null;
     this.delta = null;
@@ -982,9 +979,7 @@ function Endless() {
     Object.defineProperty(this, "value", {
       get: function() {
         var value;
-        if (this.finished)
-          return this.endVal;
-        else if (!this.started)
+        if (!this.started)
           return this.startVal;
         else {
           this.delta = Date.now() - this.delay - this.initTime;
@@ -1008,23 +1003,21 @@ function Endless() {
       if (this.started)
         return;
       this.started = true;
-      this.finished = false;
       var that = this;
       setTimeout(function() {
         // Checks if this transition has been replaced before it's finished
         if (that == that.object.transition) {
-          that.finished = true;
           that.object[that.property] = that.endVal;
           if (that.callback)
             that.callback();
+          delete that.object.transition;
         }
       }, that.delay + that.duration);
       this.initTime = Date.now();
     };
 
     this.update = function() {
-      if (!this.finished)
-        this.object[this.property] = this.value;
+      this.object[this.property] = this.value;
     }
   }
 
