@@ -28,36 +28,36 @@ function Endless() {
     },
 
     updateScore: function() {
-      for (var i = 0; i < Grid.dotSelection.length; i++)
-        Game.score += Grid.dotSelection[i].points;
+      for (var i = 0; i < Game.screens.playing.contents.grid.dotSelection.length; i++)
+        Game.score += Game.screens.playing.contents.grid.dotSelection[i].points;
       if (Game.playing) {
-        Game.screens.playing.contents.topMenuBar.contents.score.setText(Game.score);
-        if (Game.Settings.animations && Grid.dotSelectionHue != null) {
-          Game.screens.playing.contents.topMenuBar.contents.score.hue = Grid.dotSelectionHue + Game.Settings.hueShift % 360;
-          Game.screens.playing.contents.topMenuBar.contents.score.lightness = 100;
-          Game.screens.playing.contents.topMenuBar.contents.score.transition = new Transition(
-            Game.screens.playing.contents.topMenuBar.contents.score,
+        Graphics.topMenuBar.contents.score.setText(Game.score);
+        if (Game.Settings.animations && Game.screens.playing.contents.grid.dotSelectionHue != null) {
+          Graphics.topMenuBar.contents.score.hue = Game.screens.playing.contents.grid.dotSelectionHue + Game.Settings.hueShift % 360;
+          Graphics.topMenuBar.contents.score.lightness = 100;
+          Graphics.topMenuBar.contents.score.transition = new Transition(
+            Graphics.topMenuBar.contents.score,
             "lightness", 60, 800, 0);
-          Game.screens.playing.contents.topMenuBar.contents.score.transition.start();
+          Graphics.topMenuBar.contents.score.transition.start();
           }
       }
       localStorage.setItem("Endless--score", Game.score);
-      localStorage.setItem("Endless--lastTwoHues", JSON.stringify(Grid.lastTwoHues));
+      localStorage.setItem("Endless--lastTwoHues", JSON.stringify(Game.screens.playing.contents.grid.lastTwoHues));
     },
 
     updateScoreIndicator: function() {
       var possibleScore = 0;
-      for (var i = 0; i < Grid.dotSelection.length; i++)
-        possibleScore += Grid.dotSelection[i].points;
+      for (var i = 0; i < Game.screens.playing.contents.grid.dotSelection.length; i++)
+        possibleScore += Game.screens.playing.contents.grid.dotSelection[i].points;
 
       if (possibleScore > 3) {
-        Game.screens.playing.contents.topMenuBar.contents.scoreIndicator.setText("+" + possibleScore);
-        Game.screens.playing.contents.topMenuBar.contents.scoreIndicator.visible = true;
-        Game.screens.playing.contents.topMenuBar.contents.scoreIndicator.hue = Grid.dotSelectionHue + Game.Settings.hueShift % 360;
-        Game.screens.playing.contents.topMenuBar.contents.scoreIndicator.saturation = 60;
-        Game.screens.playing.contents.topMenuBar.contents.scoreIndicator.lightness = 60;
+        Graphics.topMenuBar.contents.scoreIndicator.setText("+" + possibleScore);
+        Graphics.topMenuBar.contents.scoreIndicator.visible = true;
+        Graphics.topMenuBar.contents.scoreIndicator.hue = Game.screens.playing.contents.grid.dotSelectionHue + Game.Settings.hueShift % 360;
+        Graphics.topMenuBar.contents.scoreIndicator.saturation = 60;
+        Graphics.topMenuBar.contents.scoreIndicator.lightness = 60;
       } else {
-        Game.screens.playing.contents.topMenuBar.contents.scoreIndicator.visible = false;
+        Graphics.topMenuBar.contents.scoreIndicator.visible = false;
       }
     }
   }
@@ -68,13 +68,13 @@ function Endless() {
         if (/^Endless--/.test(localStorage.key(i))) {
           if (localStorage.key(i) == "Endless--score") {
             Game.score = parseFloat(localStorage.getItem("Endless--score"));
-            Game.updateScore();
+            if (Game.screens.playing)
+              Game.updateScore();
             continue;
-          } else if (localStorage.key(i) == "Endless--grid") {
-            Grid.importing = true;
+          } else if (/^Endless--grid_/.test(localStorage.key(i))) {
             continue;
           } else if (localStorage.key(i) == "Endless--lastTwoHues") {
-            Grid.lastTwoHues = JSON.parse(localStorage.getItem("Endless--lastTwoHues"));
+            //Game.screens.playing.contents.grid.lastTwoHues = JSON.parse(localStorage.getItem("Endless--lastTwoHues"));
             continue;
           }
           var value = localStorage.getItem(localStorage.key(i));
@@ -154,39 +154,39 @@ function Endless() {
         return;
 
       if (event.button != 0)
-        Grid.cancelSelection();
+        Game.screens.playing.contents.grid.cancelSelection();
       else if (EventHandlers.textObjectMouseover && EventHandlers.textObjectMouseover.activate)
         EventHandlers.textObjectMouseover.activate();
-      else if (EventHandlers.dotMouseover && !Grid.dotSelection[0] && Game.playing && !Game.paused)
-        Grid.startSelection(EventHandlers.dotMouseover);
+      else if (EventHandlers.dotMouseover && !Game.screens.playing.contents.grid.dotSelection[0] && Game.playing && !Game.paused)
+        Game.screens.playing.contents.grid.startSelection(EventHandlers.dotMouseover);
     },
 
     MouseUp: function(event) {
       if (!Graphics.ready)
         return;
 
-      if ((event.button == 0 || event instanceof TouchEvent) && Grid.selectingDots)
-        Grid.endSelection();
+      if ((event.button == 0 || event instanceof TouchEvent) && Game.screens.playing.contents.grid.selectingDots)
+        Game.screens.playing.contents.grid.endSelection();
     },
 
     MouseMove: function(event) {
       if (!Graphics.ready)
         return;
 
-      if (Grid.selectingDots)
+      if (Game.screens.playing.contents.grid.selectingDots)
         EventHandlers.mouseX = event.clientX - Graphics.canvas.offsetLeft, EventHandlers.mouseY = event.clientY;
 
       if (EventHandlers.textObjectMouseover = TextObject.searchAtPosition(event.clientX - Graphics.canvas.offsetLeft, event.clientY)) {
         EventHandlers.dotMouseover = null;
         if (EventHandlers.textObjectMouseover.activate)
           Graphics.canvas.style.cursor = "pointer";
-        if (Grid.selectingDots)
-          Grid.cancelSelection();
-      } else if ((EventHandlers.dotMouseover = Grid.searchAtPosition(event.clientX - Graphics.canvas.offsetLeft, event.clientY)) && Game.playing && !Game.paused) {
+        if (Game.screens.playing.contents.grid.selectingDots)
+          Game.screens.playing.contents.grid.cancelSelection();
+      } else if ((EventHandlers.dotMouseover = Game.screens.playing.contents.grid.searchAtPosition(event.clientX - Graphics.canvas.offsetLeft, event.clientY)) && Game.playing && !Game.paused) {
         EventHandlers.textObjectMouseover = null;
         Graphics.canvas.style.cursor = "pointer";
-        if (Grid.selectingDots)
-          Grid.handleDotMouseover(EventHandlers.dotMouseover);
+        if (Game.screens.playing.contents.grid.selectingDots)
+          Game.screens.playing.contents.grid.handleDotMouseover(EventHandlers.dotMouseover);
       } else {
         Graphics.canvas.style.cursor = "";
       }
@@ -210,8 +210,8 @@ function Endless() {
         textObject.activate();
       } else if (Game.playing && !Game.screens.main.visible) {
         event.preventDefault();
-        if (Grid.dotSelection[0] = Grid.searchAtPosition(x, y))
-          Grid.startSelection(Grid.dotSelection[0]);
+        if (Game.screens.playing.contents.grid.dotSelection[0] = Game.screens.playing.contents.grid.searchAtPosition(x, y))
+          Game.screens.playing.contents.grid.startSelection(Game.screens.playing.contents.grid.dotSelection[0]);
       }
     },
 
@@ -236,15 +236,15 @@ function Endless() {
       if (x == undefined)
         return;
 
-      if (Grid.selectingDots) {
+      if (Game.screens.playing.contents.grid.selectingDots) {
         if (TextObject.searchAtPosition(x, y)) {
-          Grid.cancelSelection();
+          Game.screens.playing.contents.grid.cancelSelection();
           return;
         }
         EventHandlers.mouseX = x, EventHandlers.mouseY = y;
-        if (EventHandlers.dotMouseover = Grid.searchAtPosition(x, y)) {
+        if (EventHandlers.dotMouseover = Game.screens.playing.contents.grid.searchAtPosition(x, y)) {
           event.preventDefault();
-          Grid.handleDotMouseover(EventHandlers.dotMouseover);
+          Game.screens.playing.contents.grid.handleDotMouseover(EventHandlers.dotMouseover);
         }
       }
     },
@@ -254,16 +254,16 @@ function Endless() {
         return;
 
       for (var i = 0; i < event.changedTouches.length; i++)
-        if (event.changedTouches[i].identifier == 0 && Grid.selectingDots)
-          Grid.cancelSelection();
+        if (event.changedTouches[i].identifier == 0 && Game.screens.playing.contents.grid.selectingDots)
+          Game.screens.playing.contents.grid.cancelSelection();
     },
 
     Blur: function () {
       if (!Graphics.ready)
         return;
 
-      if (Grid.selectingDots)
-        Grid.cancelSelection();
+      if (Game.screens.playing.contents.grid.selectingDots)
+        Game.screens.playing.contents.grid.cancelSelection();
     }
   };
 
@@ -286,6 +286,12 @@ function Endless() {
           var main =    Game.screens.main =    new Screen(),
               playing = Game.screens.playing = new Screen();
 
+          Graphics.topMenuBar = new MenuBar(playing,
+            "score",          "left",  new TextObject(Game.score, 0, 0,  10, 10, 35),
+            "scoreIndicator", "left",  new TextObject("",         0, 0,  10, 10, 35),
+            "menu",           "right", new TextObject("Menu",     1, 0, -10, 10, 35, function() { Game.paused = true, main.show(); })
+          );
+
           main.add(
             "title",      new TextObject("endless",      0.5, 0.30,    0,  0, 100),
             "subtitle",   new TextObject("by Tom Genco", 0.5,    0,    0,  0,  25),
@@ -295,31 +301,21 @@ function Endless() {
             "sourceLink", new TextObject("Source code",    1,    1,  -5, 0,  25, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
           );
           playing.add(
-            "topMenuBar", new MenuBar(playing),
-            "grid",       Grid
-          );
-
-          playing.contents.topMenuBar.add(
-            // name           position object
-            "score",          "left",  new TextObject(Game.score, 0, 0,  10, 10, 35),
-            "scoreIndicator", "left",  new TextObject("",         0, 0,  10, 10, 35),
-            "menu",           "right", new TextObject("Menu",     1, 0, -10, 10, 35, function() { Game.paused = true, main.show(); })
+            "topMenuBar", Graphics.topMenuBar,
+            "grid",       new Grid("endless", Game.Settings.columns, Game.Settings.rows, "auto")
           );
 
           main.contents.subtitle.putBelow(main.contents.title);
-          playing.contents.topMenuBar.contents.scoreIndicator.putAfter(playing.contents.topMenuBar.contents.score);
+          Graphics.topMenuBar.contents.scoreIndicator.putAfter(Graphics.topMenuBar.contents.score);
 
           if (Game.Settings.animations) {
             var i = 0;
             for (var object in main.contents)
               main.contents[object].transition = new Transition(main.contents[object], "opacity", 0, 2000, i++ * 250);
 
-            playing.contents.topMenuBar.contents.menu.transition =  new Transition(playing.contents.topMenuBar.contents.menu,  "y", -128, 1000, 100, "logistic");
-            playing.contents.topMenuBar.contents.score.transition = new Transition(playing.contents.topMenuBar.contents.score, "y", -128, 1000, 150, "logistic");
+            Graphics.topMenuBar.contents.menu.transition =  new Transition(Graphics.topMenuBar.contents.menu,  "y", -128, 1000, 100, "logistic");
+            Graphics.topMenuBar.contents.score.transition = new Transition(Graphics.topMenuBar.contents.score, "y", -128, 1000, 150, "logistic");
           }
-
-          Grid.calculateDimensions();
-          Grid.generateDots();
 
           main.show();
           requestAnimationFrame(Graphics.draw);
@@ -405,288 +401,262 @@ function Endless() {
     }
   }
 
-  var Grid = {
-    x: null, y: null,
-    width: null, height: null,
-    visible: true,
-    importing: false,
-    dots: [],
-    selectingDots: false,
-    dotSelection: [],
-    dotSelectionHue: 100,
-    lastTwoHues: [],
+  function Grid(name, cols, rows, dotSize, colors) {
+    this.cols = cols,
+    this.rows = rows,
+    this.colors = colors,
+    this.visible = true,
+    this.selectingDots,
+    this.dotSelection = [],
+    this.dotSelectionHue,
+    this.lastTwoHues = [];
+    this.dotSize = dotSize;
+    var importedGrid = JSON.parse(localStorage.getItem("Endless--grid_" + name)), imported = false;
 
-    transition: {
-      started: false,
-      start: function() {
-        for (var i = 0; i < Grid.dots.length; i++)
-          for (var j = 0; j < Grid.dots[i].length; j++)
-            if (Grid.dots[i][j] && Game.Settings.animations)
-              Grid.dots[i][j].transition.start();
+    this.exportToJSON = function() {
+      importedGrid = [];
+      for (var col = 0; col < this.dots.length; col++) {
+        importedGrid[col] = [];
+        for (var row = 0; row < this.dots[0].length; row++)
+          importedGrid[col][row] = {
+            type: this.dots[col][row].__proto__.constructor.name,
+            hue: this.dots[col][row].hue
+          };
       }
-    },
+      localStorage.setItem("Endless--grid_" + name, JSON.stringify(importedGrid));
+    };
 
-    generateDots: function() {
-      var delay = 0, updateDelay;
-      if (Grid.importing)
-        var importedGrid = Grid.importFromJSON();
-      for (var col = 0; col < Game.Settings.columns; col++) {
-        if (Grid.dots[col] == undefined)
-          Grid.dots[col] = [];
+    this.calculateDimensions = function() {
+      if (dotSize == "auto")
+        this.dotSize = Math.min(
+          Graphics.canvas.width / (cols * 2),
+         (Graphics.canvas.height - Graphics.topMenuBar.height) / (rows * 2));
+
+      this.width = cols * this.dotSize * 2 - this.dotSize;
+      this.height = rows * this.dotSize * 2 - this.dotSize;
+      this.x = Graphics.canvas.width / 2 - this.width / 2;
+      this.y = Graphics.canvas.height / 2 - this.height / 2 + (Graphics.topMenuBar.height / 2);
+
+      if (this.dots)
+        this.calculateDotPositions();
+    };
+    this.calculateDimensions();
+
+    this.calculateDotPositions = function() {
+      for (var col = 0; col < this.dots.length; col++)
+        for (var row = 0; row < this.dots[col].length; row++) {
+          this.dots[col][row].x = this.x + this.dotSize / 2 + col * this.dotSize * 2;
+          this.dots[col][row].y = this.y + this.dotSize / 2 + row * this.dotSize * 2;
+          if (Game.Settings.animations)
+            if (this.dots[col][row].transition.started) {
+              this.dots[col][row].transition.endVal = this.y + this.dotSize / 2 + row * this.dotSize * 2;
+              this.dots[col][row].transition.finished = true;
+            } else {
+              this.dots[col][row].transition.endVal = this.y + this.dotSize / 2 + row * this.dotSize * 2;
+              this.dots[col][row].transition.distance = this.dots[col][row].transition.endVal - this.dots[col][row].transition.startVal;
+            }
+        }
+    };
+
+    this.generateDots = function() {
+      if (!this.dots)
+        this.dots = [];
+      if (Game.Settings.animations)
+        var delay = 0, updateDelay = false;
+
+      for (var col = 0; col < cols; col++) {
+        if (!this.dots[col])
+          this.dots[col] = [];
         updateDelay = false;
-        for (var row = 0; row < Game.Settings.rows; row++)
-          if (!Grid.dots[col][row]) {
-            if (Grid.importing && importedGrid[col] && importedGrid[col][row]) {
-              switch (importedGrid[col][row].type) {
-                default:
-                case "ColorDot":
-                  Grid.dots[col][row] = new ColorDot(col, row,
-                    Grid.x + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
-                    Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
-                  Grid.dots[col][row].hue = importedGrid[col][row].hue;
-                  break;
-                case "SuperDot":
-                  Grid.dots[col][row] = new SuperDot(col, row,
-                    Grid.x + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
-                    Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
-                  break;
+        for (var row = 0; row < rows; row++)
+          if (!this.dots[col][row]) {
+            if (!imported && importedGrid && importedGrid[col] && importedGrid[col][row]) {
+              if (importedGrid[col][row].type == "SuperDot")
+                this.dots[col][row] = new SuperDot(this, col, row);
+              else {
+                this.dots[col][row] = new ColorDot(this, col, row);
+                this.dots[col][row].hue = importedGrid[col][row].hue;
               }
             } else {
-              switch (Math.floor(Math.random() * 20)) {
-                case 0:
-                  Grid.dots[col][row] = new SuperDot(col, row,
-                    Grid.x + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
-                    Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
-                  break;
-                default:
-                  Grid.dots[col][row] = new ColorDot(col, row,
-                    Grid.x + Graphics.dotSize / 2 + col * Graphics.dotSize * 2,
-                    Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2);
-                  break;
-              }
+              if (Math.floor(Math.random() * 20) == 0)
+                this.dots[col][row] = new SuperDot(this, col, row);
+              else
+                this.dots[col][row] = new ColorDot(this, col, row);
             }
-            if (Game.Settings.animations)
-              Grid.dots[col][row].transition = new Transition(
-                Grid.dots[col][row],
-                "y",
-                -Graphics.dotSize / 2 - Graphics.dotSize / 2 * (Game.Settings.rows - 1 - row),
-                // Grid.dots[col][row].y,
-                500 + delay * 100, 0, "logistic"
-              );
-            if (!updateDelay)
+            if (Game.Settings.animations) {
+              this.dots[col][row].transition = new Transition(
+                this.dots[col][row], 'y',
+                -this.dotSize / 2 - this.dotSize / 2 * (Game.Settings.rows - 1 - row),
+                500, delay * 50, "logistic");
               updateDelay = true;
+            }
           }
-        if (updateDelay)
+        if (Game.Settings.animations && updateDelay) {
           delay++;
+          updateDelay = false;
+        }
       }
-      if (Grid.importing)
-        Grid.importing = false;
-      Grid.exportToJSON();
-    },
+      if (imported)
+        this.exportToJSON();
+      else
+        imported = true;
 
-    fillNulls: function() {
-      // Iterate through each spot in Grid.dots[][], from the bottom to top
-      for (var row = Grid.dots[0].length - 1; row >= 0; row--)
-        for (var col = 0; col < Grid.dots.length; col++)
+      this.calculateDotPositions();
+    };
+    this.generateDots();
+
+    this.fillNulls = function() {
+      // Iterate through each spot in Game.screens.playing.contents.grid.dots[][], from the bottom to top
+      for (var row = this.dots[0].length - 1; row >= 0; row--)
+        for (var col = 0; col < this.dots.length; col++)
           // If that spot is null, try to pull the next non-null dot above it
-          if (Grid.dots[col][row] == null) {
+          if (this.dots[col][row] == null) {
             var countNulls = 0;
             // Count how many nulls there are from this position upward
             while (row - countNulls >= 0)
-              if (Grid.dots[col][row - countNulls] == null)
+              if (this.dots[col][row - countNulls] == null)
                 countNulls++;
               else break;
             // If there is a dot above this position, drop it into it's new spot
             if (row - countNulls >= 0) {
-              Grid.dots[col][row] = Grid.dots[col][row - countNulls];
-              Grid.dots[col][row - countNulls] = null;
-              Grid.dots[col][row].row = row;
-              Grid.dots[col][row].y = Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
-              if (Game.Settings.animations) {
-                Grid.dots[col][row].transition = new Transition(
-                  Grid.dots[col][row],
+              this.dots[col][row] = this.dots[col][row - countNulls];
+              this.dots[col][row - countNulls] = null;
+              this.dots[col][row].row = row;
+              this.dots[col][row].y = this.y + this.dotSize / 2 + row * this.dotSize * 2;
+              if (Game.Settings.animations)
+                this.dots[col][row].transition = new Transition(
+                  this.dots[col][row],
                   "y",
-                  Grid.y + Graphics.dotSize / 2 + (row - countNulls) * Graphics.dotSize * 2,
-                  // Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2,
+                  this.y + this.dotSize / 2 + (row - countNulls) * this.dotSize * 2,
                   400, 0, "logistic");
-                Grid.dots[col][row].draw.finished = false;
-                Grid.dots[col][row].transition.start();
-              }
             }
           }
 
-      Grid.generateDots();
-      Grid.transition.start();
-    },
+      this.generateDots();
+    };
 
-    draw: function() {
-      // Run each dot's transitions if needed
-      for (var i = 0; i < Grid.dots.length; i++)
-        for (var j = 0; j < Grid.dots[i].length; j++)
-          if (Grid.dots[i][j]) {
-            if (Game.Settings.animations && Grid.dots[i][j].transition)
-              Grid.dots[i][j].transition.update();
-            Grid.dots[i][j].draw();
+    this.draw = function() {
+      for (var i = 0; i < this.dots.length; i++)
+        for (var j = 0; j < this.dots[i].length; j++)
+          if (this.dots[i][j]) {
+            if (Game.Settings.animations && this.dots[i][j].transition) {
+              if (!this.dots[i][j].transition.started)
+                this.dots[i][j].transition.start();
+              this.dots[i][j].transition.update();
+            }
+            this.dots[i][j].draw();
           }
 
-      if (Grid.selectingDots)
-        Grid.drawSelectionLine();
-    },
+      if (this.selectingDots)
+        this.drawSelectionLine();
+    };
 
-    drawSelectionLine: function() {
-      Graphics.ctx.lineWidth = Graphics.dotSize / 3;
+    this.drawSelectionLine = function() {
+      Graphics.ctx.lineWidth = this.dotSize / 3;
       Graphics.ctx.lineJoin = "round";
       Graphics.ctx.beginPath();
-      Graphics.ctx.moveTo(Grid.dotSelection[0].x, Grid.dotSelection[0].y);
-      for (var i = 1; i < Grid.dotSelection.length; i++) {
-        var gradient = Graphics.ctx.createLinearGradient(Grid.dotSelection[i-1].x, Grid.dotSelection[i-1].y, Grid.dotSelection[i].x, Grid.dotSelection[i].y);
-        gradient.addColorStop(0.2, Grid.dotSelection[i-1].getColor());
-        gradient.addColorStop(0.8, Grid.dotSelection[i].getColor());
-        Graphics.ctx.lineTo(Grid.dotSelection[i].x, Grid.dotSelection[i].y)
+      Graphics.ctx.moveTo(this.dotSelection[0].x, this.dotSelection[0].y);
+      for (var i = 1; i < this.dotSelection.length; i++) {
+        var gradient = Graphics.ctx.createLinearGradient(this.dotSelection[i-1].x, this.dotSelection[i-1].y, this.dotSelection[i].x, this.dotSelection[i].y);
+        gradient.addColorStop(0.2, this.dotSelection[i-1].getColor());
+        gradient.addColorStop(0.8, this.dotSelection[i].getColor());
+        Graphics.ctx.lineTo(this.dotSelection[i].x, this.dotSelection[i].y)
         Graphics.ctx.strokeStyle = gradient;
         Graphics.ctx.stroke();
         Graphics.ctx.beginPath();
-        Graphics.ctx.moveTo(Grid.dotSelection[i].x, Grid.dotSelection[i].y);
+        Graphics.ctx.moveTo(this.dotSelection[i].x, this.dotSelection[i].y);
       }
       Graphics.ctx.lineTo(EventHandlers.mouseX, EventHandlers.mouseY);
-      Graphics.ctx.strokeStyle = Grid.dotSelection[Grid.dotSelection.length - 1].getColor();
+      Graphics.ctx.strokeStyle = this.dotSelection[this.dotSelection.length - 1].getColor();
       Graphics.ctx.stroke();
-    },
+    };
 
-    calculateDimensions: function() {
-      Graphics.dotSize = Math.min(
-        Graphics.canvas.width / (Game.Settings.columns * 2),
-        (Graphics.canvas.height - Game.screens.playing.contents.topMenuBar.height) / (Game.Settings.rows * 2)
-      );
+    this.searchAtPosition = function(mouseX, mouseY) {
+      var gridPosX = mouseX - this.x + this.dotSize / 2,
+          gridPosY = mouseY - this.y + this.dotSize / 2;
 
-      Grid.width = Game.Settings.columns * Graphics.dotSize * 2 - Graphics.dotSize;
-      Grid.height = Game.Settings.rows * Graphics.dotSize * 2 - Graphics.dotSize;
-      Grid.x = Graphics.canvas.width / 2 - Grid.width / 2;
-      Grid.y = Game.screens.playing.contents.topMenuBar.height / 2 + (Graphics.canvas.height) / 2 - Grid.height / 2;
-
-      this.calculateDotPositions();
-    },
-
-    calculateDotPositions: function() {
-      for (var col = 0; col < Grid.dots.length; col++)
-        for (var row = 0; row < Grid.dots[col].length; row++) {
-          Grid.dots[col][row].x = Grid.x + Graphics.dotSize / 2 + col * Graphics.dotSize * 2;
-          Grid.dots[col][row].y = Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
-          if (Game.Settings.animations)
-            if (Grid.dots[col][row].transition.started) {
-              Grid.dots[col][row].transition.endVal = Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
-              Grid.dots[col][row].transition.finished = true;
-            } else {
-              Grid.dots[col][row].transition.endVal = Grid.y + Graphics.dotSize / 2 + row * Graphics.dotSize * 2;
-              Grid.dots[col][row].transition.distance = Grid.dots[col][row].transition.endVal - Grid.dots[col][row].transition.startVal;
-            }
-        }
-    },
-
-    searchAtPosition: function(mouseX, mouseY) {
-      var gridPosX = mouseX - Grid.x + Graphics.dotSize / 2,
-          gridPosY = mouseY - Grid.y + Graphics.dotSize / 2;
-
-      if (gridPosX > 0 && gridPosX < Grid.width  + Graphics.dotSize &&
-          gridPosY > 0 && gridPosY < Grid.height + Graphics.dotSize) {
-        var dot = Grid.dots[
-           Math.floor(gridPosX / ((Grid.width  + Graphics.dotSize) / Game.Settings.columns))]
-          [Math.floor(gridPosY / ((Grid.height + Graphics.dotSize) / Game.Settings.rows))
+      if (gridPosX > 0 && gridPosX < this.width  + this.dotSize &&
+          gridPosY > 0 && gridPosY < this.height + this.dotSize) {
+        var dot = this.dots[
+           Math.floor(gridPosX / ((this.width  + this.dotSize) / Game.Settings.columns))]
+          [Math.floor(gridPosY / ((this.height + this.dotSize) / Game.Settings.rows))
         ];
 
-        if (dot && Math.sqrt(Math.pow(dot.x - mouseX, 2) + Math.pow(dot.y - mouseY, 2)) < Graphics.dotSize / 2 * 1.75)
+        if (dot && Math.sqrt(Math.pow(dot.x - mouseX, 2) + Math.pow(dot.y - mouseY, 2)) < this.dotSize / 2 * 1.75)
           return dot;
       }
       return false;
-    },
+    };
 
-    cleanUp: function() {
+    this.cleanUp = function() {
       // Remove any dot that shouldn't exist
       for (var col = dots.length - 1; col >= 0; col--)
         if (col >= Game.Settings.columns)
           dots.pop();
         else
-          for (var row = Grid.dots[col].length - 1; row >= Game.Settings.rows; row--)
-            Grid.dots[col].pop();
+          for (var row = this.dots[col].length - 1; row >= Game.Settings.rows; row--)
+            this.dots[col].pop();
 
-      Grid.generateDots();
-    },
+      this.generateDots();
+    };
 
-    importFromJSON: function(gridString) {
-      return JSON.parse(localStorage.getItem("Endless--grid"));
-    },
-
-    exportToJSON: function() {
-      var grid = [];
-      for (var col = 0; col < Grid.dots.length; col++) {
-        grid[col] = [];
-        for (var row = 0; row < Grid.dots[0].length; row++)
-          grid[col][row] = {
-            type: Grid.dots[col][row].__proto__.constructor.name,
-            hue: Grid.dots[col][row].hue
-          };
-      }
-      localStorage.setItem("Endless--grid", JSON.stringify(grid));
-    },
-
-    startSelection: function(dot) {
+    this.startSelection = function(dot) {
       EventHandlers.mouseX = undefined;
       EventHandlers.mouseY = undefined;
-      Grid.selectingDots = true;
-      Grid.dotSelection[0] = dot;
-      Grid.dotSelectionHue = dot.hue;
+      this.selectingDots = true;
+      this.dotSelection[0] = dot;
+      this.dotSelectionHue = dot.hue;
       dot.selected = true;
       if (Game.Settings.vibrate)
         Util.vibrate(30);
-    },
+    };
 
-    endSelection: function() {
-      Grid.selectingDots = false;
-      if (Grid.dotSelection.length > 1) {
-        if (Grid.dotSelectionHue != null) {
-          Grid.lastTwoHues[1] = Grid.lastTwoHues[0];
-          Grid.lastTwoHues[0] = Grid.dotSelectionHue;
+    this.endSelection = function() {
+      this.selectingDots = false;
+      if (this.dotSelection.length > 1) {
+        if (this.dotSelectionHue != null) {
+          this.lastTwoHues[1] = this.lastTwoHues[0];
+          this.lastTwoHues[0] = this.dotSelectionHue;
         }
         var dotsCleared = 0;
-        for (var i = 0; i < Grid.dotSelection.length; i++) {
-          Grid.dots[Grid.dotSelection[i].col][Grid.dotSelection[i].row] = null;
+        for (var i = 0; i < this.dotSelection.length; i++) {
+          this.dots[this.dotSelection[i].col][this.dotSelection[i].row] = null;
           dotsCleared++;
         }
         Game.updateScore();
-        Grid.dotSelectionHue = null;
-        Grid.fillNulls();
+        this.dotSelectionHue = null;
+        this.fillNulls();
         Util.vibrate([30, 60, 30]);
       } else
-        Grid.dotSelection[0].selected = false;
-      Grid.dotSelection = [];
+        this.dotSelection[0].selected = false;
+      this.dotSelection = [];
       Game.updateScoreIndicator();
-    },
+    };
 
-    cancelSelection: function() {
-      Grid.selectingDots = false;
-      for (var i = 0; i < Grid.dotSelection.length; i++)
-        Grid.dotSelection[i].selected = false;
-      Grid.dotSelection = [];
+    this.cancelSelection = function() {
+      this.selectingDots = false;
+      for (var i = 0; i < this.dotSelection.length; i++)
+        this.dotSelection[i].selected = false;
+      this.dotSelection = [];
       Game.updateScoreIndicator();
-    },
+    };
 
-    handleDotMouseover: function(dot) {
-      if (dot == Grid.dotSelection[Grid.dotSelection.length - 2]) {
-        Grid.dotSelection.pop().selected = false;
-        Grid.dotSelectionHue = Grid.dotSelection[Grid.dotSelection.length - 1].hue;
+    this.handleDotMouseover = function(dot) {
+      if (dot == this.dotSelection[this.dotSelection.length - 2]) {
+        this.dotSelection.pop().selected = false;
+        this.dotSelectionHue = this.dotSelection[this.dotSelection.length - 1].hue;
         Game.updateScoreIndicator();
-      } else if (Grid.dotSelection[Grid.dotSelection.length - 1].canConnectTo(dot)) {
+      } else if (this.dotSelection[this.dotSelection.length - 1].canConnectTo(dot)) {
         dot.selected = true;
-        Grid.dotSelection.push(dot);
+        this.dotSelection.push(dot);
         Game.updateScoreIndicator();
         if (Game.Settings.vibrate)
           Util.vibrate(20);
       }
-    }
-
+    };
   }
 
-  function Dot(column, row, x, y) {
+  function Dot(grid, column, row, x, y) {
     this.col = column;
     this.row = row;
     this.x = x;
@@ -698,7 +668,7 @@ function Endless() {
     this.draw = function() {
       Graphics.ctx.fillStyle = "white";
       Graphics.ctx.beginPath();
-      Graphics.ctx.arc(this.x, this.y, Graphics.dotSize / 2, 0, Math.PI * 2, false);
+      Graphics.ctx.arc(this.x, this.y, grid.dotSize / 2, 0, Math.PI * 2, false);
       Graphics.ctx.fill();
     };
 
@@ -711,14 +681,14 @@ function Endless() {
     }
   }
 
-  function ColorDot(column, row, x, y) {
-    Dot.call(this, column, row, x, y);
+  function ColorDot(grid, column, row, x, y) {
+    Dot.call(this, grid, column, row, x, y);
 
     while (true) {
       this.hue = Math.floor(Math.random() * Game.Settings.dotColors) * (360 / Math.floor(Game.Settings.dotColors));
       if (Game.Settings.dotColors < 3 ||
-        (this.hue != Grid.lastTwoHues[0] &&
-         this.hue != Grid.lastTwoHues[1]))
+        (this.hue != grid.lastTwoHues[0] &&
+         this.hue != grid.lastTwoHues[1]))
          break;
     }
 
@@ -733,7 +703,7 @@ function Endless() {
         (this.selected? "50%"  : "60%") + ", " +               // Lightness
          "1)";                                   // Alpha (opacity)
       Graphics.ctx.beginPath();
-      Graphics.ctx.arc(this.x, this.y, Graphics.dotSize / 2, 0, Math.PI * 2, false);
+      Graphics.ctx.arc(this.x, this.y, grid.dotSize / 2, 0, Math.PI * 2, false);
       Graphics.ctx.fill();
     };
 
@@ -741,9 +711,9 @@ function Endless() {
       if (dot && (this.hue == dot.hue || dot instanceof SuperDot) && !dot.selected &&
           Math.abs(dot.col - this.col) < 2 && Math.abs(dot.row - this.row) < 2) {
         if (dot.hue == null)
-          Grid.dotSelectionHue = undefined;
+          grid.dotSelectionHue = undefined;
         else
-          Grid.dotSelectionHue = dot.hue;
+          grid.dotSelectionHue = dot.hue;
         return true;
       }
     };
@@ -753,24 +723,24 @@ function Endless() {
     };
   }
 
-  function SuperDot(column, row, x, y) {
-    Dot.call(this, column, row, x, y);
+  function SuperDot(grid, column, row, x, y) {
+    Dot.call(this, grid, column, row, x, y);
 
     this.points = 10;
 
     this.draw = function() {
       Graphics.ctx.fillStyle = "white";
       Graphics.ctx.beginPath();
-      Graphics.ctx.arc(this.x, this.y, Graphics.dotSize / 2, 0, Math.PI * 2, false);
+      Graphics.ctx.arc(this.x, this.y, grid.dotSize / 2, 0, Math.PI * 2, false);
       Graphics.ctx.fill();
     };
 
     this.canConnectTo = function(dot) {
       if (dot && !dot.selected && Math.abs(dot.col - this.col) < 2 && Math.abs(dot.row - this.row) < 2) {
         if (dot.hue == null)
-          Grid.dotSelectionHue = undefined;
+          grid.dotSelectionHue = undefined;
         else
-          Grid.dotSelectionHue = dot.hue;
+          grid.dotSelectionHue = dot.hue;
         return true;
       }
     };
@@ -880,15 +850,13 @@ function Endless() {
     this.color = "#222";
     this.height = 0;
 
-    this.add = function() {
-      for (var i = 0; i < arguments.length; i+=3) {
-        this.contents[arguments[i]] = arguments[i + 2];
-        if (arguments[i + 2].height + arguments[i + 2].y > this.height)
-          this.height = arguments[i + 2].height + arguments[i + 2].y;
-        if (arguments[i + 2].activate)
-          screen.interactive.push(arguments[i + 2]);
-      }
-    };
+    for (var i = 1; i < arguments.length; i+=3) {
+      this.contents[arguments[i]] = arguments[i + 2];
+      if (arguments[i + 2].height + arguments[i + 2].y > this.height)
+        this.height = arguments[i + 2].height + arguments[i + 2].y;
+      if (arguments[i + 2].activate)
+        screen.interactive.push(arguments[i + 2]);
+    }
 
     this.calculateDimensions = function() {
       this.height = 0;
