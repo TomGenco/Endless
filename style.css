@@ -4,16 +4,16 @@ body {
   background-color: #181818;
   margin: 0;
   position: absolute;
-  font-family: 'Josefin Sans', sans-serif;
+  font-family: sans-serif;
 }
 
 h1 {
   z-index: 1;
   position: fixed;
   width: 100%;
-  font-size: 200px;
+  font-size: 150px;
   text-align: center;
-  font-weight: 300;
+  font-weight: 200;
   color: white;
 }
 

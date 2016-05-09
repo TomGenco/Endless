@@ -152,7 +152,9 @@ function Endless() {
           this.grid = new Grid(this, "endless", this.settings.columns, this.settings.rows, 1);
 
           this.screen.add("topMenuBar", this.topMenuBar, "grid", this.grid);
+        },
 
+        setupTransitions: function() {
           if (Settings.animations) {
             this.topMenuBar.contents.menu.transition =  new Transition(this.topMenuBar.contents.menu,  "y", -this.topMenuBar.height, 1000, 100, "logistic");
             this.topMenuBar.contents.score.transition = new Transition(this.topMenuBar.contents.score, "y", -this.topMenuBar.height, 1000, 100, "logistic");
@@ -384,12 +386,17 @@ function Endless() {
           Game.screen.contents[object].transition = new Transition(Game.screen.contents[object], "opacity", 0, 2000, i++ * 250);
       }
 
+      document.getElementsByTagName("h1")[0].innerHTML = "Loading Font";
       WebFont.load({
         google: {
           families: ["Josefin Sans:300"]
         },
         active: function () {
           Game.screen.onResize();
+          for (var mode in Game.modes) {
+            Game.modes[mode].screen.onResize();
+            Game.modes[mode].setupTransitions();
+          }
           Game.screen.show();
           requestAnimationFrame(Graphics.draw);
           Graphics.ready = true;
@@ -890,7 +897,6 @@ function Endless() {
       else if (this.isAfter)
         this.x += this.isAfter.x + this.isAfter.width;
     };
-    this.calculateDimensions();
 
     this.setText = function (newText) {
       text = newText;
