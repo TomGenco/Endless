@@ -182,7 +182,9 @@ function Endless() {
 
   var Util = {
     loadDataFromStorage: function() {
-      for (var i = 0; i < localStorage.length; i++)
+      for (var i = 0; i < localStorage.length; i++) {
+        if ((localStorage.key(i)) == "Endless--score")
+          localStorage.setItem("Endless.endless.score", localStorage.getItem("Endless--score"));
         if (/^Endless\./.test(localStorage.key(i))) {
           var value = localStorage.getItem(localStorage.key(i));
           switch (value) {
@@ -204,6 +206,7 @@ function Endless() {
             console.warn("Setting \"" + localStorage.key(i).substr(9) + "\" from Local Storage doesn't exist");
           }
         }
+      }
     },
 
     saveDataToStorage: function() {
@@ -214,7 +217,7 @@ function Endless() {
     clearStorage: function() {;
       if (confirm("Do you really want to reset settings and score?")) {
         for (var i = 0; i < localStorage.length; i++)
-          if (/^Endless\./.test(localStorage.key(i))) {
+          if (/^Endless/.test(localStorage.key(i))) {
             localStorage.removeItem(localStorage.key(i));
             i--;
           }
@@ -927,7 +930,7 @@ function Endless() {
     };
   }
 
-  function MenuBar(screen) {
+  function MenuBar() {
     this.contents = {};
     this.visible = true;
     this.color = "#222";
@@ -940,7 +943,7 @@ function Endless() {
       if (arguments[i + 1].height + arguments[i + 1].y > this.height)
         this.height = arguments[i + 1].height + arguments[i + 1].y;
       if (arguments[i + 1].activate)
-        screen.interactive.push(arguments[i + 1]);
+        arguments[0].interactive.push(arguments[i + 1]);
     }
 
     this.calculateDimensions = function() {
