@@ -710,7 +710,7 @@ function Endless() {
         this.gameMode.updateScore();
         this.dotSelectionHue = null;
         this.fillNulls();
-        Util.vibrate([20, 100, 50]);
+        Util.vibrate([50, 100, 50]);
       } else
         this.dotSelection[0].selected = false;
       this.dotSelection = [];
