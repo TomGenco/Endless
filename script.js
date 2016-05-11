@@ -341,31 +341,31 @@ function Endless() {
           if ((text = Text.searchAtPosition(x, y)) && text.activate)
             text.activate();
           else if (dot = this.grid.searchAtPosition(x, y))
-            this.grid.startSelection(dot);
+            this.startSelection(dot);
         },
 
         touchEnd: function(event, x, y) {
-          if (this.grid.selectingDots)
-            this.grid.endSelection();
+          if (this.selectingDots)
+            this.endSelection();
         },
 
         touchMove: function(event, x, y) {
-          if (this.grid.selectingDots) {
+          if (this.selectingDots) {
             if (y < this.topMenuBar.height)
-              this.grid.cancelSelection();
+              this.cancelSelection();
             else {
-              this.mouseX = x, this.mouseY = y;
+              this.dotSelection.lastPosX = x, this.dotSelection.lastPosY = y;
               if (this.dotMouseover = this.grid.searchAtPosition(x, y)) {
                 event.preventDefault();
-                this.grid.handleDotMouseover(this.dotMouseover);
+                this.handleDotMouseover(this.dotMouseover);
               }
             }
           }
         },
 
         touchCancel: function(event, x, y) {
-          if (this.grid.selectingDots)
-            this.grid.cancelSelection();
+          if (this.selectingDots)
+            this.cancelSelection();
         },
 
         blur: function(event) {
