@@ -29,6 +29,18 @@ function Endless() {
         dotMouseover: undefined,
         mouseX: undefined, mouseY: undefined,
 
+        setup: function() {
+          // There is nothing to do
+        },
+
+        play: function() {
+          // There is nothing to do
+        },
+
+        pause: function() {
+          // There is nothing to do
+        },
+
         mouseDown: function(event) {
           if (event.button != 0)
             this.grid.cancelSelection();
@@ -142,7 +154,7 @@ function Endless() {
           if (!this.score)
             this.score = 0;
 
-          this.topMenuBar = new MenuBar(this.screen,
+          this.topMenuBar = new MenuBar(
             "score",          new Text(this.score, 0.01, 0.005, "left",  "top", 35),
             "scoreIndicator", new Text("",         0,    0.005, "left",  "top", 35),
             "menu",           new Text("Menu",     0.99, 0.005, "right", "top", 35, Game.pause)
@@ -161,6 +173,295 @@ function Endless() {
             this.topMenuBar.transition =                new Transition(this.topMenuBar,                "y", -this.topMenuBar.height, 1000, 100, "logistic");
           }
         }
+      },
+
+      speed: {
+        settings: {
+          columns: 5,
+          dotColors: 5,
+          hueShift: 60,
+          rows: 6,
+        },
+        screens: {
+          playing: undefined,
+          end: undefined
+        },
+        screen: undefined,
+        score: 0,
+        highScore: undefined,
+        grid: undefined,
+        topMenuBar: undefined,
+
+        textMouseover: undefined,
+        dotMouseover: undefined,
+        dotSelection: undefined,
+        selectingDots: false,
+        lastTwoHues: [],
+
+        setupGraphics: function() {
+          this.highScore = parseFloat(localStorage.getItem("Endless.speed.highScore"));
+          if (!this.highScore)
+            this.highScore = 0;
+
+          this.screens.playing = new Screen();
+          this.screens.end = new Screen();
+          this.screen = this.screens.playing;
+
+          this.topMenuBar = new MenuBar(
+            "replay",         new Text("Replay",   0.01, 0.005, "left",   "top", 35, this.setup.bind(this)),
+            "score",          new Text(0,          0.01, 0.005, "left",   "top", 35),
+            "scoreIndicator", new Text("+0",          0, 0.005, "left",   "top", 35),
+            "timer",          new Text(0,           0.5, 0.005, "center", "top", 35),
+            "menu",           new Text("Menu",     0.99, 0.005, "right",  "top", 35, Game.pause)
+          );
+
+          this.screens.playing.add(
+            "grid",         undefined,
+            "dotSelection", undefined,
+            "countDown",    new Text(0, 0.5, 0.5, "center", "middle", 100),
+            "topMenuBar",   this.topMenuBar
+          );
+          this.topMenuBar.contents.scoreIndicator.putAfter(this.topMenuBar.contents.score);
+          this.topMenuBar.contents.scoreIndicator.visible = false;
+
+          this.screens.end.add(
+            "topMenuBar", this.topMenuBar,
+            "finalScore", new Text("error",                         0.5, 0.35, "center", "middle", 30),
+            "highScore",  new Text("High Score: " + this.highScore, 0.5, 0.65, "center", "middle", 30)
+          );
+        },
+
+        setupTransitions: function() {
+          if (Settings.animations) {
+            this.topMenuBar.contents.menu.transition =  new Transition(this.topMenuBar.contents.menu,  "y",    -this.topMenuBar.height, 1000, 100, "logistic");
+            this.topMenuBar.contents.score.transition = new Transition(this.topMenuBar.contents.score, "y",    -this.topMenuBar.height, 1000, 100, "logistic");
+            this.topMenuBar.contents.timer.transition = new Transition(this.topMenuBar.contents.timer, "y",    -this.topMenuBar.height, 1000, 100, "logistic");
+            this.topMenuBar.transition =                new Transition(this.topMenuBar,                "y",    -this.topMenuBar.height, 1000, 100, "logistic");
+          }
+        },
+
+        setup: function() {
+          this.screen = this.screens.playing;
+
+          this.grid = new Grid(
+            this.screen,
+            this.settings.columns,
+            this.settings.rows, 1,
+            this.settings.dotColors,
+            this.settings.hueShift,
+            []);
+          this.grid.enabled = false;
+          this.screen.contents.grid = this.grid;
+
+          this.dotSelection = new DotSelection(this.grid);
+          this.screen.contents.dotSelection = this.dotSelection;
+
+          this.screen.contents.countDown.visible = true;
+          this.screen.contents.countDown.transition = new Transition(this.screen.contents.countDown, "text", 3, 3000, 0, "countDown", this.start.bind(this));
+          this.screens.playing.contents.countDown.transition.start();
+
+          this.topMenuBar.contents.score.visible = true;
+          this.topMenuBar.contents.replay.visible = false;
+          this.topMenuBar.contents.timer.visible = false;
+
+          this.screen.show();
+        },
+
+        start: function() {
+          this.topMenuBar.contents.timer.transition = new Transition(this.topMenuBar.contents.timer, "text", 60, 60000, 0, "countDown", this.stop.bind(this));
+          this.topMenuBar.contents.timer.visible = true;
+          this.grid.enabled = true;
+          this.screens.playing.contents.countDown.visible = false;
+        },
+
+        stop: function() {
+          if (this.selectingDots)
+            this.endSelection();
+          this.grid.enabled = false;
+          this.topMenuBar.contents.score.visible = false;
+          this.topMenuBar.contents.replay.visible = true;
+          this.topMenuBar.contents.timer.visible = false;
+          this.screens.playing.hide();
+          this.screen = this.screens.end;
+
+          if (this.score > this.highScore) {
+            this.highScore = this.score;
+            this.screen.contents.highScore.setText("High Score: " + this.highScore);
+            localStorage.setItem("Endless.speed.highScore", this.highScore);
+          }
+          this.screen.contents.finalScore.setText("Final Score: " + this.score);
+          this.screen.show();
+        },
+
+        pause: function() {
+          // There is nothing to do
+        },
+
+        mouseDown: function(event) {
+          if (event.button != 0)
+            this.cancelSelection();
+          else if (this.textMouseover && this.textMouseover.activate)
+            this.textMouseover.activate();
+          else if (this.dotMouseover && !this.dotSelection.selection[0])
+            this.startSelection(this.dotMouseover);
+        },
+
+        mouseUp: function(event) {
+          if (event.button == 0 && this.selectingDots)
+            this.endSelection();
+        },
+
+        mouseMove: function(event) {
+          if (this.selectingDots) {
+            if (event.clientY < this.topMenuBar.height) {
+              this.cancelSelection();
+              return;
+            }
+            this.dotSelection.lastPosX = event.clientX - Graphics.canvas.offsetLeft;
+            this.dotSelection.lastPosY = event.clientY;
+          }
+
+          if (this.textMouseover = Text.searchAtPosition(event.clientX - Graphics.canvas.offsetLeft, event.clientY)) {
+            this.dotMouseover = null;
+            if (this.textMouseover.activate)
+              Graphics.canvas.style.cursor = "pointer";
+          } else if (this.dotMouseover = this.grid.searchAtPosition(event.clientX - Graphics.canvas.offsetLeft, event.clientY)) {
+            this.textMouseover = null;
+            Graphics.canvas.style.cursor = "pointer";
+            if (this.selectingDots)
+              this.handleDotMouseover(this.dotMouseover);
+          } else
+            Graphics.canvas.style.cursor = "";
+        },
+
+        touchStart: function(event, x, y) {
+          event.preventDefault();
+
+          var text, dot;
+          if ((text = Text.searchAtPosition(x, y)) && text.activate)
+            text.activate();
+          else if (dot = this.grid.searchAtPosition(x, y))
+            this.grid.startSelection(dot);
+        },
+
+        touchEnd: function(event, x, y) {
+          if (this.grid.selectingDots)
+            this.grid.endSelection();
+        },
+
+        touchMove: function(event, x, y) {
+          if (this.grid.selectingDots) {
+            if (y < this.topMenuBar.height)
+              this.grid.cancelSelection();
+            else {
+              this.mouseX = x, this.mouseY = y;
+              if (this.dotMouseover = this.grid.searchAtPosition(x, y)) {
+                event.preventDefault();
+                this.grid.handleDotMouseover(this.dotMouseover);
+              }
+            }
+          }
+        },
+
+        touchCancel: function(event, x, y) {
+          if (this.grid.selectingDots)
+            this.grid.cancelSelection();
+        },
+
+        blur: function(event) {
+          if (this.selectingDots)
+            this.cancelSelection();
+        },
+
+        startSelection: function(dot) {
+          this.topMenuBar.contents.menu.setText("Cancel");
+          this.dotSelection.lastPosX = undefined;
+          this.dotSelection.lastPosY = undefined;
+          this.selectingDots = true;
+          this.dotSelection.selection[0] = dot;
+          this.dotSelection.hue = dot.hue;
+          dot.selected = true;
+          Util.vibrate(30);
+        },
+
+        endSelection: function() {
+          this.topMenuBar.contents.menu.setText("Menu");
+          this.selectingDots = false;
+          if (this.dotSelection.selection.length > 1) {
+            if (this.dotSelection.hue != null) {
+              this.lastTwoHues[1] = this.lastTwoHues[0];
+              this.lastTwoHues[0] = this.dotSelection.hue;
+            }
+            var dotsCleared = 0;
+            for (var i = 0; i < this.dotSelection.selection.length; i++) {
+              this.grid.dots[this.dotSelection.selection[i].col][this.dotSelection.selection[i].row] = null;
+              dotsCleared++;
+            }
+            this.updateScore();
+            this.dotSelection.hue = null;
+            this.grid.fillNulls();
+            Util.vibrate([50, 100, 50]);
+          } else
+            this.dotSelection.selection[0].selected = false;
+          this.dotSelection.selection = [];
+          this.updateScoreIndicator();
+        },
+
+        cancelSelection: function() {
+          this.topMenuBar.contents.menu.setText("Menu");
+          this.selectingDots = false;
+          for (var i = 0; i < this.dotSelection.selection.length; i++)
+            this.dotSelection.selection[i].selected = false;
+          this.dotSelection.selection = [];
+          this.updateScoreIndicator();
+        },
+
+        handleDotMouseover: function(dot) {
+          if (dot == this.dotSelection.selection[this.dotSelection.selection.length - 2]) {
+            this.dotSelection.selection.pop().selected = false;
+            this.dotSelection.hue = this.dotSelection.selection[this.dotSelection.selection.length - 1].hue;
+            this.updateScoreIndicator();
+          } else if (this.dotSelection.selection[this.dotSelection.selection.length - 1].canConnectTo(dot)) {
+            dot.selected = true;
+            this.dotSelection.selection.push(dot);
+            this.updateScoreIndicator();
+            Util.vibrate(20);
+          }
+        },
+
+        updateScore: function() {
+          for (var i = 0; i < this.dotSelection.selection.length; i++)
+            this.score += this.dotSelection.selection[i].points;
+          if (Game.playing) {
+            this.topMenuBar.contents.score.setText(this.score);
+            if (Settings.animations && this.dotSelection.hue != null) {
+              this.topMenuBar.contents.score.hue = this.dotSelection.hue + this.settings.hueShift % 360;
+              this.topMenuBar.contents.score.lightness = 100;
+              this.topMenuBar.contents.score.transition = new Transition(
+                this.topMenuBar.contents.score,
+                "lightness", 60, 800, 0);
+              this.topMenuBar.contents.score.transition.start();
+              }
+          }
+          localStorage.setItem("Endless.endless.score", this.score);
+          localStorage.setItem("Endless.endless.lastTwoHues", JSON.stringify(this.grid.lastTwoHues));
+        },
+
+        updateScoreIndicator: function() {
+          var possibleScore = 0;
+          for (var i = 0; i < this.dotSelection.selection.length; i++)
+            possibleScore += this.dotSelection.selection[i].points;
+
+          if (possibleScore > 3) {
+            this.topMenuBar.contents.scoreIndicator.setText("+" + possibleScore);
+            this.topMenuBar.contents.scoreIndicator.visible = true;
+            this.topMenuBar.contents.scoreIndicator.hue = this.dotSelection.hue + this.settings.hueShift % 360;
+            this.topMenuBar.contents.scoreIndicator.saturation = 60;
+            this.topMenuBar.contents.scoreIndicator.lightness = 60;
+          } else
+            this.topMenuBar.contents.scoreIndicator.visible = false;
+        },
+
       }
     },
 
@@ -168,6 +469,7 @@ function Endless() {
       if (!Game.playing) {
         Game.playing = true;
         Game.mode.screen.show();
+        Game.mode.setup();
         Game.screen.overlay = true;
       }
       Game.paused = false;
@@ -177,6 +479,7 @@ function Endless() {
     pause: function() {
       Game.paused = true;
       Game.screen.show();
+      Game.mode.pause();
     },
   };
 
@@ -397,7 +700,9 @@ function Endless() {
         active: function () {
           Game.screen.onResize();
           for (var mode in Game.modes) {
-            Game.modes[mode].screen.onResize();
+            for (var screen in Game.modes[mode].screens) {
+              Game.modes[mode].screens[screen].onResize();
+            }
             Game.modes[mode].setupTransitions();
           }
           Game.screen.show();
@@ -436,17 +741,27 @@ function Endless() {
 
   function Screen() {
     this.contents    = {};
+    this.topMenuBar  = null;
     this.interactive = [];
     this.initialized = false
     this.visible     = false;
     this.overlay     = false;
+    this.y           = 0;
 
     this.add = function() {
-      for (var i = 0; i < arguments.length; i+=2) {
-        this.contents[arguments[i]] = arguments[i + 1];
-        if (arguments[i + 1].activate)
-          this.interactive.push(arguments[i + 1]);
-      }
+      for (var i = 0; i < arguments.length; i+=2)
+        if (arguments[i + 1] instanceof MenuBar) {
+          this.topMenuBar = arguments[i + 1];
+          this.topMenuBar.calculateDimensions();
+          this.y = this.topMenuBar.y + this.topMenuBar.height;
+          for (var object in this.topMenuBar.contents)
+            if (this.topMenuBar.contents[object].activate)
+              this.interactive.push(this.topMenuBar.contents[object]);
+        } else {
+          this.contents[arguments[i]] = arguments[i + 1];
+          if (arguments[i + 1] && arguments[i + 1].activate)
+            this.interactive.push(arguments[i + 1]);
+        }
     }
 
     this.draw = function() {
@@ -458,20 +773,36 @@ function Endless() {
       for (var object in this.contents)
         if (this.contents[object].visible)
           this.contents[object].draw();
+
+      if (this.topMenuBar)
+        this.topMenuBar.draw();
     }
 
     this.initialize = function() {
-      if (Settings.animations)
+      if (Settings.animations) {
         for (var object in this.contents)
-          if (this.contents[object].visible && this.contents[object].transition && !this.contents[object].transition.started)
+          if (this.contents[object] &&
+              this.contents[object].visible &&
+              this.contents[object].transition &&
+              this.contents[object].transition.autoStart &&
+             !this.contents[object].transition.started)
             this.contents[object].transition.start();
+        if (this.topMenuBar &&
+            this.topMenuBar.transition &&
+           !this.topMenuBar.transition.started)
+          this.topMenuBar.transition.start();
+      }
       this.initialized = true;
     }
 
     this.onResize = function () {
+      if (this.topMenuBar) {
+        this.topMenuBar.onResize();
+        this.y = this.topMenuBar.y + this.topMenuBar.height;
+      }
       for (var object in this.contents)
-        if (this.contents[object].calculateDimensions)
-          this.contents[object].calculateDimensions();
+        if (this.contents[object] && this.contents[object].onResize)
+          this.contents[object].onResize();
     }
 
     this.show = function() {
@@ -485,108 +816,89 @@ function Endless() {
     }
   }
 
-  function Grid(gameMode, name, cols, rows, dotSizeRatio, colors) {
-    this.gameMode = gameMode,
+  function Grid(screen, cols, rows, dotSizeRatio, colors, hueShift, lastTwoHues) {
     this.cols = cols,
     this.rows = rows,
+    this.dots = [],
     this.dotSizeRatio = dotSizeRatio,
-    this.colors = colors,
-    this.visible = true,
-    this.selectingDots,
-    this.dotSelection = [],
-    this.dotSelectionHue,
-    this.lastTwoHues = [];
-    var importedGrid = JSON.parse(localStorage.getItem("Endless." + name + ".grid")), imported = false;
-    var lastTwoHues = JSON.parse(localStorage.getItem("Endless." + name + ".lastTwoHues"))
-    if (lastTwoHues != null)
-      this.lastTwoHues = lastTwoHues;
+    this.visible = true;
+    this.enabled = true;
 
-    this.exportToJSON = function() {
-      importedGrid = [];
-      for (var col = 0; col < this.dots.length; col++) {
-        importedGrid[col] = [];
-        for (var row = 0; row < this.dots[0].length; row++)
-          importedGrid[col][row] = {
-            type: this.dots[col][row].__proto__.constructor.name,
-            hue: this.dots[col][row].hue
-          };
-      }
-      localStorage.setItem("Endless." + name + ".grid", JSON.stringify(importedGrid));
-    };
+    // this.exportToJSON = function() {
+    //   importedGrid = [];
+    //   for (var col = 0; col < this.dots.length; col++) {
+    //     importedGrid[col] = [];
+    //     for (var row = 0; row < this.dots[0].length; row++)
+    //       importedGrid[col][row] = {
+    //         type: this.dots[col][row].__proto__.constructor.name,
+    //         hue: this.dots[col][row].hue
+    //       };
+    //   }
+    //   localStorage.setItem("Endless." + name + ".grid", JSON.stringify(importedGrid));
+    // };
 
     this.calculateDimensions = function() {
       this.dotSize = this.dotSizeRatio * Math.min(
         Graphics.canvas.width / (cols * 2),
-       (Graphics.canvas.height - gameMode.topMenuBar.height) / (rows * 2));
+       (Graphics.canvas.height - screen.y) / (rows * 2));
 
       this.width = cols * this.dotSize * 2 - this.dotSize;
       this.height = rows * this.dotSize * 2 - this.dotSize;
       this.x = Graphics.canvas.width / 2 - this.width / 2;
-      this.y = Graphics.canvas.height / 2 - this.height / 2 + (gameMode.topMenuBar.height / 2);
-
-      if (this.dots)
-        this.calculateDotPositions();
+      this.y = Graphics.canvas.height / 2 - this.height / 2 + (screen.y / 2);
     };
     this.calculateDimensions();
 
-    this.calculateDotPositions = function() {
-      for (var col = 0; col < this.dots.length; col++)
-        for (var row = 0; row < this.dots[col].length; row++) {
-          this.dots[col][row].x = this.x + this.dotSize / 2 + col * this.dotSize * 2;
-          this.dots[col][row].y = this.y + this.dotSize / 2 + row * this.dotSize * 2;
-          if (this.dots[col][row].transition) {
-            this.dots[col][row].transition.endVal = this.y + this.dotSize / 2 + row * this.dotSize * 2;
-            this.dots[col][row].transition.distance = this.dots[col][row].transition.endVal - this.dots[col][row].transition.startVal;
-          }
-        }
-    };
-
     this.generateDots = function() {
-      if (!this.dots)
-        this.dots = [];
-      if (Settings.animations)
-        var delay = 0, updateDelay = false;
-
       for (var col = 0; col < cols; col++) {
         if (!this.dots[col])
           this.dots[col] = [];
-        updateDelay = false;
         for (var row = 0; row < rows; row++)
           if (!this.dots[col][row]) {
-            if (!imported && importedGrid && importedGrid[col] && importedGrid[col][row]) {
-              if (importedGrid[col][row].type == "SuperDot")
-                this.dots[col][row] = new SuperDot(this, col, row);
-              else {
-                this.dots[col][row] = new ColorDot(this, col, row);
-                this.dots[col][row].hue = importedGrid[col][row].hue;
-              }
-            } else {
-              if (Math.floor(Math.random() * 20) == 0)
-                this.dots[col][row] = new SuperDot(this, col, row);
-              else
-                this.dots[col][row] = new ColorDot(this, col, row);
-            }
-            if (Settings.animations) {
-              this.dots[col][row].transition = new Transition(
-                this.dots[col][row], 'y',
-                -this.dotSize / 2 - this.dotSize / 2 * (this.rows - 1 - row),
-                500, delay * 50, "logistic");
-              updateDelay = true;
-            }
+            if (Math.floor(Math.random() * 20) == 0)
+              this.dots[col][row] = new SuperDot(this, col, row);
+            else
+              this.dots[col][row] = new ColorDot(this, col, row, colors, hueShift, lastTwoHues);
           }
-        if (Settings.animations && updateDelay) {
-          delay++;
-          updateDelay = false;
-        }
       }
-      if (imported)
-        this.exportToJSON();
-      else
-        imported = true;
-
-      this.calculateDotPositions();
     };
     this.generateDots();
+
+    this.calculateDotPositions = function() {
+      for (var col = 0; col < this.dots.length; col++) {
+        for (var row = 0; row < this.dots[col].length; row++)
+          this.dots[col][row].x = this.x + this.dotSize / 2 + col * this.dotSize * 2,
+          this.dots[col][row].y = this.y + this.dotSize / 2 + row * this.dotSize * 2;
+      }
+    };
+    this.calculateDotPositions();
+
+    this.setDotTransitions = function() {
+      var delay = 0, updateDelay = false;
+
+      for (var col = 0; col < this.dots.length; col++) {
+        for (var row = 0; row < this.dots[col].length; row++)
+          if (this.dots[col][row].transition === undefined ||
+             (this.dots[col][row].transition && !this.dots[col][row].transition.started)) {
+            this.dots[col][row].transition = new Transition(this.dots[col][row], 'y',
+              -this.dotSize / 2 - this.dotSize / 2 * (this.rows - 1 - row),
+              500, delay * 50, "logistic");
+            updateDelay = true;
+          }
+        if (updateDelay) {
+          updateDelay = false;
+          delay++;
+        }
+      }
+    };
+    if (Settings.animations)
+      this.setDotTransitions();
+
+    this.onResize = function() {
+      this.calculateDimensions();
+      this.calculateDotPositions();
+      this.setDotTransitions();
+    };
 
     this.fillNulls = function() {
       // Iterate through each spot in this.grid.dots[][], from the bottom to top
@@ -606,16 +918,20 @@ function Endless() {
               this.dots[col][row - countNulls] = null;
               this.dots[col][row].row = row;
               this.dots[col][row].y = this.y + this.dotSize / 2 + row * this.dotSize * 2;
-              if (Settings.animations)
+              if (Settings.animations) {
                 this.dots[col][row].transition = new Transition(
                   this.dots[col][row],
                   "y",
                   this.y + this.dotSize / 2 + (row - countNulls) * this.dotSize * 2,
                   400, 0, "logistic");
+                this.dots[col][row].transition.start();
+              }
             }
           }
 
       this.generateDots();
+      this.calculateDotPositions();
+      this.setDotTransitions();
     };
 
     this.draw = function() {
@@ -629,36 +945,14 @@ function Endless() {
             }
             this.dots[i][j].draw();
           }
-
-      if (this.selectingDots)
-        this.drawSelectionLine();
-    };
-
-    this.drawSelectionLine = function() {
-      Graphics.ctx.lineWidth = this.dotSize / 3;
-      Graphics.ctx.lineJoin = "round";
-      Graphics.ctx.beginPath();
-      Graphics.ctx.moveTo(this.dotSelection[0].x, this.dotSelection[0].y);
-      for (var i = 1; i < this.dotSelection.length; i++) {
-        var gradient = Graphics.ctx.createLinearGradient(this.dotSelection[i-1].x, this.dotSelection[i-1].y, this.dotSelection[i].x, this.dotSelection[i].y);
-        gradient.addColorStop(0.2, this.dotSelection[i-1].getColor());
-        gradient.addColorStop(0.8, this.dotSelection[i].getColor());
-        Graphics.ctx.lineTo(this.dotSelection[i].x, this.dotSelection[i].y)
-        Graphics.ctx.strokeStyle = gradient;
-        Graphics.ctx.stroke();
-        Graphics.ctx.beginPath();
-        Graphics.ctx.moveTo(this.dotSelection[i].x, this.dotSelection[i].y);
-      }
-      Graphics.ctx.lineTo(this.gameMode.mouseX, this.gameMode.mouseY);
-      Graphics.ctx.strokeStyle = this.dotSelection[this.dotSelection.length - 1].getColor();
-      Graphics.ctx.stroke();
     };
 
     this.searchAtPosition = function(mouseX, mouseY) {
       var gridPosX = mouseX - this.x + this.dotSize / 2,
           gridPosY = mouseY - this.y + this.dotSize / 2;
 
-      if (gridPosX > 0 && gridPosX < this.width  + this.dotSize &&
+      if (this.visible && this.enabled &&
+          gridPosX > 0 && gridPosX < this.width  + this.dotSize &&
           gridPosY > 0 && gridPosY < this.height + this.dotSize) {
         var dot = this.dots[
            Math.floor(gridPosX / ((this.width  + this.dotSize) / this.cols))]
@@ -682,75 +976,50 @@ function Endless() {
 
       this.generateDots();
     };
-
-    this.startSelection = function(dot) {
-      this.gameMode.topMenuBar.contents.menu.setText("Cancel");
-      this.gameMode.mouseX = undefined;
-      this.gameMode.mouseY = undefined;
-      this.selectingDots = true;
-      this.dotSelection[0] = dot;
-      this.dotSelectionHue = dot.hue;
-      dot.selected = true;
-      Util.vibrate(30);
-    };
-
-    this.endSelection = function() {
-      this.gameMode.topMenuBar.contents.menu.setText("Menu");
-      this.selectingDots = false;
-      if (this.dotSelection.length > 1) {
-        if (this.dotSelectionHue != null) {
-          this.lastTwoHues[1] = this.lastTwoHues[0];
-          this.lastTwoHues[0] = this.dotSelectionHue;
-        }
-        var dotsCleared = 0;
-        for (var i = 0; i < this.dotSelection.length; i++) {
-          this.dots[this.dotSelection[i].col][this.dotSelection[i].row] = null;
-          dotsCleared++;
-        }
-        this.gameMode.updateScore();
-        this.dotSelectionHue = null;
-        this.fillNulls();
-        Util.vibrate([50, 100, 50]);
-      } else
-        this.dotSelection[0].selected = false;
-      this.dotSelection = [];
-      this.gameMode.updateScoreIndicator();
-    };
-
-    this.cancelSelection = function() {
-      this.gameMode.topMenuBar.contents.menu.setText("Menu");
-      this.selectingDots = false;
-      for (var i = 0; i < this.dotSelection.length; i++)
-        this.dotSelection[i].selected = false;
-      this.dotSelection = [];
-      this.gameMode.updateScoreIndicator();
-    };
-
-    this.handleDotMouseover = function(dot) {
-      if (dot == this.dotSelection[this.dotSelection.length - 2]) {
-        this.dotSelection.pop().selected = false;
-        this.dotSelectionHue = this.dotSelection[this.dotSelection.length - 1].hue;
-        this.gameMode.updateScoreIndicator();
-      } else if (this.dotSelection[this.dotSelection.length - 1].canConnectTo(dot)) {
-        dot.selected = true;
-        this.dotSelection.push(dot);
-        this.gameMode.updateScoreIndicator();
-        Util.vibrate(20);
-      }
-    };
   }
 
-  function Dot(grid, column, row, x, y) {
+  function DotSelection(grid) {
+    this.selection = [];
+    this.visible = true;
+    this.hue;
+    this.lastPosX;
+    this.lastPosY;
+
+    this.draw = function() {
+      if (!this.selection[0])
+        return;
+
+      Graphics.ctx.lineWidth = grid.dotSize / 3;
+      Graphics.ctx.lineJoin = "round";
+      Graphics.ctx.beginPath();
+      Graphics.ctx.moveTo(this.selection[0].x, this.selection[0].y);
+      for (var i = 1; i < this.selection.length; i++) {
+        var gradient = Graphics.ctx.createLinearGradient(this.selection[i-1].x, this.selection[i-1].y, this.selection[i].x, this.selection[i].y);
+        gradient.addColorStop(0.2, this.selection[i-1].getColor());
+        gradient.addColorStop(0.8, this.selection[i].getColor());
+        Graphics.ctx.lineTo(this.selection[i].x, this.selection[i].y)
+        Graphics.ctx.strokeStyle = gradient;
+        Graphics.ctx.stroke();
+        Graphics.ctx.beginPath();
+        Graphics.ctx.moveTo(this.selection[i].x, this.selection[i].y);
+      }
+      Graphics.ctx.lineTo(this.lastPosX, this.lastPosY);
+      Graphics.ctx.strokeStyle = this.selection[this.selection.length - 1].getColor();
+      Graphics.ctx.stroke();
+    }
+  }
+
+  function Dot(grid, column, row) {
     this.col = column;
     this.row = row;
-    this.x = x;
-    this.y = y;
+    this.x = undefined;
+    this.y = undefined;
     this.points = 2;
     this.transition;
     this.selected = false;
 
-    this.draw = function() {
-      Graphics.ctx.fillStyle = "white";
+    Dot.draw = function() {
+      Graphics.ctx.fillStyle = "#999";
       Graphics.ctx.beginPath();
       Graphics.ctx.arc(this.x, this.y, grid.dotSize / 2, 0, Math.PI * 2, false);
       Graphics.ctx.fill();
@@ -765,14 +1034,14 @@ function Endless() {
     }
   }
 
-  function ColorDot(grid, column, row, x, y) {
-    Dot.call(this, grid, column, row, x, y);
+  function ColorDot(grid, column, row, colors, hueShift, lastTwoHues) {
+    Dot.call(this, grid, column, row);
 
     while (true) {
-      this.hue = Math.floor(Math.random() * grid.gameMode.settings.dotColors) * (360 / Math.floor(grid.gameMode.settings.dotColors));
-      if (grid.gameMode.settings.dotColors < 3 ||
-        (this.hue != grid.lastTwoHues[0] &&
-         this.hue != grid.lastTwoHues[1]))
+      this.hue = Math.floor(Math.random() * colors) * (360 / Math.floor(colors));
+      if (colors < 3 ||
+        (this.hue != lastTwoHues[0] &&
+         this.hue != lastTwoHues[1]))
          break;
     }
 
@@ -781,8 +1050,13 @@ function Endless() {
 
 
     this.draw = function() {
+      if (!grid.enabled) {
+        Dot.prototype.constructor.draw.call(this);
+        return;
+      }
+
       Graphics.ctx.fillStyle = "hsla(" +
-        (this.hue + grid.gameMode.settings.hueShift % 360) + ", " + // Hue
+        (this.hue + hueShift % 360) + ", " + // Hue
         (this.selected? "100%" : "60%") + ", " +               // Saturation
         (this.selected? "50%"  : "60%") + ", " +               // Lightness
          "1)";                                   // Alpha (opacity)
@@ -803,16 +1077,21 @@ function Endless() {
     };
 
     this.getColor = function() {
-      return "hsla(" + (this.hue + grid.gameMode.settings.hueShift % 360) + ", 100%, 50%, 1)";
+      return "hsla(" + (this.hue + hueShift % 360) + ", 100%, 50%, 1)";
     };
   }
 
-  function SuperDot(grid, column, row, x, y) {
-    Dot.call(this, grid, column, row, x, y);
+  function SuperDot(grid, column, row) {
+    Dot.call(this, grid, column, row);
 
     this.points = 10;
 
     this.draw = function() {
+      if (!grid.enabled) {
+        Dot.prototype.constructor.draw.call(this);
+        return;
+      }
+
       Graphics.ctx.fillStyle = "white";
       Graphics.ctx.beginPath();
       Graphics.ctx.arc(this.x, this.y, grid.dotSize / 2, 0, Math.PI * 2, false);
@@ -841,6 +1120,7 @@ function Endless() {
     this.hue = 0;
     this.saturation = 100;
     this.lightness = 100;
+    this.text = text;
     this.x;
     this.y;
     this.width;
@@ -861,7 +1141,7 @@ function Endless() {
       Graphics.ctx.font = this.height + "px Josefin Sans";
       Graphics.ctx.globalAlpha = this.opacity;
       Graphics.ctx.fillStyle = "hsl(" + this.hue + "," + this.saturation + "%," + this.lightness + "%)";
-      Graphics.ctx.fillText(text, this.x, this.y);
+      Graphics.ctx.fillText(this.text, this.x, this.y);
       //Graphics.ctx.strokeRect(this.x, this.y - this.height / 10, this.width, this.height + this.height / 10); // (click detection rectangle)
       //Graphics.ctx.strokeRect(this.x, this.y, this.width, this.height); // (canvas update detection rectangle)
     };
@@ -869,7 +1149,7 @@ function Endless() {
     this.calculateDimensions = function() {
       this.height = textSize * Graphics.canvas.width / 300;
       Graphics.ctx.font = this.height + "px Josefin Sans";
-      this.width  = Graphics.ctx.measureText(text).width;
+      this.width  = Graphics.ctx.measureText(this.text).width;
 
       switch (align) {
         case "left":
@@ -901,8 +1181,12 @@ function Endless() {
         this.x += this.isAfter.x + this.isAfter.width;
     };
 
-    this.setText = function (newText) {
-      text = newText;
+    this.onResize = function() {
+      this.calculateDimensions();
+    }
+
+    this.setText = function(newText) {
+      this.text = newText;
       this.calculateDimensions();
     };
 
@@ -919,13 +1203,13 @@ function Endless() {
     Text.searchAtPosition = function(mouseX, mouseY) {
       if (Game.screen.visible) {
         for (var i = 0; i < Game.screen.interactive.length; i++)
-          if (Game.screen.interactive[i].inRange(mouseX, mouseY))
+          if (Game.screen.interactive[i].visible && Game.screen.interactive[i].inRange(mouseX, mouseY))
             return Game.screen.interactive[i];
       } else
         for (var mode in Game.modes)
           if (Game.modes[mode].screen.visible)
             for (var i = 0; i < Game.modes[mode].screen.interactive.length; i++)
-              if (Game.modes[mode].screen.interactive[i].inRange(mouseX, mouseY))
+              if (Game.modes[mode].screen.interactive[i].visible && Game.modes[mode].screen.interactive[i].inRange(mouseX, mouseY))
                 return Game.modes[mode].screen.interactive[i];
     };
   }
@@ -938,12 +1222,10 @@ function Endless() {
     this.y = 0;
     this.transition;
 
-    for (var i = 1; i < arguments.length; i+=2) {
+    for (var i = 0; i < arguments.length; i+=2) {
       this.contents[arguments[i]] = arguments[i + 1];
       if (arguments[i + 1].height + arguments[i + 1].y > this.height)
         this.height = arguments[i + 1].height + arguments[i + 1].y;
-      if (arguments[i + 1].activate)
-        arguments[0].interactive.push(arguments[i + 1]);
     }
 
     this.calculateDimensions = function() {
@@ -955,6 +1237,10 @@ function Endless() {
       }
     }
 
+    this.onResize = function() {
+      this.calculateDimensions();
+    }
+
     this.draw = function() {
       if (this.transition)
         this.transition.update();
@@ -963,7 +1249,9 @@ function Endless() {
       Graphics.ctx.fillRect(0, 0, Graphics.canvas.width, this.y + this.height)
 
       for (var object in this.contents) {
-        if (this.contents[object].transition && !this.contents[object].transition.started)
+        if (this.contents[object].transition &&
+           !this.contents[object].transition.started &&
+            this.contents[object].transition.autoStart)
           this.contents[object].transition.start();
         if (this.contents[object].visible)
           this.contents[object].draw();
@@ -973,6 +1261,7 @@ function Endless() {
 
   function Transition(object, property, startVal, duration, delay, motionType, callback) {
     this.object = object;
+    this.autoStart = true;
     this.startVal = startVal;
     this.endVal = object[property];
     this.duration = duration;
@@ -980,6 +1269,7 @@ function Endless() {
     this.property = property;
     this.motionType = motionType || "linear";
     this.started = false;
+    this.paused = false;
     this.initTime = null;
     this.delta = null;
     this.distance = this.endVal - this.startVal;
@@ -998,9 +1288,10 @@ function Endless() {
           switch (this.motionType) {
             default:
               console.error("Invalid motion type");
+            case "countDown":
+              return Math.ceil((this.delta / this.duration) * this.distance + this.startVal);
             case "linear":
-              value = (this.delta / this.duration) * this.distance + this.startVal;
-              return value > this.endVal ? this.endVal : value;
+              return (this.delta / this.duration) * this.distance + this.startVal;
             case "logistic":
               return  1 / (1 + Math.pow(Math.E, -15 * (this.delta / this.duration - 0.5))) * this.distance + this.startVal;
           }
@@ -1009,7 +1300,9 @@ function Endless() {
     });
 
     this.start = function() {
-      if (this.started)
+      if (this.paused)
+        this.paused = false;
+      else if (this.started)
         return;
       this.started = true;
       var that = this;
@@ -1017,23 +1310,39 @@ function Endless() {
         // Checks if this transition has been replaced before it's finished
         if (that == that.object.transition) {
           that.object[that.property] = that.endVal;
+          that.object.transition = null;
           if (that.callback)
             that.callback();
-          delete that.object.transition;
         }
       }, that.delay + that.duration);
       this.initTime = Date.now();
     };
 
+    this.pause = function() {
+      if (this.paused)
+        return;
+
+      this.startVal = this.value;
+      this.paused = true;
+      this.duration = this.duration - this.delta;
+      this.delay = Math.max(0, this.delta - this.delay);
+      this.distance = this.endVal - this.startVal;
+    }
+
     this.update = function() {
-      this.object[this.property] = this.value;
+      if (this.property == "text")
+        this.object.setText(this.value);
+      else
+        this.object[this.property] = this.value;
     }
   }
 
+  Game.mode = Game.modes.speed;
   Util.loadDataFromStorage();
   Graphics.setup();
   EventHandlers.setup();
-  Game.mode = Game.modes.endless;
+  // for (var mode in Game.modes)
+  //   Game.modes[mode].setup();
 }
 
 Endless();
