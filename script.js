@@ -1367,7 +1367,7 @@ function Endless() {
     }
   }
 
-  Game.mode = Game.modes.endless;
+  Game.mode = Game.modes.speed;
   Util.loadDataFromStorage();
   Graphics.setup();
   EventHandlers.setup();
