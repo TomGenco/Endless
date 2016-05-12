@@ -3,13 +3,14 @@
 function Endless() {
   var Settings = {
     animations: true,
-    vibrate: true
+    vibrate: true,
+    dotSizeRatio: 1,
   };
 
   var Game = {
-    screen: null,
-    mode: null,
-    score: 0,
+    screen: undefined,
+    mode: undefined,
+    score: undefined,
     playing: false,
     paused: false,
 
@@ -203,17 +204,23 @@ function Endless() {
           if (!this.highScore)
             this.highScore = 0;
 
-          this.screens.playing = new Screen();
+          this.screen = this.screens.playing = new Screen();
           this.screens.end = new Screen();
-          this.screen = this.screens.playing;
 
           this.topMenuBar = new MenuBar(
-            "replay",         new Text("Replay",   0.01, 0.005, "left",   "top", 35, this.setup.bind(this)),
-            "score",          new Text(0,          0.01, 0.005, "left",   "top", 35),
-            "scoreIndicator", new Text("+0",          0, 0.005, "left",   "top", 35),
-            "timer",          new Text(0,           0.5, 0.005, "center", "top", 35),
-            "menu",           new Text("Menu",     0.99, 0.005, "right",  "top", 35, Game.pause)
+            "replay",         new Text("Replay",  0.01, 0.005, "left",   "top", 35, {
+              activate: this.setup.bind(this)
+            }),
+            "score",          new Text(undefined, 0.01, 0.005, "left",   "top", 35),
+            "timer",          new Text(undefined,  0.5, 0.005, "center", "top", 35),
+            "menu",           new Text("Menu",    0.99, 0.005, "right",  "top", 35, {
+              activate: Game.pause
+            }),
+            "scoreIndicator", new Text(undefined,    0, 0.005, "left",   "top", 35, {
+              visible: false
+            })
           );
+          this.topMenuBar.contents.scoreIndicator.putAfter(this.topMenuBar.contents.score);
 
           this.screens.playing.add(
             "grid",         undefined,
@@ -221,8 +228,6 @@ function Endless() {
             "countDown",    new Text(0, 0.5, 0.5, "center", "middle", 100),
             "topMenuBar",   this.topMenuBar
           );
-          this.topMenuBar.contents.scoreIndicator.putAfter(this.topMenuBar.contents.score);
-          this.topMenuBar.contents.scoreIndicator.visible = false;
 
           this.screens.end.add(
             "topMenuBar", this.topMenuBar,
@@ -242,36 +247,48 @@ function Endless() {
 
         setup: function() {
           this.screen = this.screens.playing;
+          this.score = 0;
 
-          this.grid = new Grid(
+          this.grid = this.screen.contents.grid = new Grid(
             this.screen,
             this.settings.columns,
-            this.settings.rows, 1,
+            this.settings.rows,
             this.settings.dotColors,
-            this.settings.hueShift,
-            []);
-          this.grid.enabled = false;
-          this.screen.contents.grid = this.grid;
+            {
+              hueShift:      this.settings.hueShift,
+              lastTwoHues:   [],
+              enabled:       false,
+              rowDelay:      90,
+              columnDelay:   300,
+              animationTime: 1000
+            }
+          );
 
-          this.dotSelection = new DotSelection(this.grid);
-          this.screen.contents.dotSelection = this.dotSelection;
+          this.dotSelection = this.screen.contents.dotSelection = new DotSelection(this.grid);
 
           this.screen.contents.countDown.visible = true;
           this.screen.contents.countDown.transition = new Transition(this.screen.contents.countDown, "text", 3, 3000, 0, "countDown", this.start.bind(this));
           this.screens.playing.contents.countDown.transition.start();
 
-          this.topMenuBar.contents.score.visible = true;
           this.topMenuBar.contents.replay.visible = false;
-          this.topMenuBar.contents.timer.visible = false;
+          this.topMenuBar.contents.score.visible = true;
+          this.topMenuBar.contents.timer.visible = true;
+          this.topMenuBar.contents.timer.setText(60);
+          this.topMenuBar.contents.score.setText(0);
 
           this.screen.show();
         },
 
         start: function() {
+          this.topMenuBar.contents.timer.setText(0);
           this.topMenuBar.contents.timer.transition = new Transition(this.topMenuBar.contents.timer, "text", 60, 60000, 0, "countDown", this.stop.bind(this));
           this.topMenuBar.contents.timer.visible = true;
           this.grid.enabled = true;
           this.screens.playing.contents.countDown.visible = false;
+
+          this.grid.rowDelay =       0;
+          this.grid.columnDelay =    50;
+          this.grid.animationTime =  500;
         },
 
         stop: function() {
@@ -679,10 +696,18 @@ function Endless() {
       Game.screen.add(
         "title",      new Text("endless",       0.5,   0.3, "center", "middle",  100),
         "subtitle",   new Text("by Tom Genco",  0.5,     0, "center", "top"   ,   25),
-        "play",       new Text("Play",          0.3,   0.7, "center", "middle",   35, Game.play),
-        "reset",      new Text("Reset",         0.7,   0.7, "center", "middle",   35, Util.clearStorage),
-        "siteLink",   new Text("tomgenco.com", 0.02, 0.995, "left",   "bottom",   25, function() { window.location.href = "http://tomgenco.com"; }),
-        "sourceLink", new Text("Source code",  0.98, 0.995, "right",  "bottom",   25, function() { window.location.href = "http://github.com/TomGenco/Endless"; })
+        "play",       new Text("Play",          0.3,   0.7, "center", "middle",   35, {
+          activate: Game.play
+        }),
+        "reset",      new Text("Reset",         0.7,   0.7, "center", "middle",   35, {
+          activate: Util.clearStorage
+        }),
+        "siteLink",   new Text("tomgenco.com", 0.02, 0.995, "left",   "bottom",   25, {
+          activate: function() { window.location.href = "http://tomgenco.com"; }
+        }),
+        "sourceLink", new Text("Source code",  0.98, 0.995, "right",  "bottom",   25, {
+          activate: function() { window.location.href = "http://github.com/TomGenco/Endless"; }
+        })
       );
       Game.screen.contents.subtitle.putBelow(Game.screen.contents.title);
 
@@ -740,12 +765,12 @@ function Endless() {
   }
 
   function Screen() {
-    this.contents    = {};
-    this.topMenuBar  = null;
-    this.interactive = [];
+    this.contents    = {},
+    this.topMenuBar  = null,
+    this.interactive = [],
     this.initialized = false
-    this.visible     = false;
-    this.overlay     = false;
+    this.visible     = false,
+    this.overlay     = false,
     this.y           = 0;
 
     this.add = function() {
@@ -816,13 +841,21 @@ function Endless() {
     }
   }
 
-  function Grid(screen, cols, rows, dotSizeRatio, colors, hueShift, lastTwoHues) {
+  function Grid(screen, cols, rows, colors, options) {
     this.cols = cols,
     this.rows = rows,
     this.dots = [],
-    this.dotSizeRatio = dotSizeRatio,
-    this.visible = true;
-    this.enabled = true;
+    this.visible = true,
+    this.enabled = true,
+    this.hueShift = 0,
+    this.lastTwoHues = [],
+    this.rowDelay = 0,
+    this.columnDelay = 50,
+    this.animationTime = 500;
+
+    if (options)
+      for (var option in options)
+        this[option] = options[option];
 
     // this.exportToJSON = function() {
     //   importedGrid = [];
@@ -838,7 +871,7 @@ function Endless() {
     // };
 
     this.calculateDimensions = function() {
-      this.dotSize = this.dotSizeRatio * Math.min(
+      this.dotSize = Settings.dotSizeRatio * Math.min(
         Graphics.canvas.width / (cols * 2),
        (Graphics.canvas.height - screen.y) / (rows * 2));
 
@@ -858,7 +891,7 @@ function Endless() {
             if (Math.floor(Math.random() * 20) == 0)
               this.dots[col][row] = new SuperDot(this, col, row);
             else
-              this.dots[col][row] = new ColorDot(this, col, row, colors, hueShift, lastTwoHues);
+              this.dots[col][row] = new ColorDot(this, col, row, colors, this.hueShift, this.lastTwoHues);
           }
       }
     };
@@ -874,20 +907,22 @@ function Endless() {
     this.calculateDotPositions();
 
     this.setDotTransitions = function() {
-      var delay = 0, updateDelay = false;
+      var columnDelayMultiplier = 0, rowDelayMultiplier = 0, updateDelay = false;
 
       for (var col = 0; col < this.dots.length; col++) {
-        for (var row = 0; row < this.dots[col].length; row++)
+        for (var row = this.dots[col].length - 1; row >= 0; row--)
           if (this.dots[col][row].transition === undefined ||
              (this.dots[col][row].transition && !this.dots[col][row].transition.started)) {
             this.dots[col][row].transition = new Transition(this.dots[col][row], 'y',
               -this.dotSize / 2 - this.dotSize / 2 * (this.rows - 1 - row),
-              500, delay * 50, "logistic");
+              this.animationTime, columnDelayMultiplier * this.columnDelay + rowDelayMultiplier * this.rowDelay, "logistic");
             updateDelay = true;
+            rowDelayMultiplier++;
           }
         if (updateDelay) {
           updateDelay = false;
-          delay++;
+          rowDelayMultiplier = 0;
+          columnDelayMultiplier++;
         }
       }
     };
@@ -979,10 +1014,10 @@ function Endless() {
   }
 
   function DotSelection(grid) {
-    this.selection = [];
-    this.visible = true;
-    this.hue;
-    this.lastPosX;
+    this.selection = [],
+    this.visible = true,
+    this.hue,
+    this.lastPosX,
     this.lastPosY;
 
     this.draw = function() {
@@ -1010,12 +1045,12 @@ function Endless() {
   }
 
   function Dot(grid, column, row) {
-    this.col = column;
-    this.row = row;
-    this.x = undefined;
-    this.y = undefined;
-    this.points = 2;
-    this.transition;
+    this.col = column,
+    this.row = row,
+    this.x = undefined,
+    this.y = undefined,
+    this.points = 2,
+    this.transition,
     this.selected = false;
 
     Dot.draw = function() {
@@ -1112,21 +1147,24 @@ function Endless() {
   SuperDot.prototype = Object.create(Dot.prototype);
   SuperDot.prototype.constructor = SuperDot;
 
-  function Text(text, x, y, align, baseline, textSize, activate) {
-    this.activate = activate;
-    this.opacity = 1;
-    this.transition;
-    this.visible = true
-    this.hue = 0;
-    this.saturation = 100;
-    this.lightness = 100;
-    this.text = text;
-    this.x;
-    this.y;
-    this.width;
-    this.height;
-    this.isBelow;
+  function Text(text, x, y, align, baseline, textSize, options) {
+    this.opacity = 1,
+    this.transition,
+    this.visible = true,
+    this.hue = 0,
+    this.saturation = 100,
+    this.lightness = 100,
+    this.text = text,
+    this.x,
+    this.y,
+    this.width,
+    this.height,
+    this.isBelow,
     this.isAfter;
+
+    if (options)
+      for (var option in options)
+        this[option] = options[option];
 
     this.inRange = function(mouseX, mouseY) {
       return mouseX > this.x && mouseX < this.x + this.width &&
@@ -1215,11 +1253,11 @@ function Endless() {
   }
 
   function MenuBar() {
-    this.contents = {};
-    this.visible = true;
-    this.color = "#222";
-    this.height = 0;
-    this.y = 0;
+    this.contents = {},
+    this.visible = true,
+    this.color = "#222",
+    this.height = 0,
+    this.y = 0,
     this.transition;
 
     for (var i = 0; i < arguments.length; i+=2) {
@@ -1260,19 +1298,19 @@ function Endless() {
   }
 
   function Transition(object, property, startVal, duration, delay, motionType, callback) {
-    this.object = object;
-    this.autoStart = true;
-    this.startVal = startVal;
-    this.endVal = object[property];
-    this.duration = duration;
-    this.delay = delay;
-    this.property = property;
-    this.motionType = motionType || "linear";
-    this.started = false;
-    this.paused = false;
-    this.initTime = null;
-    this.delta = null;
-    this.distance = this.endVal - this.startVal;
+    this.object = object,
+    this.autoStart = true,
+    this.startVal = startVal,
+    this.endVal = object[property],
+    this.duration = duration,
+    this.delay = delay,
+    this.property = property,
+    this.motionType = motionType || "linear",
+    this.started = false,
+    this.paused = false,
+    this.initTime = null,
+    this.delta = null,
+    this.distance = this.endVal - this.startVal,
     this.callback = callback;
 
     Object.defineProperty(this, "value", {
