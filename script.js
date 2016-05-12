@@ -67,6 +67,8 @@ function Endless() {
         },
 
         setup: function() {
+          this.lastTwoHues = JSON.parse(localStorage.getItem("Endless.endless.lastTwoHues"));
+
           this.grid = this.screen.contents.grid = new Grid(
             this.screen,
             this.settings.columns,
@@ -74,7 +76,7 @@ function Endless() {
             this.settings.dotColors,
             {
               hueShift:    this.settings.hueShift,
-              lastTwoHues: JSON.parse(localStorage.getItem("Endless.endless.lastTwoHues")),
+              lastTwoHues: this.lastTwoHues,
               jsonGrid:    localStorage.getItem("Endless.endless.grid")
             }
           );
@@ -333,7 +335,7 @@ function Endless() {
             this.settings.dotColors,
             {
               hueShift:      this.settings.hueShift,
-              lastTwoHues:   [],
+              lastTwoHues:   this.lastTwoHues,
               enabled:       false,
               rowDelay:      90,
               columnDelay:   300,
