@@ -234,12 +234,13 @@ function Endless() {
         },
 
         handleDotMouseover: function(dot) {
-          this.dotSelection.hue = dot.hue;
           if (dot == this.dotSelection.selection[this.dotSelection.selection.length - 2]) {
+            this.dotSelection.hue = dot.hue;
             this.dotSelection.selection.pop().selected = false;
             this.dotSelection.hue = this.dotSelection.selection[this.dotSelection.selection.length - 1].hue;
             this.updateScoreIndicator();
           } else if (this.dotSelection.selection[this.dotSelection.selection.length - 1].canConnectTo(dot)) {
+            this.dotSelection.hue = dot.hue;
             this.topMenuBar.contents.menu.setText("Cancel");
             dot.selected = true;
             this.dotSelection.selection.push(dot);
