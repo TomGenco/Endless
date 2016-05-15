@@ -432,9 +432,16 @@ function Endless() {
         },
 
         play: function() {
-          if (this.started)
-            this.grid.enabled = true;
-          Game.modes.endless.play.call(this);
+          if (this.started) {
+            this.screen.contents.countDown.visible = true;
+            this.screen.contents.countDown.transition = new Transition(this.screen.contents.countDown, "text", 2, 2000, 0, "countDown", (function () {
+              this.grid.enabled = true;
+              this.screens.playing.contents.countDown.visible = false;
+              Game.modes.endless.play.call(this);
+            }).bind(this));
+            this.screens.playing.contents.countDown.transition.start();
+          } else
+            Game.modes.endless.play.call(this);
         },
 
         end: function() {
