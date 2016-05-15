@@ -1452,7 +1452,7 @@ function Endless() {
         Transition.transitions[i].start();
   };
 
-  Game.mode = Game.modes.speed;
+  Game.mode = Game.modes.endless;
   Util.loadDataFromStorage();
   Graphics.setup();
   EventHandlers.setup();
