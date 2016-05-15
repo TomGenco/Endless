@@ -703,7 +703,7 @@ function Endless() {
 
       Game.screen = new Screen();
       Game.screen.add(
-        "title",      new Text("endless",       0.5,  0.25, "center", "middle",  100),
+        "title",      new Text("endless",       0.5,   0.3, "center", "middle",  100),
         "subtitle",   new Text("by Tom Genco",  0.5,     0, "center", "top"   ,   25),
         "playSpeed",  new Text("Play Speed",    0.5,   0.6, "center", "middle",   25, {
           activate: function () {
