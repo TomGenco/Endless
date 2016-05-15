@@ -10,8 +10,6 @@ function Endless() {
   var Game = {
     screen: undefined,
     mode: undefined,
-    score: undefined,
-    playing: false,
     paused: false,
 
     modes: {
@@ -23,6 +21,7 @@ function Endless() {
           rows: 6,
         },
         screen: undefined,
+        playing: false,
         score: 0,
         grid: undefined,
         topMenuBar: undefined,
@@ -34,10 +33,6 @@ function Endless() {
         lastTwoHues: [],
 
         setupGraphics: function() {
-          this.score = parseFloat(localStorage.getItem("Endless.endless.score"));
-          if (!this.score)
-            this.score = 0;
-
           this.screen = new Screen();
 
           this.topMenuBar = new MenuBar(
@@ -67,6 +62,25 @@ function Endless() {
         },
 
         setup: function() {
+          if (localStorage.getItem("Endless--grid")) {
+            localStorage.setItem("Endless.endless.grid", localStorage.getItem("Endless--grid"));
+            localStorage.removeItem("Endless--grid");
+          }
+          if (localStorage.getItem("Endless--lastTwoHues")) {
+            localStorage.setItem("Endless.endless.lastTwoHues", localStorage.getItem("Endless--lastTwoHues"));
+            localStorage.removeItem("Endless--lastTwoHues");
+          }
+          if (localStorage.getItem("Endless--score")) {
+            localStorage.setItem("Endless.endless.score", localStorage.getItem("Endless--score"));
+            localStorage.removeItem("Endless--score");
+          }
+
+          this.score = parseFloat(localStorage.getItem("Endless.endless.score"));
+          if (!this.score)
+            this.score = 0;
+
+          this.topMenuBar.contents.score.setText(this.score);
+
           this.lastTwoHues = JSON.parse(localStorage.getItem("Endless.endless.lastTwoHues"));
           if (!this.lastTwoHues)
             this.lastTwoHues = [];
@@ -92,6 +106,13 @@ function Endless() {
 
         play: function() {
           Transition.startAllTransitions();
+        },
+
+        end: function() {
+          Transition.cancelAllTransitions();
+          this.playing = false;
+          this.screen.visible = false;
+          return true;
         },
 
         mouseDown: function(event) {
@@ -193,12 +214,12 @@ function Endless() {
               this.grid.dots[this.dotSelection.selection[i].col][this.dotSelection.selection[i].row] = null;
               dotsCleared++;
             }
-            this.dotSelection.hue = null;
             this.grid.fillNulls();
             this.updateScore();
             Util.vibrate([50, 100, 50]);
           } else
             this.dotSelection.selection[0].selected = false;
+          this.dotMouseover = undefined;
           this.dotSelection.selection = [];
           this.updateScoreIndicator();
         },
@@ -213,6 +234,7 @@ function Endless() {
         },
 
         handleDotMouseover: function(dot) {
+          this.dotSelection.hue = dot.hue;
           if (dot == this.dotSelection.selection[this.dotSelection.selection.length - 2]) {
             this.dotSelection.selection.pop().selected = false;
             this.dotSelection.hue = this.dotSelection.selection[this.dotSelection.selection.length - 1].hue;
@@ -229,7 +251,7 @@ function Endless() {
         updateScore: function() {
           for (var i = 0; i < this.dotSelection.selection.length; i++)
             this.score += this.dotSelection.selection[i].points;
-          if (Game.playing) {
+          if (this.playing) {
             this.topMenuBar.contents.score.setText(this.score);
             if (Settings.animations && this.dotSelection.hue != null) {
               this.topMenuBar.contents.score.hue = this.dotSelection.hue + this.settings.hueShift % 360;
@@ -275,6 +297,7 @@ function Endless() {
         screen: undefined,
         score: 0,
         started: false,
+        playing: false,
         highScore: undefined,
         grid: undefined,
         topMenuBar: undefined,
@@ -381,10 +404,13 @@ function Endless() {
         },
 
         stop: function() {
+          if (!this.playing)
+            return;
           if (this.selectingDots)
             this.endSelection();
           this.started = false;
           this.grid.enabled = false;
+          this.screen.contents.countDown.setText(0);
           this.topMenuBar.contents.score.visible = false;
           this.topMenuBar.contents.replay.visible = true;
           this.topMenuBar.contents.timer.visible = false;
@@ -411,6 +437,15 @@ function Endless() {
           Game.modes.endless.play.call(this);
         },
 
+        end: function() {
+          if (!this.playing)
+            return true;
+          if (this.started && !confirm("Are you sure you want to leave mid-game?"))
+            return false;
+          this.stop();
+          return Game.modes.endless.end.call(this);
+        },
+
         mouseDown:            function(event) {       Game.modes.endless.mouseDown.call(this, event); },
         mouseUp:              function(event) {       Game.modes.endless.mouseUp.call(this, event); },
         mouseMove:            function(event) {       Game.modes.endless.mouseMove.call(this, event); },
@@ -429,7 +464,7 @@ function Endless() {
         updateScore: function() {
           for (var i = 0; i < this.dotSelection.selection.length; i++)
             this.score += this.dotSelection.selection[i].points;
-          if (Game.playing) {
+          if (this.playing) {
             this.topMenuBar.contents.score.setText(this.score);
             if (Settings.animations && this.dotSelection.hue != null) {
               this.topMenuBar.contents.score.hue = this.dotSelection.hue + this.settings.hueShift % 360;
@@ -445,12 +480,12 @@ function Endless() {
     },
 
     play: function() {
-      if (!Game.playing) {
+      if (!Game.mode.playing) {
         for (var object in Game.screen.contents) {
           if (Game.screen.contents[object].transition)
             Game.screen.contents[object].transition.finish();
         }
-        Game.playing = true;
+        Game.mode.playing = true;
         Game.mode.screen.show();
         Game.mode.setup();
         Game.screen.overlay = true;
@@ -661,12 +696,25 @@ function Endless() {
 
       Game.screen = new Screen();
       Game.screen.add(
-        "title",      new Text("endless",       0.5,   0.3, "center", "middle",  100),
+        "title",      new Text("endless",       0.5,  0.25, "center", "middle",  100),
         "subtitle",   new Text("by Tom Genco",  0.5,     0, "center", "top"   ,   25),
-        "play",       new Text("Play",          0.3,   0.7, "center", "middle",   35, {
-          activate: Game.play
+        "playSpeed",  new Text("Play Speed",    0.5,   0.6, "center", "middle",   25, {
+          activate: function () {
+            if (Game.modes.endless.playing && !Game.modes.endless.end())
+              return;
+            Game.mode = Game.modes.speed;
+            Game.play();
+          }
         }),
-        "reset",      new Text("Reset",         0.7,   0.7, "center", "middle",   35, {
+        "play",       new Text("Play",          0.3,   0.8, "center", "middle",   35, {
+          activate: function () {
+            if (Game.modes.speed.playing && !Game.modes.speed.end())
+              return;
+            Game.mode = Game.modes.endless;
+            Game.play();
+          }
+        }),
+        "reset",      new Text("Reset",         0.7,   0.8, "center", "middle",   35, {
           activate: Util.clearStorage
         }),
         "siteLink",   new Text("tomgenco.com", 0.02, 0.995, "left",   "bottom",   25, {
@@ -1450,6 +1498,11 @@ function Endless() {
     for (var i = 0; i < Transition.transitions.length; i++)
       if (Transition.transitions[i].paused)
         Transition.transitions[i].start();
+  };
+
+  Transition.cancelAllTransitions = function() {
+    for (var i = 0; i < Transition.transitions.length; i++)
+      Transition.transitions[i].cancel();
   };
 
   Game.mode = Game.modes.endless;
