@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+  </head>
+  <body>
+    <h1 id="output">test</h1>
+    <button type="button" name="button" onclick="pause()">Pause</button>
+    <button type="button" name="button" onclick="start()">Start</button>
+    <p id="info">
+      nothing
+    </p>
+    <script type="text/javascript">
+function Transition(object, property, startVal, duration, delay, motionType, callback) {
+  this.object = object,
+  this.autoStart = true,
+  this.startVal = startVal,
+  this.endVal = object[property],
+  this.duration = duration,
+  this.delay = delay,
+  this.property = property,
+  this.motionType = motionType || "linear",
+  this.started = false,
+  this.paused = false,
+  this.initTime = null,
+  this.delta = 0,
+  this.distance = this.endVal - this.startVal,
+  this.callback = callback;
+  var timeout;
+  this.object[this.property] = this.startVal;
+
+  Object.defineProperty(this, "value", {
+    get: function() {
+      this.delta = Date.now() - this.initTime - this.delay;
+      if (this.delta < 0)
+        return this.startVal;
+      else if (this.delta > this.duration)
+        this.finish();
+      else
+        switch (this.motionType) {
+          default:
+            console.error("Invalid motion type");
+          case "countDown":
+            return this.startVal + Math.ceil((this.delta / this.duration) * this.distance);
+          case "linear":
+            return this.startVal + (this.delta / this.duration) * this.distance;
+          case "logistic":
+            return this.startVal + (this.endVal - this.startVal) / (1 + Math.pow(Math.E, -13 * (this.delta / this.duration - 0.5)));
+        }
+    }
+  });
+
+  this.start = function() {
+    if (this.paused)
+      this.paused = false;
+    else if (this.started)
+      return;
+    else {
+      this.object[this.property] = this.startVal;
+    }
+    this.started = true;
+    timeout = setTimeout(this.finish.bind(this), this.duration + this.delay);
+    this.initTime = Date.now() - this.delta;
+  };
+
+  this.pause = function() {
+    if (this.paused)
+      return;
+
+    clearTimeout(timeout);
+    this.update();
+    this.paused = true;
+    this.delay = 0;
+    console.log(this.delta);
+  };
+
+  this.update = function() {
+    if (!this.paused && this.started) {
+      if (this.property == "text")
+        this.object.setText(this.value);
+      else
+        this.object[this.property] = this.value;
+    }
+  };
+
+  this.finish = function() {
+    if (this == this.object.transition && !this.paused) {
+      clearTimeout(timeout);
+      this.object[this.property] = this.endVal;
+      this.object.transition = null;
+      if (this.callback)
+        this.callback();
+    }
+  };
+  }
+
+function pause() {
+  console.log("pressed pause");
+  if (object.transition)
+    object.transition.pause();
+}
+
+function start() {
+  if (!object.transition){
+    object.value = 95;
+    object.transition = new Transition(object, "value", 0, 5000, 0, "logistic", done);}
+  object.transition.start();
+}
+
+function done() {
+  console.log("transition done");
+  info.innerHTML =
+    "value="    + output.style["margin-left"];
+
+}
+
+var output = document.getElementById("output");
+var info = document.getElementById('info');
+
+var object = {
+  value: 95
+};
+
+object.transition = new Transition(object, "value", 0, 5000, 1000, "logistic", done);
+
+setInterval(function() {
+  if (object.transition)
+    object.transition.update();
+  if (object.transition)  {
+    info.innerHTML =
+      "value="    + output.style["margin-left"] + "<br>" +
+      "delay="    + object.transition.delay     + "<br>" +
+      "startVal=" + object.transition.startVal  + "<br>" +
+      "endVal="   + object.transition.endVal    + "<br>" +
+      "duration=" + object.transition.duration  + "<br>" +
+      "started="  + object.transition.started   + "<br>" +
+      "paused="   + object.transition.paused    + "<br>" +
+      "initTime=" + object.transition.initTime  + "<br>" +
+      "distance=" + object.transition.distance  + "<br>" +
+      "delta=" + object.transition.delta;
+  }
+  output.style["margin-left"] = object.value + "%";
+}, 50);
+    </script>
+  </body>
+</html>

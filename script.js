@@ -1,6 +1,6 @@
-"use strict";
-
 function Endless() {
+  "use strict";
+
   var Settings = {
     animations: true,
     vibrate: true,
@@ -68,6 +68,8 @@ function Endless() {
 
         setup: function() {
           this.lastTwoHues = JSON.parse(localStorage.getItem("Endless.endless.lastTwoHues"));
+          if (!this.lastTwoHues)
+            this.lastTwoHues = [];
 
           this.grid = this.screen.contents.grid = new Grid(
             this.screen,
@@ -85,7 +87,11 @@ function Endless() {
         },
 
         pause: function() {
-          // There is nothing to do
+          Transition.pauseAllTransitions();
+        },
+
+        play: function() {
+          Transition.startAllTransitions();
         },
 
         mouseDown: function(event) {
@@ -165,7 +171,6 @@ function Endless() {
         },
 
         startSelection: function(dot) {
-          this.topMenuBar.contents.menu.setText("Cancel");
           this.dotSelection.lastPosX = undefined;
           this.dotSelection.lastPosY = undefined;
           this.selectingDots = true;
@@ -213,6 +218,7 @@ function Endless() {
             this.dotSelection.hue = this.dotSelection.selection[this.dotSelection.selection.length - 1].hue;
             this.updateScoreIndicator();
           } else if (this.dotSelection.selection[this.dotSelection.selection.length - 1].canConnectTo(dot)) {
+            this.topMenuBar.contents.menu.setText("Cancel");
             dot.selected = true;
             this.dotSelection.selection.push(dot);
             this.updateScoreIndicator();
@@ -268,6 +274,7 @@ function Endless() {
         },
         screen: undefined,
         score: 0,
+        started: false,
         highScore: undefined,
         grid: undefined,
         topMenuBar: undefined,
@@ -290,12 +297,12 @@ function Endless() {
             "replay",         new Text("Replay",  0.01, 0.005, "left",   "top", 35, {
               activate: this.setup.bind(this)
             }),
-            "score",          new Text(undefined, 0.01, 0.005, "left",   "top", 35),
-            "timer",          new Text(undefined,  0.5, 0.005, "center", "top", 35),
+            "score",          new Text("undefined", 0.01, 0.005, "left",   "top", 35),
+            "timer",          new Text(60,         0.5, 0.005, "center", "top", 35),
             "menu",           new Text("Menu",    0.99, 0.005, "right",  "top", 35, {
               activate: Game.pause
             }),
-            "scoreIndicator", new Text(undefined,    0, 0.005, "left",   "top", 35, {
+            "scoreIndicator", new Text("undefined",    0, 0.005, "left",   "top", 35, {
               visible: false
             })
           );
@@ -328,6 +335,8 @@ function Endless() {
           this.screen = this.screens.playing;
           this.score = 0;
 
+          this.lastTwoHues = [];
+
           this.grid = this.screen.contents.grid = new Grid(
             this.screen,
             this.settings.columns,
@@ -359,6 +368,7 @@ function Endless() {
         },
 
         start: function() {
+          this.started = true;
           this.topMenuBar.contents.timer.setText(0);
           this.topMenuBar.contents.timer.transition = new Transition(this.topMenuBar.contents.timer, "text", 60, 60000, 0, "countDown", this.stop.bind(this));
           this.topMenuBar.contents.timer.visible = true;
@@ -373,6 +383,7 @@ function Endless() {
         stop: function() {
           if (this.selectingDots)
             this.endSelection();
+          this.started = false;
           this.grid.enabled = false;
           this.topMenuBar.contents.score.visible = false;
           this.topMenuBar.contents.replay.visible = true;
@@ -389,7 +400,17 @@ function Endless() {
           this.screen.show();
         },
 
-        pause:                function() {            Game.modes.endless.pause.call(this); },
+        pause: function() {
+          this.grid.enabled = false;
+          Game.modes.endless.pause.call(this);
+        },
+
+        play: function() {
+          if (this.started)
+            this.grid.enabled = true;
+          Game.modes.endless.play.call(this);
+        },
+
         mouseDown:            function(event) {       Game.modes.endless.mouseDown.call(this, event); },
         mouseUp:              function(event) {       Game.modes.endless.mouseUp.call(this, event); },
         mouseMove:            function(event) {       Game.modes.endless.mouseMove.call(this, event); },
@@ -425,11 +446,16 @@ function Endless() {
 
     play: function() {
       if (!Game.playing) {
+        for (var object in Game.screen.contents) {
+          if (Game.screen.contents[object].transition)
+            Game.screen.contents[object].transition.finish();
+        }
         Game.playing = true;
         Game.mode.screen.show();
         Game.mode.setup();
         Game.screen.overlay = true;
       }
+      Game.mode.play();
       Game.paused = false;
       Game.screen.hide();
     },
@@ -837,18 +863,26 @@ function Endless() {
     };
 
     this.setDotTransitions = function() {
+      if (!Settings.animations)
+        return;
+
       var columnDelayMultiplier = 0, rowDelayMultiplier = 0, updateDelay = false;
 
       for (var col = 0; col < this.dots.length; col++) {
-        for (var row = this.dots[col].length - 1; row >= 0; row--)
-          if (this.dots[col][row].transition === undefined ||
-             (this.dots[col][row].transition && !this.dots[col][row].transition.started)) {
+        for (var row = this.dots[col].length - 1; row >= 0; row--) {
+          if (this.dots[col][row].transition === null)
+            continue;
+          if (this.dots[col][row].transition !== undefined) {
+            this.dots[col][row].y = -this.dotSize / 2 - this.dotSize / 2 * (this.rows - 1 - row);
+            this.dots[col][row].transition.endVal = this.y + this.dotSize / 2 + row * this.dotSize * 2;
+            this.dots[col][row].transition.distance = this.dots[col][row].transition.startVal - this.dots[col][row].transition.endVal;
+          } else
             this.dots[col][row].transition = new Transition(this.dots[col][row], 'y',
               -this.dotSize / 2 - this.dotSize / 2 * (this.rows - 1 - row),
               this.animationTime, columnDelayMultiplier * this.columnDelay + rowDelayMultiplier * this.rowDelay, "logistic");
-            updateDelay = true;
-            rowDelayMultiplier++;
-          }
+          updateDelay = true;
+          rowDelayMultiplier++;
+        }
         if (updateDelay) {
           updateDelay = false;
           rowDelayMultiplier = 0;
@@ -1217,7 +1251,23 @@ function Endless() {
 
     this.setText = function(newText) {
       this.text = newText;
-      this.calculateDimensions();
+      Graphics.ctx.font = this.height + "px Josefin Sans";
+      this.width  = Graphics.ctx.measureText(this.text).width;
+
+      switch (align) {
+        case "left":
+          this.x = x * Graphics.canvas.width;
+          break;
+        case "right":
+          this.x = x * Graphics.canvas.width - this.width;
+          break;
+        default:
+          this.x = x * Graphics.canvas.width - this.width / 2;
+          break;
+      }
+
+      if (this.isAfter)
+        this.x += this.isAfter.x + this.isAfter.width;
     };
 
     this.putBelow = function(text) {
@@ -1301,71 +1351,106 @@ function Endless() {
     this.started = false,
     this.paused = false,
     this.initTime = null,
-    this.delta = null,
+    this.delta = 0,
     this.distance = this.endVal - this.startVal,
     this.callback = callback;
-
-    Object.defineProperty(this, "value", {
-      get: function() {
-        var value;
-        if (!this.started)
-          return this.startVal;
-        else {
-          this.delta = Date.now() - this.delay - this.initTime;
-          if (this.delta < 0)
-            return this.startVal;
-
-          switch (this.motionType) {
-            default:
-              console.error("Invalid motion type");
-            case "countDown":
-              return Math.ceil((this.delta / this.duration) * this.distance + this.startVal);
-            case "linear":
-              return (this.delta / this.duration) * this.distance + this.startVal;
-            case "logistic":
-              return  1 / (1 + Math.pow(Math.E, -15 * (this.delta / this.duration - 0.5))) * this.distance + this.startVal;
-          }
-        }
-      }
-    });
+    this.object[this.property] = this.startVal;
+    var timeout;
 
     this.start = function() {
       if (this.paused)
         this.paused = false;
       else if (this.started)
         return;
+      else
+        Transition.addTransition(this);
       this.started = true;
-      var that = this;
-      setTimeout(function() {
-        // Checks if this transition has been replaced before it's finished
-        if (that == that.object.transition) {
-          that.object[that.property] = that.endVal;
-          that.object.transition = null;
-          if (that.callback)
-            that.callback();
-        }
-      }, that.delay + that.duration);
-      this.initTime = Date.now();
+      timeout = setTimeout(this.finish.bind(this), this.duration + delay); // Using the parameter instead of the property is intentional
+      this.initTime = Date.now() - this.delta;
     };
 
     this.pause = function() {
       if (this.paused)
         return;
 
-      this.startVal = this.value;
+      clearTimeout(timeout);
       this.paused = true;
-      this.duration = this.duration - this.delta;
-      this.delay = Math.max(0, this.delta - this.delay);
-      this.distance = this.endVal - this.startVal;
-    }
+      this.delay = 0;
+    };
 
     this.update = function() {
-      if (this.property == "text")
-        this.object.setText(this.value);
+      if (this.paused || !this.started) // Delta will be negative if we're still waiting for the delay to be over
+        return;
+
+      if ((this.delta = Date.now() - this.initTime - this.delay) < 0)
+        return;
+
+      if (this.delta > this.duration)
+        this.finish();
       else
-        this.object[this.property] = this.value;
+        switch (this.motionType) {
+          default:
+            console.error("Invalid motion type");
+          case "linear":
+            this.object[this.property] = this.startVal + (this.delta / this.duration) * this.distance;
+            break;
+          case "countDown":
+            this.object.setText(this.startVal + Math.ceil((this.delta / this.duration) * this.distance));
+            break;
+          case "logistic":
+            this.object[this.property] = this.startVal + (this.endVal - this.startVal) / (1 + Math.pow(Math.E, -15 * (this.delta / this.duration - 0.5)));
+            break;
+        }
+    };
+
+    this.finish = function() {
+      if (this == this.object.transition && !this.paused) {
+        this.cancel();
+        this.object[this.property] = this.endVal;
+        if (this.callback)
+          this.callback();
+      }
+    };
+
+    this.cancel = function() {
+      clearTimeout(timeout);
+      this.object.transition = null;
+      Transition.removeTransition(this);
     }
   }
+
+  Transition.transitions = [];
+
+  Transition.addTransition = function(transition) {
+    for (var i = 0; i < Transition.transitions.length; i++)
+      if (Transition.transitions[i] == undefined) {
+        Transition.transitions[i] = transition;
+        return;
+      }
+    Transition.transitions.push(transition);
+  };
+
+  Transition.removeTransition = function(transition) {
+    for (var i = 0; i < Transition.transitions.length; i++)
+      if (Transition.transitions[i] == transition) {
+        Transition.transitions[i] = undefined;
+        Transition.transitions = Transition.transitions.filter(function (value) { return value !== undefined; });
+        return;
+      }
+    console.error("Cannot remove transition that doesn't exist");
+  };
+
+  Transition.pauseAllTransitions = function() {
+    for (var i = 0; i < Transition.transitions.length; i++) {
+      Transition.transitions[i].pause();
+    }
+  };
+
+  Transition.startAllTransitions = function() {
+    for (var i = 0; i < Transition.transitions.length; i++)
+      if (Transition.transitions[i].paused)
+        Transition.transitions[i].start();
+  };
 
   Game.mode = Game.modes.speed;
   Util.loadDataFromStorage();
