@@ -433,6 +433,14 @@ function Endless() {
         play: function() {
           if (this.started) {
             this.screen.contents.countDown.visible = true;
+            this.screen.contents.countDown.setText(0);
+            for (var i = 0; i < this.grid.dots.length; i++)
+              for (var j = 0; j < this.grid.dots[i].length; j++)
+                if (Settings.animations && this.grid.dots[i][j].transition)
+                  this.grid.dots[i][j].transition.start();
+            if (this.topMenuBar.contents.score.transition)
+              this.topMenuBar.contents.score.transition.start();
+
             this.screen.contents.countDown.transition = new Transition(this.screen.contents.countDown, "text", 2, 2000, 0, "countDown", (function () {
               this.grid.enabled = true;
               this.screens.playing.contents.countDown.visible = false;
