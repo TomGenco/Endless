@@ -592,7 +592,8 @@ function Endless() {
         Game.screen.onResize();
         // TODO: only resize the current one, and make sure the others do only when they need to
         for (var mode in Game.modes)
-          Game.modes[mode].screen.onResize();
+          for (var screen in Game.modes[mode].screens)
+            Game.modes[mode].screens[screen].onResize();
       });
     },
 
