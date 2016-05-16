@@ -405,13 +405,11 @@ function Endless() {
         },
 
         stop: function() {
-          if (!this.playing)
-            return;
           if (this.selectingDots)
             this.endSelection();
           this.started = false;
           this.grid.enabled = false;
-          this.screen.contents.countDown.setText(0);
+          this.screens.playing.contents.countDown.setText(0);
           this.topMenuBar.contents.score.visible = false;
           this.topMenuBar.contents.replay.visible = true;
           this.topMenuBar.contents.timer.visible = false;
