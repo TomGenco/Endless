@@ -34,8 +34,7 @@ function Endless() {
       endless: {
         settings: {
           columns: 5,
-          dotColors: 5,
-          hueShift: 60,
+          dotColors: [60, 132, 204, 276, 348],
           rows: 6,
         },
         screen: undefined,
@@ -109,7 +108,6 @@ function Endless() {
             this.settings.rows,
             this.settings.dotColors,
             {
-              hueShift:    this.settings.hueShift,
               lastTwoHues: this.lastTwoHues,
               jsonGrid:    localStorage.getItem("Endless.endless.grid")
             }
@@ -273,7 +271,7 @@ function Endless() {
           if (this.playing) {
             this.topMenuBar.contents.score.setText(this.score);
             if (Settings.animations && this.dotSelection.hue != null) {
-              this.topMenuBar.contents.score.hue = this.dotSelection.hue + this.settings.hueShift % 360;
+              this.topMenuBar.contents.score.hue = this.dotSelection.hue % 360;
               this.topMenuBar.contents.score.lightness = 100;
               this.topMenuBar.contents.score.transition = new Transition(
                 this.topMenuBar.contents.score,
@@ -294,7 +292,7 @@ function Endless() {
           if (possibleScore > 3) {
             this.topMenuBar.contents.scoreIndicator.setText("+" + possibleScore);
             this.topMenuBar.contents.scoreIndicator.visible = true;
-            this.topMenuBar.contents.scoreIndicator.hue = this.dotSelection.hue + this.settings.hueShift % 360;
+            this.topMenuBar.contents.scoreIndicator.hue = this.dotSelection.hue % 360;
             this.topMenuBar.contents.scoreIndicator.saturation = 60;
             this.topMenuBar.contents.scoreIndicator.lightness = 60;
           } else
@@ -305,8 +303,7 @@ function Endless() {
       speed: {
         settings: {
           columns: 5,
-          dotColors: 5,
-          hueShift: 60,
+          dotColors: [60, 132, 204, 276, 348],
           rows: 6,
         },
         screens: {
@@ -385,7 +382,6 @@ function Endless() {
             this.settings.rows,
             this.settings.dotColors,
             {
-              hueShift:      this.settings.hueShift,
               lastTwoHues:   this.lastTwoHues,
               enabled:       false,
               rowDelay:      90,
@@ -499,7 +495,7 @@ function Endless() {
           if (this.playing) {
             this.topMenuBar.contents.score.setText(this.score);
             if (Settings.animations && this.dotSelection.hue != null) {
-              this.topMenuBar.contents.score.hue = this.dotSelection.hue + this.settings.hueShift % 360;
+              this.topMenuBar.contents.score.hue = this.dotSelection.hue % 360;
               this.topMenuBar.contents.score.lightness = 100;
               this.topMenuBar.contents.score.transition = new Transition(
                 this.topMenuBar.contents.score,
@@ -889,14 +885,12 @@ function Endless() {
     }
   }
 
-  function Grid(screen, cols, rows, colors, options) {
+  function Grid(screen, cols, rows, dotColors, options) {
     this.cols = cols,
     this.rows = rows,
     this.dots = [],
     this.visible = true,
     this.enabled = true,
-    this.hueShift = 0,
-    this.lastTwoHues = [],
     this.rowDelay = 0,
     this.columnDelay = 50,
     this.animationTime = 500;
@@ -916,8 +910,7 @@ function Endless() {
               this.dots[col][row] = new SuperDot(this, col, row);
             else
               this.dots[col][row] = new ColorDot(this, col, row, {
-                colors: colors,
-                hueShift: this.hueShift,
+                dotColors: dotColors,
                 lastTwoHues: this.lastTwoHues
               });
           }
@@ -994,7 +987,6 @@ function Endless() {
               case "ColorDot":
                 this.dots[col][row] = new ColorDot(this, col, row, {
                   hue: grid[col][row].hue,
-                  hueShift: this.hueShift,
                   lastTwoHues: this.lastTwoHues
                 });
                 break;
@@ -1164,7 +1156,7 @@ function Endless() {
     }
   }
 
-  // function ColorDot(grid, column, row, colors, hueShift, lastTwoHues) {
+  // function ColorDot(grid, column, row, colors, lastTwoHues) {
   function ColorDot(grid, column, row, options) {
     Dot.apply(this, arguments);
     ColorDot.prototype = Object.create(Dot.prototype);
@@ -1173,11 +1165,14 @@ function Endless() {
     this.lastTwoHues = this.lastTwoHues || [];
 
     this.determineHue = function() {
+      if (this.hue !== undefined && this.dotColors === undefined)
+        return;
+
       var determinedHue;
 
       while (this.hue === undefined) {
-        determinedHue = Math.floor(Math.random() * this.colors) * (360 / Math.floor(this.colors));
-        if (this.colors < 3 ||
+        determinedHue = this.dotColors[Math.floor(Math.random() * this.dotColors.length)];
+        if (this.dotColors.length < 3 ||
            (determinedHue != this.lastTwoHues[0] &&
             determinedHue != this.lastTwoHues[1])) {
           this.hue = determinedHue;
@@ -1193,9 +1188,9 @@ function Endless() {
       }
 
       Graphics.ctx.fillStyle = "hsla(" +
-        (this.hue + this.hueShift % 360) + ", " + // Hue
-        (this.selected? "100%" : "60%") + ", " +               // Saturation
-        (this.selected? "50%"  : "60%") + ", " +               // Lightness
+        (this.hue % 360) + ", " +                // Hue
+        (this.selected? "100%" : "60%") + ", " + // Saturation
+        (this.selected? "50%"  : "60%") + ", " + // Lightness
          "1)";                                   // Alpha (opacity)
       Graphics.ctx.beginPath();
       Graphics.ctx.arc(this.x, this.y, grid.dotSize / 2, 0, Math.PI * 2, false);
@@ -1214,13 +1209,10 @@ function Endless() {
     };
 
     this.getColor = function() {
-      return "hsla(" + (this.hue + this.hueShift % 360) + ", 100%, 50%, 1)";
+      return "hsla(" + (this.hue % 360) + ", 100%, 50%, 1)";
     };
 
-    (function() {
-      if (!this.hue)
-        this.determineHue();
-    }).call(this);
+    this.determineHue();
   }
 
   function SuperDot(grid, column, row, options) {
