@@ -38,6 +38,9 @@ function Endless() {
           dotColors: [60, 132, 204, 276, 348],
           rows: 6,
         },
+        screens: {
+          playing: undefined
+        },
         screen: undefined,
         playing: false,
         score: 0,
@@ -51,13 +54,13 @@ function Endless() {
         lastTwoHues: [],
 
         setupGraphics: function() {
-          this.screen = new Screen();
+          this.screens.playing = this.screen = new Screen();
           this.topMenuBar = new MenuBar();
 
           this.topMenuBar.add(
-            "score",          new Text(this.topMenuBar, this.score, 0.01, 0.0175, "left",  "top", 35),
-            "scoreIndicator", new Text(this.topMenuBar, undefined,     0, 0.0175, "left",  "top", 35, {visible: false, isAfter: "score"}),
-            "menu",           new Text(this.topMenuBar, "Menu",     0.99, 0.0175, "right", "top", 35, {activate: Game.pause})
+            "score",          new Text(this.topMenuBar, this.score, 0.01, 0, "left",  "top", 35),
+            "scoreIndicator", new Text(this.topMenuBar, undefined,     0, 0, "left",  "top", 35, {visible: false, isAfter: "score"}),
+            "menu",           new Text(this.topMenuBar, "Menu",     0.99, 0, "right", "top", 35, {activate: Game.pause})
           );
 
           this.screen.add(
@@ -349,11 +352,11 @@ function Endless() {
           this.topMenuBar = new MenuBar();
 
           this.topMenuBar.add(
-            "replay",         new Text(this.topMenuBar, "Replay",    0.01, 0.0175, "left",   "top", 35, {activate: this.setup.bind(this)}),
-            "score",          new Text(this.topMenuBar, "undefined", 0.01, 0.0175, "left",   "top", 35),
-            "timer",          new Text(this.topMenuBar, 60,           0.5, 0.0175, "center", "top", 35),
-            "menu",           new Text(this.topMenuBar, "Menu",      0.99, 0.0175, "right",  "top", 35, {activate: Game.pause}),
-            "scoreIndicator", new Text(this.topMenuBar, "undefined",    0, 0.0175, "left",   "top", 35, {visible: false, isAfter: "score"})
+            "replay",         new Text(this.topMenuBar, "Replay",    0.01, 0, "left",   "top", 35, {activate: this.setup.bind(this)}),
+            "score",          new Text(this.topMenuBar, "undefined", 0.01, 0, "left",   "top", 35),
+            "timer",          new Text(this.topMenuBar, 60,           0.5, 0, "center", "top", 35),
+            "menu",           new Text(this.topMenuBar, "Menu",      0.99, 0, "right",  "top", 35, {activate: Game.pause}),
+            "scoreIndicator", new Text(this.topMenuBar, "undefined",    0, 0, "left",   "top", 35, {visible: false, isAfter: "score"})
           );
 
           this.screens.playing.add(
@@ -865,7 +868,14 @@ function Endless() {
     }
 
     this.onResize = function () {
-      this.calculateDimensions();
+      for (var object in this.contents)
+        if (this.contents[object] && this.contents[object].onResize)
+          this.contents[object].onResize();
+
+      if (this.topMenuBar) {
+        this.topMenuBar.onResize();
+        this.y = this.topMenuBar.y + this.topMenuBar.height;
+      }
     }
 
     this.calculateDimensions = function() {
@@ -1362,8 +1372,8 @@ function Endless() {
     this.add = function() {
       for (var i = 0; i < arguments.length; i+=2) {
         this.contents[arguments[i]] = arguments[i + 1];
-        if (arguments[i + 1].height + arguments[i + 1].y > this.height)
-          this.height = arguments[i + 1].height + arguments[i + 1].y;
+        if ((arguments[i + 1].height + arguments[i + 1].y) * 0.85 > this.height)
+          this.height = (arguments[i + 1].height + arguments[i + 1].y) * 0.85;
       }
     };
 
@@ -1371,8 +1381,8 @@ function Endless() {
       this.height = 0;
       for (var text in this.contents) {
         this.contents[text].calculateDimensions();
-        if (this.contents[text].height + this.contents[text].y > this.height)
-          this.height = this.contents[text].height + this.contents[text].y;
+        if ((this.contents[text].height + this.contents[text].y) * 0.85 > this.height)
+          this.height = (this.contents[text].height + this.contents[text].y) * 0.85;
       }
     };
 
