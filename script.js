@@ -23,6 +23,7 @@ function Endless() {
     animations: true,
     vibrate: true,
     dotSizeRatio: 1,
+    dotSnapDistance: 1.85,
   };
 
   var Game = {
@@ -51,23 +52,21 @@ function Endless() {
 
         setupGraphics: function() {
           this.screen = new Screen();
+          this.topMenuBar = new MenuBar();
 
-          this.topMenuBar = new MenuBar(
-            "score",          new Text(this.score, 0.01, 0.005, "left",  "top", 35),
-            "scoreIndicator", new Text(undefined,     0, 0.005, "left",  "top", 35, {
-              visible: false
-            }),
-            "menu",           new Text("Menu",     0.99, 0.005, "right", "top", 35, {
-              activate: Game.pause
-            })
+          this.topMenuBar.add(
+            "score",          new Text(this.topMenuBar, this.score, 0.01, 0.0175, "left",  "top", 35),
+            "scoreIndicator", new Text(this.topMenuBar, undefined,     0, 0.0175, "left",  "top", 35, {visible: false, isAfter: "score"}),
+            "menu",           new Text(this.topMenuBar, "Menu",     0.99, 0.0175, "right", "top", 35, {activate: Game.pause})
           );
-          this.topMenuBar.contents.scoreIndicator.putAfter(this.topMenuBar.contents.score);
 
           this.screen.add(
             "topMenuBar",   this.topMenuBar,
             "grid",         undefined,
             "dotSelection", undefined
           );
+
+          this.screen.calculateDimensions();
         },
 
         setupTransitions: function() {
@@ -125,7 +124,7 @@ function Endless() {
             this.settings.dotColors,
             {
               lastTwoHues: this.lastTwoHues,
-              parsedGrid:    grid
+              parsedGrid:  grid
             }
           );
 
@@ -347,34 +346,31 @@ function Endless() {
 
           this.screen = this.screens.playing = new Screen();
           this.screens.end = new Screen();
+          this.topMenuBar = new MenuBar();
 
-          this.topMenuBar = new MenuBar(
-            "replay",         new Text("Replay",  0.01, 0.005, "left",   "top", 35, {
-              activate: this.setup.bind(this)
-            }),
-            "score",          new Text("undefined", 0.01, 0.005, "left",   "top", 35),
-            "timer",          new Text(60,         0.5, 0.005, "center", "top", 35),
-            "menu",           new Text("Menu",    0.99, 0.005, "right",  "top", 35, {
-              activate: Game.pause
-            }),
-            "scoreIndicator", new Text("undefined",    0, 0.005, "left",   "top", 35, {
-              visible: false
-            })
+          this.topMenuBar.add(
+            "replay",         new Text(this.topMenuBar, "Replay",    0.01, 0.0175, "left",   "top", 35, {activate: this.setup.bind(this)}),
+            "score",          new Text(this.topMenuBar, "undefined", 0.01, 0.0175, "left",   "top", 35),
+            "timer",          new Text(this.topMenuBar, 60,           0.5, 0.0175, "center", "top", 35),
+            "menu",           new Text(this.topMenuBar, "Menu",      0.99, 0.0175, "right",  "top", 35, {activate: Game.pause}),
+            "scoreIndicator", new Text(this.topMenuBar, "undefined",    0, 0.0175, "left",   "top", 35, {visible: false, isAfter: "score"})
           );
-          this.topMenuBar.contents.scoreIndicator.putAfter(this.topMenuBar.contents.score);
 
           this.screens.playing.add(
             "grid",         undefined,
             "dotSelection", undefined,
-            "countDown",    new Text(0, 0.5, 0.5, "center", "middle", 100),
+            "countDown",    new Text(this, 0, 0.5, 0.5, "center", "middle", 100),
             "topMenuBar",   this.topMenuBar
           );
 
           this.screens.end.add(
             "topMenuBar", this.topMenuBar,
-            "finalScore", new Text("error",                         0.5, 0.35, "center", "middle", 30),
-            "highScore",  new Text("High Score: " + this.highScore, 0.5, 0.65, "center", "middle", 30)
+            "finalScore", new Text(this, "error",                         0.5, 0.35, "center", "middle", 30),
+            "highScore",  new Text(this, "High Score: " + this.highScore, 0.5, 0.65, "center", "middle", 30)
           );
+
+          for (screen in this.screens)
+            this.screens[screen].calculateDimensions();
         },
 
         setupTransitions: function() {
@@ -523,26 +519,35 @@ function Endless() {
       }
     },
 
-    play: function() {
-      if (!Game.mode.playing) {
-        for (var object in Game.screen.contents) {
+    play: function(gameMode) {
+      if (Game.mode.playing) {
+        if (Game.mode != Game.modes[gameMode]) {
+          if (Game.mode.end()) {
+            Game.mode = Game.modes[gameMode];
+            Game.mode.playing = true;
+            Game.mode.screen.show();
+            Game.mode.setup();
+          } else return;
+        }
+      } else {
+        for (var object in Game.screen.contents)
           if (Game.screen.contents[object].transition)
             Game.screen.contents[object].transition.finish();
-        }
         Game.mode.playing = true;
         Game.mode.screen.show();
         Game.mode.setup();
         Game.screen.overlay = true;
       }
+
       Game.mode.play();
       Game.paused = false;
       Game.screen.hide();
     },
 
     pause: function() {
+      Game.mode.pause();
       Game.paused = true;
       Game.screen.show();
-      Game.mode.pause();
     },
   };
 
@@ -741,35 +746,16 @@ function Endless() {
 
       Game.screen = new Screen();
       Game.screen.add(
-        "title",      new Text("endless",       0.5,   0.3, "center", "middle",  100),
-        "subtitle",   new Text("by Tom Genco",  0.5,     0, "center", "top"   ,   25),
-        "playSpeed",  new Text("Play Speed",    0.5,   0.6, "center", "middle",   25, {
-          activate: function () {
-            if (Game.modes.endless.playing && !Game.modes.endless.end())
-              return;
-            Game.mode = Game.modes.speed;
-            Game.play();
-          }
-        }),
-        "play",       new Text("Play",          0.3,   0.8, "center", "middle",   35, {
-          activate: function () {
-            if (Game.modes.speed.playing && !Game.modes.speed.end())
-              return;
-            Game.mode = Game.modes.endless;
-            Game.play();
-          }
-        }),
-        "reset",      new Text("Reset",         0.7,   0.8, "center", "middle",   35, {
-          activate: Util.clearStorage
-        }),
-        "siteLink",   new Text("tomgenco.com", 0.02, 0.995, "left",   "bottom",   25, {
-          activate: function() { window.location.href = "http://tomgenco.com"; }
-        }),
-        "sourceLink", new Text("Source code",  0.98, 0.995, "right",  "bottom",   25, {
-          activate: function() { window.location.href = "http://github.com/TomGenco/Endless"; }
-        })
+        "title",      new Text(Game.screen, "endless",       0.5,   0.3, "center", "middle",  100),
+        "subtitle",   new Text(Game.screen, "by Tom Genco",  0.5,     0, "center", "top"   ,   25, {isBelow: "title"}),
+        "playSpeed",  new Text(Game.screen, "Play Speed",    0.5,   0.6, "center", "middle",   25, {activate: function() { Game.play("speed"); }}),
+        "play",       new Text(Game.screen, "Play",          0.3,   0.8, "center", "middle",   35, {activate: function() { Game.play("endless"); }}),
+        "reset",      new Text(Game.screen, "Reset",         0.7,   0.8, "center", "middle",   35, {activate: Util.clearStorage}),
+        "siteLink",   new Text(Game.screen, "tomgenco.com", 0.02, 0.995, "left",   "bottom",   25, {activate: function() { window.location.href = "http://tomgenco.com"; }}),
+        "sourceLink", new Text(Game.screen, "Source code",  0.98, 0.995, "right",  "bottom",   25, {activate: function() { window.location.href = "http://github.com/TomGenco/Endless"; }})
       );
-      Game.screen.contents.subtitle.putBelow(Game.screen.contents.title);
+
+      Game.screen.calculateDimensions();
 
       if (Settings.animations) {
         var i = 0;
@@ -837,8 +823,6 @@ function Endless() {
       for (var i = 0; i < arguments.length; i+=2)
         if (arguments[i + 1] instanceof MenuBar) {
           this.topMenuBar = arguments[i + 1];
-          this.topMenuBar.calculateDimensions();
-          this.y = this.topMenuBar.y + this.topMenuBar.height;
           for (var object in this.topMenuBar.contents)
             if (this.topMenuBar.contents[object].activate)
               this.interactive.push(this.topMenuBar.contents[object]);
@@ -881,13 +865,18 @@ function Endless() {
     }
 
     this.onResize = function () {
+      this.calculateDimensions();
+    }
+
+    this.calculateDimensions = function() {
+      for (var object in this.contents)
+        if (this.contents[object])
+          this.contents[object].calculateDimensions();
+
       if (this.topMenuBar) {
-        this.topMenuBar.onResize();
+        this.topMenuBar.calculateDimensions();
         this.y = this.topMenuBar.y + this.topMenuBar.height;
       }
-      for (var object in this.contents)
-        if (this.contents[object] && this.contents[object].onResize)
-          this.contents[object].onResize();
     }
 
     this.show = function() {
@@ -1080,7 +1069,7 @@ function Endless() {
           [Math.floor(gridPosY / ((this.height + this.dotSize) / this.rows))
         ];
 
-        if (dot && Math.sqrt(Math.pow(dot.x - mouseX, 2) + Math.pow(dot.y - mouseY, 2)) < this.dotSize / 2 * 1.75)
+        if (dot && Math.sqrt(Math.pow(dot.x - mouseX, 2) + Math.pow(dot.y - mouseY, 2)) < this.dotSize / 2 * Settings.dotSnapDistance)
           return dot;
       }
       return false;
@@ -1098,16 +1087,14 @@ function Endless() {
       this.generateDots();
     };
 
-    (function() {
-      if (this.parsedGrid)
-        this.generateFromJSON();
-      else
-        this.generateDots();
-      this.calculateDimensions();
-      this.calculateDotPositions();
-      if (Settings.animations)
-        this.setDotTransitions();
-    }).call(this);
+    if (this.parsedGrid)
+      this.generateFromJSON();
+    else
+      this.generateDots();
+    this.calculateDimensions();
+    this.calculateDotPositions();
+    if (Settings.animations)
+      this.setDotTransitions();
   }
 
   function DotSelection(grid) {
@@ -1155,7 +1142,9 @@ function Endless() {
         this[option] = options[option];
 
     Dot.draw = function() {
-      Graphics.ctx.fillStyle = "#999";
+      if (!grid.enabled)
+        Graphics.ctx.fillStyle = "#999";
+
       Graphics.ctx.beginPath();
       Graphics.ctx.arc(this.x, this.y, grid.dotSize / 2, 0, Math.PI * 2, false);
       Graphics.ctx.fill();
@@ -1196,19 +1185,14 @@ function Endless() {
     };
 
     this.draw = function() {
-      if (!grid.enabled) {
-        Dot.prototype.constructor.draw.call(this);
-        return;
-      }
+      if (grid.enabled)
+        Graphics.ctx.fillStyle = "hsla(" +
+          (this.hue % 360) + ", " +                // Hue
+          (this.selected? "100%" : "60%") + ", " + // Saturation
+          (this.selected? "50%"  : "60%") + ", " + // Lightness
+          "1)";                                   // Alpha (opacity)
 
-      Graphics.ctx.fillStyle = "hsla(" +
-        (this.hue % 360) + ", " +                // Hue
-        (this.selected? "100%" : "60%") + ", " + // Saturation
-        (this.selected? "50%"  : "60%") + ", " + // Lightness
-         "1)";                                   // Alpha (opacity)
-      Graphics.ctx.beginPath();
-      Graphics.ctx.arc(this.x, this.y, grid.dotSize / 2, 0, Math.PI * 2, false);
-      Graphics.ctx.fill();
+      Dot.prototype.constructor.draw.call(this);
     };
 
     this.canConnectTo = function(dot) {
@@ -1235,15 +1219,10 @@ function Endless() {
     this.points = 10;
 
     this.draw = function() {
-      if (!grid.enabled) {
-        Dot.prototype.constructor.draw.call(this);
-        return;
-      }
+      if (grid.enabled)
+        Graphics.ctx.fillStyle = "white";
 
-      Graphics.ctx.fillStyle = "white";
-      Graphics.ctx.beginPath();
-      Graphics.ctx.arc(this.x, this.y, grid.dotSize / 2, 0, Math.PI * 2, false);
-      Graphics.ctx.fill();
+      Dot.prototype.constructor.draw.call(this);
     };
 
     this.canConnectTo = function(dot) {
@@ -1260,7 +1239,8 @@ function Endless() {
   SuperDot.prototype = Object.create(Dot.prototype);
   SuperDot.prototype.constructor = SuperDot;
 
-  function Text(text, x, y, align, baseline, textSize, options) {
+  function Text(container, text, x, y, align, baseline, textSize, options) {
+    this.container = container;
     this.opacity = 1,
     this.transition,
     this.visible = true,
@@ -1271,17 +1251,17 @@ function Endless() {
     this.x,
     this.y,
     this.width,
-    this.height,
-    this.isBelow,
-    this.isAfter;
+    this.height;
 
     if (options)
       for (var option in options)
         this[option] = options[option];
 
     this.inRange = function(mouseX, mouseY) {
-      return mouseX > this.x && mouseX < this.x + this.width &&
-             mouseY > (this.y - this.height / 10) && mouseY < this.y + this.height;
+      return mouseX > this.x - this.width  / 20 &&
+             mouseX < this.x + this.width  + this.width  / 20 &&
+             mouseY > this.y - this.height / 10 &&
+             mouseY < this.y + this.height + this.height / 10;
     }
 
     this.draw = function() {
@@ -1293,8 +1273,8 @@ function Endless() {
       Graphics.ctx.globalAlpha = this.opacity;
       Graphics.ctx.fillStyle = "hsl(" + this.hue + "," + this.saturation + "%," + this.lightness + "%)";
       Graphics.ctx.fillText(this.text, this.x, this.y);
-      //Graphics.ctx.strokeRect(this.x, this.y - this.height / 10, this.width, this.height + this.height / 10); // (click detection rectangle)
-      //Graphics.ctx.strokeRect(this.x, this.y, this.width, this.height); // (canvas update detection rectangle)
+      // Graphics.ctx.strokeRect(this.x - this.width / 20, this.y - this.height / 10, this.width + this.width / 20, this.height + this.height / 10); // (click detection rectangle)
+      // Graphics.ctx.strokeRect(this.x, this.y, this.width, this.height); // (canvas update detection rectangle)
     };
 
     this.calculateDimensions = function() {
@@ -1327,9 +1307,9 @@ function Endless() {
       }
 
       if (this.isBelow)
-        this.y += this.isBelow.y + this.isBelow.height - .2 * this.isBelow.height;
-      else if (this.isAfter)
-        this.x += this.isAfter.x + this.isAfter.width;
+        this.y += this.container.contents[this.isBelow].y + this.container.contents[this.isBelow].height - .2 * this.container.contents[this.isBelow].height;
+      if (this.isAfter)
+        this.x += this.container.contents[this.isAfter].x + this.container.contents[this.isAfter].width;
     };
 
     this.onResize = function() {
@@ -1354,18 +1334,8 @@ function Endless() {
       }
 
       if (this.isAfter)
-        this.x += this.isAfter.x + this.isAfter.width;
+        this.x += this.container.contents[this.isAfter].x + this.container.contents[this.isAfter].width;
     };
-
-    this.putBelow = function(text) {
-      this.isBelow = text;
-      this.calculateDimensions();
-    };
-
-    this.putAfter = function(text) {
-      this.isAfter = text;
-      this.calculateDimensions();
-    }
 
     Text.searchAtPosition = function(mouseX, mouseY) {
       if (Game.screen.visible) {
@@ -1389,11 +1359,13 @@ function Endless() {
     this.y = 0,
     this.transition;
 
-    for (var i = 0; i < arguments.length; i+=2) {
-      this.contents[arguments[i]] = arguments[i + 1];
-      if (arguments[i + 1].height + arguments[i + 1].y > this.height)
-        this.height = arguments[i + 1].height + arguments[i + 1].y;
-    }
+    this.add = function() {
+      for (var i = 0; i < arguments.length; i+=2) {
+        this.contents[arguments[i]] = arguments[i + 1];
+        if (arguments[i + 1].height + arguments[i + 1].y > this.height)
+          this.height = arguments[i + 1].height + arguments[i + 1].y;
+      }
+    };
 
     this.calculateDimensions = function() {
       this.height = 0;
@@ -1402,11 +1374,11 @@ function Endless() {
         if (this.contents[text].height + this.contents[text].y > this.height)
           this.height = this.contents[text].height + this.contents[text].y;
       }
-    }
+    };
 
     this.onResize = function() {
       this.calculateDimensions();
-    }
+    };
 
     this.draw = function() {
       if (this.transition)
