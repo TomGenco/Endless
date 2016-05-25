@@ -79,6 +79,7 @@ function Endless() {
         },
 
         setup: function() {
+          // Compatibility Code: update the local storage item naming conventions
           if (localStorage.getItem("Endless--grid")) {
             localStorage.setItem("Endless.endless.grid", localStorage.getItem("Endless--grid"));
             localStorage.removeItem("Endless--grid");
@@ -92,15 +93,30 @@ function Endless() {
             localStorage.removeItem("Endless--score");
           }
 
+          var grid = JSON.parse(localStorage.getItem("Endless.endless.grid"));
+
+          // Compatibility Code: update hue numbers if they were using unshifted values
+          if (grid)
+            for (var i = 0; i < grid.length; i++)
+              for (var j = 0; j < grid[i].length; j++)
+                if (grid[i][j].hue !== undefined && grid[i][j].hue % 72 == 0)
+                  grid[i][j].hue += 60;
+
+          this.lastTwoHues = JSON.parse(localStorage.getItem("Endless.endless.lastTwoHues"));
+
+          // Compatibility Code: update hues if they were using unshifted values
+          if (this.lastTwoHues) {
+            for (var i = 0; i < this.lastTwoHues.length; i++)
+              if (this.lastTwoHues[i] % 72 == 0)
+                this.lastTwoHues[i] += 60;
+          } else
+            this.lastTwoHues = [];
+
           this.score = parseFloat(localStorage.getItem("Endless.endless.score"));
           if (!this.score)
             this.score = 0;
 
           this.topMenuBar.contents.score.setText(this.score);
-
-          this.lastTwoHues = JSON.parse(localStorage.getItem("Endless.endless.lastTwoHues"));
-          if (!this.lastTwoHues)
-            this.lastTwoHues = [];
 
           this.grid = this.screen.contents.grid = new Grid(
             this.screen,
@@ -109,7 +125,7 @@ function Endless() {
             this.settings.dotColors,
             {
               lastTwoHues: this.lastTwoHues,
-              jsonGrid:    localStorage.getItem("Endless.endless.grid")
+              parsedGrid:    grid
             }
           );
 
@@ -701,7 +717,7 @@ function Endless() {
           Game.mode.touchCancel(event)
     },
 
-    Blur: function () {
+    Blur: function (event) {
       if (!Graphics.ready)
         return;
 
@@ -894,7 +910,7 @@ function Endless() {
     this.rowDelay = 0,
     this.columnDelay = 50,
     this.animationTime = 500;
-    this.jsonGrid = false;
+    this.parsedGrid = false;
 
     if (options)
       for (var option in options)
@@ -972,21 +988,19 @@ function Endless() {
     };
 
     this.generateFromJSON = function() {
-      var grid = JSON.parse(this.jsonGrid);
-
       for (var col = 0; col < cols; col++) {
         if (!this.dots[col])
           this.dots[col] = [];
         for (var row = 0; row < rows; row++)
-          if (!this.dots[col][row] && grid[col] && grid[col][row])
-            switch (grid[col][row].type) {
+          if (!this.dots[col][row] && this.parsedGrid[col] && this.parsedGrid[col][row])
+            switch (this.parsedGrid[col][row].type) {
               case "SuperDot":
                 this.dots[col][row] = new SuperDot(this, col, row);
                 break;
               default:
               case "ColorDot":
                 this.dots[col][row] = new ColorDot(this, col, row, {
-                  hue: grid[col][row].hue,
+                  hue: this.parsedGrid[col][row].hue,
                   lastTwoHues: this.lastTwoHues
                 });
                 break;
@@ -1085,7 +1099,7 @@ function Endless() {
     };
 
     (function() {
-      if (this.jsonGrid)
+      if (this.parsedGrid)
         this.generateFromJSON();
       else
         this.generateDots();
