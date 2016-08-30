@@ -111,7 +111,7 @@ class DotSelection {
 
   validate() {
     for (var i = 1; i < this.dots.length; i++)
-      if (!this.dots[i - 1].connection(this.dots[i]))
+      if (!this.dots[i - 1].connection(this.dots[i]) || !inRange(this.dots[i - 1], this.dots[i]))
         return false;
     return true;
   }
