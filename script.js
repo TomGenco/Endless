@@ -317,7 +317,7 @@ function inRange(dot1, dot2) {
 }
 
 function startMove(id, x, y) {
-  if (dot = board.dotAtPosition(x, y) && !dot.selected)
+  if ((dot = board.dotAtPosition(x, y)) && !dot.selected)
     dotSelections[id].add(dot);
 }
 
