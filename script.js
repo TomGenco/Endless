@@ -1,5 +1,5 @@
 var board = null;
-var dotSelection = null;
+var dotSelections = [];
 var drawList = [];
 var drawing = true;
 var mouseX = null;
@@ -68,6 +68,8 @@ class DotSelection {
   constructor() {
     this.dots = [];
     this.color = "white";
+    this.x = null;
+    this.y = null;
   }
 
   add(dot) {
@@ -98,8 +100,8 @@ class DotSelection {
     for (let i in this.dots) {
       context.lineTo(this.dots[i].x, this.dots[i].y);
     }
-    if (mouseY !== null && mouseX !== null)
-      context.lineTo(mouseX, mouseY);
+    if (this.y !== null && this.x !== null)
+      context.lineTo(this.x, this.y);
     context.stroke();
   }
 
@@ -182,8 +184,8 @@ class Board {
         }
       }
 
-    if (dotSelection)
-      dotSelection.draw();
+    for (let ds in dotSelections)
+      dotSelections[ds].draw();
   }
 
   resize() {
@@ -306,31 +308,28 @@ function inRange(dot1, dot2) {
   return Math.abs(dot1.row - dot2.row) <= 1 && Math.abs(dot1.col - dot2.col) <= 1;
 }
 
-function select(dot) {
-  dot.selected = true;
-  dotSelection.push(dot);
+function startMove(id, x, y) {
+  if (dot = board.dotAtPosition(x, y))
+    dotSelections[id].add(dot);
 }
 
-function startMove() {
-  if (dot = board.dotAtPosition(mouseX, mouseY))
-    dotSelection.add(dot);
+function move(id, x, y) {
+  dotSelections[id].x = x;
+  dotSelections[id].y = y;
+  if (dotSelections[id].dots.length > 0 && (dot = board.dotAtPosition(x, y)))
+    if (!dot.selected && inRange(dotSelections[id].last, dot) && dotSelections[id].last.connection(dot))
+      dotSelections[id].add(dot);
+    else if (dot == dotSelections[id].dots[dotSelections[id].dots.length - 2])
+      dotSelections[id].remove();
 }
 
-function move() {
-  if (dotSelection.dots.length > 0) {
-    if ((dot = board.dotAtPosition(mouseX, mouseY)))
-      if (!dot.selected && inRange(dotSelection.last, dot) && dotSelection.last.connection(dot))
-        dotSelection.add(dot);
-      else if (dot == dotSelection.dots[dotSelection.dots.length - 2])
-        dotSelection.remove();
-  }
-}
-
-function endMove() {
-  if (dotSelection.dots.length > 1)
-    for (dot in dotSelection.dots)
-      board.dots[dotSelection.dots[dot].col][dotSelection.dots[dot].row] = null;
-  dotSelection.end();
+function endMove(id, x, y) {
+  dotSelections[id].x = null;
+  dotSelections[id].y = null;
+  if (dotSelections[id].dots.length > 1)
+    for (dot in dotSelections[id].dots)
+      board.dots[dotSelections[id].dots[dot].col][dotSelections[id].dots[dot].row] = null;
+  dotSelections[id].end();
   board.gravity();
   board.fill();
 }
@@ -344,47 +343,49 @@ function resize(event) {
 }
 
 function mousedown(event) {
-  mouseX = event.pageX;
-  mouseY = event.pageY;
-  startMove();
+  if (dotSelections[0] == undefined)
+    dotSelections[0] = new DotSelection();
+  startMove(0, event.pageX, event.pageY);
 }
 
 function mouseup(event) {
-  mouseX = null;
-  mouseY = null;
-  endMove();
+  if (dotSelections[0] == undefined)
+    dotSelections[0] = new DotSelection();
+  endMove(0, event.pageX, event.pageY);
 }
 
 function mousemove(event) {
-  mouseX = event.pageX;
-  mouseY = event.pageY;
-  move();
+  if (dotSelections[0] == undefined)
+    dotSelections[0] = new DotSelection();
+  move(0, event.pageX, event.pageY);
 }
 
 function touchstart(event) {
-  for (let touch in event.changedTouches)
-    if (event.changedTouches[touch].identifier == 0) {
-      mouseX = event.changedTouches[touch].pageX;
-      mouseY = event.changedTouches[touch].pageY;
-      startMove();
-    }
+  event.preventDefault();
+  for (let i = 0; i < event.changedTouches.length; i++) {
+    let touch = event.changedTouches[i];
+    if (dotSelections[touch.identifier] == undefined)
+      dotSelections[touch.identifier] = new DotSelection();
+    startMove(touch.identifier, touch.pageX, touch.pageY);
+  }
 }
 function touchmove(event) {
-  for (let touch in event.changedTouches)
-    if (event.changedTouches[touch].identifier == 0) {
-      event.preventDefault();
-      mouseX = event.changedTouches[touch].pageX;
-      mouseY = event.changedTouches[touch].pageY;
-      move();
-    }
+  event.preventDefault();
+  for (let i = 0; i < event.changedTouches.length; i++) {
+    let touch = event.changedTouches[i];
+    if (dotSelections[touch.identifier] == undefined)
+      dotSelections[touch.identifier] = new DotSelection();
+    move(touch.identifier, touch.pageX, touch.pageY);
+  }
 }
 function touchend(event) {
-  for (let touch in event.changedTouches)
-    if (event.changedTouches[touch].identifier == 0) {
-      mouseX = event.changedTouches[touch].pageX;
-      mouseY = event.changedTouches[touch].pageY;
-      endMove();
-    }
+  event.preventDefault();
+  for (let i = 0; i < event.changedTouches.length; i++) {
+    let touch = event.changedTouches[i];
+    if (dotSelections[touch.identifier] == undefined)
+      dotSelections[touch.identifier] = new DotSelection();
+    endMove(touch.identifier, touch.pageX, touch.pageY);
+  }
 }
 
 // --------------------------- Main
@@ -395,7 +396,6 @@ function setup() {
   setupEventHandlers();
 
   board = new Board(6, 5);
-  dotSelection = new DotSelection();
   board.fill();
 
   loadingText(false);
