@@ -108,6 +108,13 @@ class DotSelection {
   get last() {
     return this.dots[this.dots.length - 1];
   }
+
+  validate() {
+    for (var i = 1; i < this.dots.length; i++)
+      if (!this.dots[i - 1].connection(this.dots[i]))
+        return false;
+    return true;
+  }
 }
 
 class Board {
@@ -283,6 +290,7 @@ function setupEventHandlers() {
   canvas.addEventListener("touchend", touchend);
   canvas.addEventListener("touchend", touchend);
   canvas.addEventListener("touchmove", touchmove);
+  canvas.addEventListener("touchcancel", touchcancel);
 }
 
 function drawBackground() {
@@ -309,7 +317,7 @@ function inRange(dot1, dot2) {
 }
 
 function startMove(id, x, y) {
-  if (dot = board.dotAtPosition(x, y))
+  if (dot = board.dotAtPosition(x, y) && !dot.selected)
     dotSelections[id].add(dot);
 }
 
@@ -332,6 +340,18 @@ function endMove(id, x, y) {
   dotSelections[id].end();
   board.gravity();
   board.fill();
+  for (let ds in dotSelections)
+  if (!dotSelections[ds].validate()) {
+    dotSelections[ds].x = null;
+    dotSelections[ds].y = null;
+    dotSelections[ds].end();
+  }
+}
+
+function cancelMove(id, x, y) {
+  dotSelections[id].x = null;
+  dotSelections[id].y = null;
+  dotSelections[id].end();
 }
 
 // --------------------------- Event Handlers
@@ -369,6 +389,7 @@ function touchstart(event) {
     startMove(touch.identifier, touch.pageX, touch.pageY);
   }
 }
+
 function touchmove(event) {
   event.preventDefault();
   for (let i = 0; i < event.changedTouches.length; i++) {
@@ -378,6 +399,7 @@ function touchmove(event) {
     move(touch.identifier, touch.pageX, touch.pageY);
   }
 }
+
 function touchend(event) {
   event.preventDefault();
   for (let i = 0; i < event.changedTouches.length; i++) {
@@ -385,6 +407,16 @@ function touchend(event) {
     if (dotSelections[touch.identifier] == undefined)
       dotSelections[touch.identifier] = new DotSelection();
     endMove(touch.identifier, touch.pageX, touch.pageY);
+  }
+}
+
+function touchcancel(event) {
+  event.preventDefault();
+  for (let i = 0; i < event.changedTouches.length; i++) {
+    let touch = event.changedTouches[i];
+    if (dotSelections[touch.identifier] == undefined)
+      dotSelections[touch.identifier] = new DotSelection();
+    cancelMove(touch.identifier, touch.pageX, touch.pageY);
   }
 }
 
