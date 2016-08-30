@@ -16,6 +16,7 @@ class Dot {
     this.row = row;
     this.col = col;
     this.selected = false;
+    this.animations = {};
 
     this.calculatePosition();
   }
@@ -43,7 +44,7 @@ class Dot {
 
     let oldY = this.y;
     this.calculatePosition();
-    this.board.animations.push(new Animation(this, "y", oldY, this.y, 400, 0, null));
+    this.animations["y"] = new Animation(this, "y", oldY, this.y, 400, 0, null);
   }
 }
 
@@ -156,7 +157,7 @@ class Board {
       for (let row in this.dots[col])
         if (this.dots[col][row] == null) {
           this.dots[col][row] = new ColorDot(this, row, col, randomColor());
-          this.animations.push(new Animation(this.dots[col][row], 'y',
+          this.dots[col][row].animations["y"] = (new Animation(this.dots[col][row], 'y',
             -(this.height + this.y) + this.dots[col][row].y + this.dotSize / 2,
             this.dots[col][row].y, 700, 75 * col, null));
         }
@@ -170,9 +171,16 @@ class Board {
     );
 
     for (let col in this.dots)
-      for (let row in this.dots[col])
-        if (this.dots[col][row] !== null)
-          this.dots[col][row].draw();
+      for (let row in this.dots[col]) {
+        let dot = this.dots[col][row];
+        if (dot !== null) {
+          for (let i in dot.animations)
+            if (dot.animations[i].finished)
+              delete dot.animations[i];
+            else dot.animations[i].update()
+          dot.draw();
+        }
+      }
 
     if (dotSelection)
       dotSelection.draw();
@@ -288,15 +296,8 @@ function draw() {
   drawBackground();
 
   if (drawing)
-    for (let drawable in drawList) {
-      if (drawList[drawable].animations.length)
-        for (let animation in drawList[drawable].animations)
-          if (drawList[drawable].animations[animation].finished)
-            delete drawList[drawable].animations[animation];
-          else
-            drawList[drawable].animations[animation].update();
+    for (let drawable in drawList)
       drawList[drawable].draw();
-    }
 
   window.requestAnimationFrame(draw);
 }
