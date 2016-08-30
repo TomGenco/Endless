@@ -371,6 +371,7 @@ function touchstart(event) {
 function touchmove(event) {
   for (let touch in event.changedTouches)
     if (event.changedTouches[touch].identifier == 0) {
+      event.preventDefault();
       mouseX = event.changedTouches[touch].pageX;
       mouseY = event.changedTouches[touch].pageY;
       move();
