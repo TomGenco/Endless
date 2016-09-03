@@ -58,8 +58,13 @@ class Dot {
 
   destroy() {
     this.animations["size"] = new Animation(this, "size", this.size, 0, 250, 0, function() {
-      removeFromDrawList(this.object);
+      removeFromDrawList(this);
     });
+  }
+
+  resize() {
+    this.size = this.board.dotSize;
+    this.calculatePosition();
   }
 }
 
@@ -133,6 +138,10 @@ class DotSelection {
         return false;
     return true;
   }
+
+  resize() {
+    return;
+  }
 }
 
 class Board {
@@ -158,12 +167,6 @@ class Board {
     this.height = this.rows * this.dotSize * 2;
     this.x = canvas.width / 2 - this.width / 2;
     this.y = canvas.height / 2 - this.height / 2;
-  }
-
-  calculateDotPositions() {
-    for (let col = 0; col < this.dots.length; col++)
-      for (let row = 0; row < this.dots[col].length; row++)
-        this.dots[col][row].calculatePosition();
   }
 
   gravity() {
@@ -206,7 +209,6 @@ class Board {
 
   resize() {
     this.calculateDimensions();
-    this.calculateDotPositions();
   }
 
   atPosition(x, y) {
@@ -487,7 +489,7 @@ function setup() {
   setCanvasSize();
   setupEventHandlers();
 
-  board = new Board(6, 5);
+  board = new Board(3, 3);
   board.fill();
 
   loadingText(false);
