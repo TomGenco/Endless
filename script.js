@@ -1,6 +1,7 @@
 var board = null;
 var dotSelections = [];
 var drawList = [];
+var drawTable = [[], [], []];
 var drawing = true;
 var mouseX = null;
 var mouseY = null;
@@ -12,7 +13,7 @@ const context = canvas.getContext("2d");
 
 class Dot {
   constructor(board, row, col) {
-    addToDrawList(this);
+    addToDrawList(this, 1);
 
     this.size = board.dotSize;
     this.board = board;
@@ -80,7 +81,7 @@ class ColorDot extends Dot {
 
 class DotSelection {
   constructor() {
-    addToDrawList(this);
+    addToDrawList(this, 2);
 
     this.dots = [];
     this.color = "white";
@@ -136,7 +137,7 @@ class DotSelection {
 
 class Board {
   constructor(rows, cols) {
-    drawList.push(this);
+    addToDrawList(this, 0);
 
     this.rows = rows;
     this.cols = cols;
@@ -309,42 +310,57 @@ function draw() {
   drawBackground();
 
   if (drawing)
-    for (let i = 0; i < drawList.length; i++)
-      drawList[i].draw();
+    for (let i = 0; i < drawTable.length; i++)
+      for (var j = 0; j < drawTable[i].length; j++)
+        drawTable[i][j].draw();
 
   window.requestAnimationFrame(draw);
 }
 
-function cleanUpDrawList() {
-  for (let i = 0; i < drawList.length; i++)
-    if (drawList[i] == undefined) {
+function removeUndefineds(list) {
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] == undefined) {
       let j = i + 1;
-      while (true) {
-        if (drawList[j] != undefined) {
-          drawList[i] = drawList[j];
-          drawList[j] = undefined;
+      while (true)
+        if (list[j] != undefined) {
+          list[i] = list[j];
+          list[j] = undefined;
           break;
+        } else if (++j >= list.length) {
+          list.length = i;
+          return list;
         }
-        if (++j >= drawList.length) {
-          drawList.length = i;
-          return;
-        }
-      }
     }
+  }
+  return list;
 }
 
-function addToDrawList(thing) {
-  cleanUpDrawList();
+function cleanUpDrawList() {
+  drawList = removeUndefineds(drawList);
+  for (var i = 0; i < drawTable.length; i++)
+    drawTable[i] = removeUndefineds(drawTable[i]);
+}
+
+function addToDrawList(thing, level) {
   drawList.push(thing);
+  drawTable[level].push(thing);
 }
 
 function removeFromDrawList(thing) {
-  for (item in drawList)
-    if (drawList[item] == thing) {
-      drawList[item] = undefined;
-      cleanUpDrawList();
-      return;
+  for (var i = 0; i < drawList.length; i++)
+    if (drawList[i] == thing) {
+      drawList[i] = undefined;
+      break;
     }
+  for (var i = 0; i < drawTable.length; i++)
+    for (var j = 0; j < drawTable[i].length; j++)
+      if (drawTable[i][j] == thing) {
+        drawTable[i][j] = undefined;
+        break;
+      }
+
+  cleanUpDrawList();
+  return;
 }
 
 function inRange(dot1, dot2) {
