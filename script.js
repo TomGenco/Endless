@@ -12,6 +12,9 @@ const context = canvas.getContext("2d");
 
 class Dot {
   constructor(board, row, col) {
+    addToDrawList(this);
+
+    this.size = board.dotSize;
     this.board = board;
     this.row = row;
     this.col = col;
@@ -22,14 +25,19 @@ class Dot {
   }
 
   draw() {
+    for (let i in this.animations)
+      if (this.animations[i].finished)
+        delete this.animations[i];
+      else this.animations[i].update()
+
     context.beginPath();
-    context.arc(this.x, this.y, this.board.dotSize / 2, 0, 2 * Math.PI);
+    context.arc(this.x, this.y, this.size / 2, 0, 2 * Math.PI);
     context.fill();
   }
 
   calculatePosition() {
-    this.x = this.board.x + this.board.dotSize + this.board.dotSize * this.col * 2;
-    this.y = this.board.y + this.board.dotSize + this.board.dotSize * this.row * 2;
+    this.x = this.board.x + this.size + this.size * this.col * 2;
+    this.y = this.board.y + this.size + this.size * this.row * 2;
   }
 
   connection(dot) {
@@ -45,6 +53,12 @@ class Dot {
     let oldY = this.y;
     this.calculatePosition();
     this.animations["y"] = new Animation(this, "y", oldY, this.y, 400, 0, null);
+  }
+
+  destroy() {
+    this.animations["size"] = new Animation(this, "size", this.size, 0, 250, 0, function() {
+      removeFromDrawList(this.object);
+    });
   }
 }
 
@@ -66,6 +80,8 @@ class ColorDot extends Dot {
 
 class DotSelection {
   constructor() {
+    addToDrawList(this);
+
     this.dots = [];
     this.color = "white";
     this.x = null;
@@ -83,6 +99,7 @@ class DotSelection {
   }
 
   end() {
+    let dot;
     while ((dot = this.dots.pop()) !== undefined)
       dot.selected = false;
   }
@@ -143,13 +160,13 @@ class Board {
   }
 
   calculateDotPositions() {
-    for (let col in this.dots)
-      for (let row in this.dots[col])
+    for (let col = 0; col < this.dots.length; col++)
+      for (let row = 0; row < this.dots[col].length; row++)
         this.dots[col][row].calculatePosition();
   }
 
   gravity() {
-    for (let col in this.dots)
+    for (let col = 0; col < this.dots.length; col++)
       for (let row = this.dots[col].length - 1; row >= 0; row--)
         if (this.dots[col][row] == null) {
           for (let row2 = row - 1; row2 >= 0; row2--) {
@@ -162,8 +179,8 @@ class Board {
   }
 
   fill() {
-    for (let col in this.dots)
-      for (let row in this.dots[col])
+    for (let col = 0; col < this.dots.length; col++)
+      for (let row = 0; row < this.dots[col].length; row++)
         if (this.dots[col][row] == null) {
           this.dots[col][row] = new ColorDot(this, row, col, randomColor());
           this.dots[col][row].animations["y"] = (new Animation(this.dots[col][row], 'y',
@@ -178,21 +195,6 @@ class Board {
       this.x, this.y,
       this.width, this.height
     );
-
-    for (let col in this.dots)
-      for (let row in this.dots[col]) {
-        let dot = this.dots[col][row];
-        if (dot !== null) {
-          for (let i in dot.animations)
-            if (dot.animations[i].finished)
-              delete dot.animations[i];
-            else dot.animations[i].update()
-          dot.draw();
-        }
-      }
-
-    for (let ds in dotSelections)
-      dotSelections[ds].draw();
   }
 
   resize() {
@@ -227,7 +229,7 @@ class Animation {
     this.endVal = endVal;
     this.duration = duration;
     this.delay = delay;
-    this.callback = callback;
+    this.callback = callback ? callback.bind(this.object) : null;
     this.distance = this.endVal - this.startVal;
     this.started = false;
     this.finished = false;
@@ -237,7 +239,7 @@ class Animation {
   start() {
     this.started = true;
     this.startTime = Date.now() + this.delay;
-    setTimeout(this.finish, this.delay + this.duration);
+    setTimeout(this.finish.bind(this), this.delay + this.duration);
   }
 
   update() {
@@ -254,8 +256,9 @@ class Animation {
   }
 
   finish() {
-    if (this.callback)
+    if (this.callback != null) {
       this.callback();
+    }
   }
 }
 
@@ -306,10 +309,42 @@ function draw() {
   drawBackground();
 
   if (drawing)
-    for (let drawable in drawList)
-      drawList[drawable].draw();
+    for (let i = 0; i < drawList.length; i++)
+      drawList[i].draw();
 
   window.requestAnimationFrame(draw);
+}
+
+function cleanUpDrawList() {
+  for (let i = 0; i < drawList.length; i++)
+    if (drawList[i] == undefined) {
+      let j = i + 1;
+      while (true) {
+        if (drawList[j] != undefined) {
+          drawList[i] = drawList[j];
+          drawList[j] = undefined;
+          break;
+        }
+        if (++j >= drawList.length) {
+          drawList.length = i;
+          return;
+        }
+      }
+    }
+}
+
+function addToDrawList(thing) {
+  cleanUpDrawList();
+  drawList.push(thing);
+}
+
+function removeFromDrawList(thing) {
+  for (item in drawList)
+    if (drawList[item] == thing) {
+      drawList[item] = undefined;
+      cleanUpDrawList();
+      return;
+    }
 }
 
 function inRange(dot1, dot2) {
@@ -317,7 +352,8 @@ function inRange(dot1, dot2) {
 }
 
 function startMove(id, x, y) {
-  if ((dot = board.dotAtPosition(x, y)) && !dot.selected)
+  if (dotSelections[id].dots.length == 0 &&
+     (dot = board.dotAtPosition(x, y)) && !dot.selected)
     dotSelections[id].add(dot);
 }
 
@@ -335,12 +371,14 @@ function endMove(id, x, y) {
   dotSelections[id].x = null;
   dotSelections[id].y = null;
   if (dotSelections[id].dots.length > 1)
-    for (dot in dotSelections[id].dots)
+    for (dot in dotSelections[id].dots) {
+      board.dots[dotSelections[id].dots[dot].col][dotSelections[id].dots[dot].row].destroy();
       board.dots[dotSelections[id].dots[dot].col][dotSelections[id].dots[dot].row] = null;
+    }
   dotSelections[id].end();
   board.gravity();
   board.fill();
-  for (let ds in dotSelections)
+  for (let ds = 0; ds < dotSelections.length; ds++)
   if (!dotSelections[ds].validate()) {
     dotSelections[ds].x = null;
     dotSelections[ds].y = null;
@@ -358,8 +396,8 @@ function cancelMove(id, x, y) {
 
 function resize(event) {
   setCanvasSize();
-  for (let drawable in drawList)
-    drawList[drawable].resize();
+  for (var i = 0; i < drawList.length; i++)
+    drawList[i].resize();
 }
 
 function mousedown(event) {
