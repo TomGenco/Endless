@@ -180,14 +180,20 @@ class Board {
   }
 
   fill() {
-    for (let col = 0; col < this.dots.length; col++)
+    let delay = 0, updateDelay;
+    for (let col = 0; col < this.dots.length; col++) {
+      updateDelay = false;
       for (let row = 0; row < this.dots[col].length; row++)
         if (this.dots[col][row] == null) {
+          updateDelay = true;
           this.dots[col][row] = new ColorDot(this, row, col, randomColor());
           this.dots[col][row].animations["y"] = (new Animation(this.dots[col][row], 'y',
             -(this.height + this.y) + this.dots[col][row].y + this.dotSize / 2,
-            this.dots[col][row].y, 700, 75 * col, null));
+            this.dots[col][row].y, 700, 75 * delay, null));
         }
+      if (updateDelay)
+        delay++;
+    }
   }
 
   draw() {
