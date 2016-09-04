@@ -54,11 +54,11 @@ class Dot {
 
     let oldY = this.y;
     this.calculatePosition();
-    this.animations["y"] = new Animation(this, "y", oldY, this.y, 400, 0, null);
+    new Animation(this, "y", oldY, this.y, 400, 0, null);
   }
 
   destroy() {
-    this.animations["size"] = new Animation(this, "size", this.size, 0, 250, 0, function() {
+    new Animation(this, "size", this.size, 0, 250, 0, function() {
       this.board.dots[this.col][this.row] = null;
       removeFromDrawList(this);
     });
@@ -186,8 +186,7 @@ class Board {
     for (var row = 0; row < this.dots[col].length; row++) {
       if (this.dots[col][row] == null) {
         let dot = new ColorDot(this, row, col, randomColor());
-        dot.animations["y"] = new Animation(dot, "y",
-            -(this.height + this.y) + dot.y + this.dotSize / 2,
+        new Animation(dot, "y", -(this.height + this.y) + dot.y + dot.size / 2,
             dot.y, 700, 0, null);
       } else return;
     }
@@ -226,6 +225,15 @@ class Board {
 
 class Animation {
   constructor(object, property, startVal, endVal, duration, delay, callback) {
+    if (object.animations[property] != undefined && object.animations[property].started && !object.animations[property].finished) {
+      let old = object.animations[property];
+      let progress = (Date.now() - old.startTime) / old.duration;
+      this.started = true;
+      this.startTime = Date.now() - progress * this.duration;
+    } else {
+      this.started = false;
+      this.startTime = null;
+    }
     this.object = object;
     this.property = property;
     this.startVal = startVal;
@@ -236,7 +244,8 @@ class Animation {
     this.distance = this.endVal - this.startVal;
     this.started = false;
     this.finished = false;
-    this.startTime = null;
+
+    this.object.animations[this.property] = this;
   }
 
   start() {
@@ -395,7 +404,7 @@ function endMove(id, x, y) {
     return;
   if (dotSelections[id].dots.length > 1)
     for (let i = 0; i < dotSelections[id].dots.length; i++)
-      setTimeout(dotSelections[id].dots[i].destroy.bind(dotSelections[id].dots[i]), i * 25);
+      setTimeout(dotSelections[id].dots[i].destroy.bind(dotSelections[id].dots[i]), i * 15);
   dotSelections[id].end();
   for (let ds = 0; ds < dotSelections.length; ds++)
     if (!dotSelections[ds].validate())
