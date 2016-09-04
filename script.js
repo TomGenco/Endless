@@ -87,9 +87,10 @@ class ColorDot extends Dot {
 }
 
 class DotSelection {
-  constructor() {
+  constructor(id) {
     addToDrawList(this, 2);
 
+    this.id = id;
     this.dots = [];
     this.color = "white";
     this.x = null;
@@ -110,7 +111,8 @@ class DotSelection {
     let dot;
     while ((dot = this.dots.pop()) !== undefined)
       dot.selected = false;
-      delete dotSelections[this.id];
+      dotSelections[this.id] = undefined;
+      removeUndefineds(dotSelections);
   }
 
   draw() {
@@ -369,12 +371,16 @@ function inRange(dot1, dot2) {
 }
 
 function startMove(id, x, y) {
-  if (dotSelections[id].dots.length == 0 &&
-     (dot = board.dotAtPosition(x, y)) && !dot.selected)
+  if (dotSelections[id] == undefined &&
+     (dot = board.dotAtPosition(x, y)) && !dot.selected) {
+    dotSelections[id] = new DotSelection(id);
     dotSelections[id].add(dot);
+  }
 }
 
 function move(id, x, y) {
+  if (dotSelections[id] == undefined)
+    return;
   dotSelections[id].x = x;
   dotSelections[id].y = y;
   if (dotSelections[id].dots.length > 0 && (dot = board.dotAtPosition(x, y)))
@@ -385,6 +391,8 @@ function move(id, x, y) {
 }
 
 function endMove(id, x, y) {
+  if (dotSelections[id] == undefined)
+    return;
   if (dotSelections[id].dots.length > 1)
     for (let i = 0; i < dotSelections[id].dots.length; i++)
       setTimeout(dotSelections[id].dots[i].destroy.bind(dotSelections[id].dots[i]), i * 25);
@@ -423,20 +431,14 @@ function resize(event) {
 }
 
 function mousedown(event) {
-  if (dotSelections[0] == undefined)
-    dotSelections[0] = new DotSelection();
   startMove(0, event.pageX, event.pageY);
 }
 
 function mouseup(event) {
-  if (dotSelections[0] == undefined)
-    dotSelections[0] = new DotSelection();
   endMove(0, event.pageX, event.pageY);
 }
 
 function mousemove(event) {
-  if (dotSelections[0] == undefined)
-    dotSelections[0] = new DotSelection();
   move(0, event.pageX, event.pageY);
 }
 
@@ -444,8 +446,6 @@ function touchstart(event) {
   event.preventDefault();
   for (let i = 0; i < event.changedTouches.length; i++) {
     let touch = event.changedTouches[i];
-    if (dotSelections[touch.identifier] == undefined)
-      dotSelections[touch.identifier] = new DotSelection();
     startMove(touch.identifier, touch.pageX, touch.pageY);
   }
 }
@@ -454,8 +454,6 @@ function touchmove(event) {
   event.preventDefault();
   for (let i = 0; i < event.changedTouches.length; i++) {
     let touch = event.changedTouches[i];
-    if (dotSelections[touch.identifier] == undefined)
-      dotSelections[touch.identifier] = new DotSelection();
     move(touch.identifier, touch.pageX, touch.pageY);
   }
 }
@@ -464,8 +462,6 @@ function touchend(event) {
   event.preventDefault();
   for (let i = 0; i < event.changedTouches.length; i++) {
     let touch = event.changedTouches[i];
-    if (dotSelections[touch.identifier] == undefined)
-      dotSelections[touch.identifier] = new DotSelection();
     endMove(touch.identifier, touch.pageX, touch.pageY);
   }
 }
@@ -474,8 +470,6 @@ function touchcancel(event) {
   event.preventDefault();
   for (let i = 0; i < event.changedTouches.length; i++) {
     let touch = event.changedTouches[i];
-    if (dotSelections[touch.identifier] == undefined)
-      dotSelections[touch.identifier] = new DotSelection();
     cancelMove(touch.identifier, touch.pageX, touch.pageY);
   }
 }
