@@ -22,6 +22,7 @@ class Dot {
     this.selected = false;
     this.animations = {};
 
+    this.board.dots[this.col][this.row] = this;
     this.calculatePosition();
   }
 
@@ -45,7 +46,7 @@ class Dot {
     return true;
   }
 
-  moveTo(col, row) {
+  moveTo(row, col) {
     this.board.dots[col][row] = this;
     this.board.dots[this.col][this.row] = null;
     this.row = row;
@@ -56,8 +57,8 @@ class Dot {
     this.animations["y"] = new Animation(this, "y", oldY, this.y, 400, 0, null);
   }
 
-  destroy() {
-    this.animations["size"] = new Animation(this, "size", this.size, 0, 250, 0, function() {
+  destroy(delay) {
+    this.animations["size"] = new Animation(this, "size", this.size, 0, 250, delay, function() {
       removeFromDrawList(this);
     });
   }
@@ -169,33 +170,22 @@ class Board {
     this.y = canvas.height / 2 - this.height / 2;
   }
 
-  gravity() {
-    for (let col = 0; col < this.dots.length; col++)
-      for (let row = this.dots[col].length - 1; row >= 0; row--)
-        if (this.dots[col][row] == null) {
-          for (let row2 = row - 1; row2 >= 0; row2--) {
-            if (this.dots[col][row2] != null) {
-              this.dots[col][row2].moveTo(col, row);
-              break;
-            }
-          }
-        }
+  gravity(row, col) {
+    for (let row2 = row - 1; row2 >= 0; row2--)
+      if (this.dots[col][row2] != null) {
+        this.dots[col][row2].moveTo(row, col);
+        return;
+      }
   }
 
-  fill() {
-    let delay = 0, updateDelay;
-    for (let col = 0; col < this.dots.length; col++) {
-      updateDelay = false;
-      for (let row = 0; row < this.dots[col].length; row++)
-        if (this.dots[col][row] == null) {
-          updateDelay = true;
-          this.dots[col][row] = new ColorDot(this, row, col, randomColor());
-          this.dots[col][row].animations["y"] = (new Animation(this.dots[col][row], 'y',
-            -(this.height + this.y) + this.dots[col][row].y + this.dotSize / 2,
-            this.dots[col][row].y, 700, 75 * delay, null));
-        }
-      if (updateDelay)
-        delay++;
+  fill(col) {
+    for (var row = 0; row < this.dots[col].length; row++) {
+      if (this.dots[col][row] == null) {
+        let dot = new ColorDot(this, row, col, randomColor());
+        dot.animations["y"] = new Animation(dot, "y",
+            -(this.height + this.y) + dot.y + this.dotSize / 2,
+            dot.y, 700, 0, null);
+      }
     }
   }
 
@@ -395,13 +385,11 @@ function endMove(id, x, y) {
   dotSelections[id].x = null;
   dotSelections[id].y = null;
   if (dotSelections[id].dots.length > 1)
-    for (dot in dotSelections[id].dots) {
-      board.dots[dotSelections[id].dots[dot].col][dotSelections[id].dots[dot].row].destroy();
-      board.dots[dotSelections[id].dots[dot].col][dotSelections[id].dots[dot].row] = null;
+    for (let i = 0; i < dotSelections[id].dots.length; i++) {
+      dotSelections[id].dots[i].destroy(i * 10);
+      board.dots[dotSelections[id].dots[i].col][dotSelections[id].dots[i].row] = null;
     }
   dotSelections[id].end();
-  board.gravity();
-  board.fill();
   for (let ds = 0; ds < dotSelections.length; ds++)
   if (!dotSelections[ds].validate()) {
     dotSelections[ds].x = null;
@@ -414,6 +402,20 @@ function cancelMove(id, x, y) {
   dotSelections[id].x = null;
   dotSelections[id].y = null;
   dotSelections[id].end();
+}
+
+function tick() {
+  let flag;
+  for (var col = 0; col < board.dots.length; col++) {
+    flag = false;
+    for (var row = board.dots[col].length - 1; row >= 0; row--)
+      if (board.dots[col][row] == null) {
+        flag = true;
+        board.gravity(row, col);
+      }
+    if (flag)
+      board.fill(col);
+  }
 }
 
 // --------------------------- Event Handlers
@@ -489,11 +491,12 @@ function setup() {
   setCanvasSize();
   setupEventHandlers();
 
-  board = new Board(3, 3);
-  board.fill();
+  board = new Board(6, 5);
+  // board.fill();
 
   loadingText(false);
 }
 
 setup();
-draw();
+window.requestAnimationFrame(draw);
+var ticker = setInterval(tick, 80);
