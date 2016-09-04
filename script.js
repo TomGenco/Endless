@@ -57,8 +57,9 @@ class Dot {
     this.animations["y"] = new Animation(this, "y", oldY, this.y, 400, 0, null);
   }
 
-  destroy(delay) {
-    this.animations["size"] = new Animation(this, "size", this.size, 0, 250, delay, function() {
+  destroy() {
+    this.animations["size"] = new Animation(this, "size", this.size, 0, 250, 0, function() {
+      this.board.dots[this.col][this.row] = null;
       removeFromDrawList(this);
     });
   }
@@ -109,6 +110,7 @@ class DotSelection {
     let dot;
     while ((dot = this.dots.pop()) !== undefined)
       dot.selected = false;
+      delete dotSelections[this.id];
   }
 
   draw() {
@@ -185,7 +187,7 @@ class Board {
         dot.animations["y"] = new Animation(dot, "y",
             -(this.height + this.y) + dot.y + this.dotSize / 2,
             dot.y, 700, 0, null);
-      }
+      } else return;
     }
   }
 
@@ -301,7 +303,8 @@ function drawBackground() {
 }
 
 function randomColor() {
-  return "hsla(" + (Math.floor(Math.random() * 5) * 72 + 60) + ",60%,60%,1)";
+  // return "hsla(" + (Math.floor(Math.random() * 5) * 72 + 60) + ",60%,60%,1)";
+  return "white";
 }
 
 function draw() {
@@ -382,20 +385,13 @@ function move(id, x, y) {
 }
 
 function endMove(id, x, y) {
-  dotSelections[id].x = null;
-  dotSelections[id].y = null;
   if (dotSelections[id].dots.length > 1)
-    for (let i = 0; i < dotSelections[id].dots.length; i++) {
-      dotSelections[id].dots[i].destroy(i * 10);
-      board.dots[dotSelections[id].dots[i].col][dotSelections[id].dots[i].row] = null;
-    }
+    for (let i = 0; i < dotSelections[id].dots.length; i++)
+      setTimeout(dotSelections[id].dots[i].destroy.bind(dotSelections[id].dots[i]), i * 25);
   dotSelections[id].end();
   for (let ds = 0; ds < dotSelections.length; ds++)
-  if (!dotSelections[ds].validate()) {
-    dotSelections[ds].x = null;
-    dotSelections[ds].y = null;
-    dotSelections[ds].end();
-  }
+    if (!dotSelections[ds].validate())
+      dotSelections[ds].end();
 }
 
 function cancelMove(id, x, y) {
@@ -492,11 +488,10 @@ function setup() {
   setupEventHandlers();
 
   board = new Board(6, 5);
-  // board.fill();
+  window.requestAnimationFrame(draw);
+  var ticker = setInterval(tick, 50);
 
   loadingText(false);
 }
 
 setup();
-window.requestAnimationFrame(draw);
-var ticker = setInterval(tick, 80);
