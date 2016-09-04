@@ -314,8 +314,7 @@ function drawBackground() {
 }
 
 function randomColor() {
-  // return "hsla(" + (Math.floor(Math.random() * 5) * 72 + 60) + ",60%,60%,1)";
-  return "white";
+  return "hsla(" + (Math.floor(Math.random() * 5) * 72 + 60) + ",60%,60%,1)";
 }
 
 function draw() {
@@ -412,9 +411,8 @@ function endMove(id, x, y) {
 }
 
 function cancelMove(id, x, y) {
-  dotSelections[id].x = null;
-  dotSelections[id].y = null;
-  dotSelections[id].end();
+  for (var i = 0; i < dotSelections.length; i++)
+    dotSelections[i].end();
 }
 
 function tick() {
