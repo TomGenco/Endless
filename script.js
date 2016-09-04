@@ -112,7 +112,6 @@ class DotSelection {
     while ((dot = this.dots.pop()) !== undefined)
       dot.selected = false;
       dotSelections[this.id] = undefined;
-      removeUndefineds(dotSelections);
   }
 
   draw() {
@@ -474,7 +473,6 @@ function touchend(event) {
 }
 
 function touchcancel(event) {
-  event.preventDefault();
   for (let i = 0; i < event.changedTouches.length; i++) {
     let touch = event.changedTouches[i];
     cancelMove(touch.identifier, touch.pageX, touch.pageY);
