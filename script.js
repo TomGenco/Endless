@@ -58,10 +58,7 @@ class Dot {
   }
 
   destroy() {
-    new Animation(this, "size", this.size, 0, 250, 0, function() {
-      this.board.dots[this.col][this.row] = null;
-      removeFromDrawList(this);
-    });
+    new Animation(this, "size", this.size, 0, 250, 0, removeFromDrawList.bind(this, this));
   }
 
   resize() {
@@ -401,12 +398,17 @@ function endMove(id, x, y) {
   if (dotSelections[id] == undefined)
     return;
   if (dotSelections[id].dots.length > 1)
-    for (let i = 0; i < dotSelections[id].dots.length; i++)
-      setTimeout(dotSelections[id].dots[i].destroy.bind(dotSelections[id].dots[i]), i * 15);
-  dotSelections[id].end();
+    for (let i = 0; i < dotSelections[id].dots.length; i++) {
+      let dot = dotSelections[id].dots[i];
+      setTimeout(function () {
+        board.dots[dot.col][dot.row] = null;
+        dot.destroy();
+      }, i * 25);
+    }
   for (let ds = 0; ds < dotSelections.length; ds++)
     if (!dotSelections[ds].validate())
       dotSelections[ds].end();
+  dotSelections[id].end();
 }
 
 function cancelMove(id, x, y) {
@@ -488,7 +490,7 @@ function setup() {
 
   board = new Board(6, 5);
   window.requestAnimationFrame(draw);
-  var ticker = setInterval(tick, 50);
+  var ticker = setInterval(tick, 80);
 
   loadingText(false);
 }
