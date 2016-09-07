@@ -406,7 +406,7 @@ function endMove(id, x, y) {
       }, i * 25);
     }
   for (let ds = 0; ds < dotSelections.length; ds++)
-    if (dotSelections != null && !dotSelections[ds].validate())
+    if (dotSelections[ds] != null && !dotSelections[ds].validate())
       dotSelections[ds].end();
   dotSelections[id].end();
 }
