@@ -1,5 +1,5 @@
 var board = null;
-var dotSelections = [];
+var selections = [];
 var drawList = [];
 var drawTable = [[], [], []];
 var drawing = true;
@@ -11,18 +11,18 @@ const context = canvas.getContext("2d");
 
 // --------------------------- Classes
 
-class Dot {
+class Thing {
   constructor(board, row, col) {
     addToDrawList(this, 1);
 
-    this.size = board.dotSize;
+    this.size = board.thingSize;
     this.board = board;
     this.row = row;
     this.col = col;
     this.selected = false;
     this.animations = {};
 
-    this.board.dots[this.col][this.row] = this;
+    this.board.things[this.col][this.row] = this;
     this.calculatePosition();
   }
 
@@ -31,10 +31,6 @@ class Dot {
       if (this.animations[i].finished)
         delete this.animations[i];
       else this.animations[i].update()
-
-    context.beginPath();
-    context.arc(this.x, this.y, this.size / 2, 0, 2 * Math.PI);
-    context.fill();
   }
 
   calculatePosition() {
@@ -42,13 +38,13 @@ class Dot {
     this.y = this.board.y + this.size + this.size * this.row * 2;
   }
 
-  connection(dot) {
-    return true;
+  connection(thing) {
+    return false;
   }
 
   moveTo(row, col) {
-    this.board.dots[col][row] = this;
-    this.board.dots[this.col][this.row] = null;
+    this.board.things[col][row] = this;
+    this.board.things[this.col][this.row] = null;
     this.row = row;
     this.col = col;
 
@@ -62,8 +58,22 @@ class Dot {
   }
 
   resize() {
-    this.size = this.board.dotSize;
+    this.size = this.board.thingSize;
     this.calculatePosition();
+  }
+}
+
+class Dot extends Thing {
+  draw() {
+    super.draw();
+
+    context.beginPath();
+    context.arc(this.x, this.y, this.size / 2, 0, 2 * Math.PI);
+    context.fill();
+  }
+
+  connection(thing) {
+    return !thing.selected && inRange(this, thing);
   }
 }
 
@@ -78,51 +88,106 @@ class ColorDot extends Dot {
     super.draw();
   }
 
-  connection(dot) {
-    return this.color == dot.color;
+  connection(thing) {
+    return super.connection(thing) && this.color == thing.color || thing instanceof SuperDot;
   }
 }
 
-class DotSelection {
+class SuperDot extends Dot {
+  draw() {
+    context.fillStyle = "white";
+    super.draw();
+  }
+
+  connection(thing) {
+    return true;
+  }
+}
+
+class Ring extends Thing {
+  constructor(board, row, col, color) {
+    super(board, row, col);
+    this.drawSize = this.size / 2 - this.size / 10;
+    console.log(this.drawSize);
+  }
+
+  draw() {
+    super.draw();
+
+    context.beginPath();
+    context.arc(this.x, this.y, this.drawSize, 0, 2 * Math.PI);
+    context.lineWidth = this.size / 6;
+    context.stroke();
+  }
+
+  connection(thing) {
+    if (thing.selected)
+      for (var i = 0; i < selections.length; i++)
+        for (var j = 0; j < selections[i].things.length; j++)
+          if (thing == selections[i].things[j] &&
+              (this == selections[i].things[j - 1] ||
+              this == selections[i].things[j + 1]))
+            return false;
+    return inRange(this, thing);
+  }
+}
+
+class ColorRing extends Ring {
+  constructor(board, row, col, color) {
+    super(board, row, col);
+    this.color = color;
+  }
+
+  draw() {
+    context.strokeStyle = this.color;
+    super.draw();
+  }
+
+  connection(thing) {
+    return super.connection(thing) && (thing != this && this.color == thing.color) || thing instanceof SuperDot;
+  }
+}
+
+class Selection {
   constructor(id) {
     addToDrawList(this, 2);
 
     this.id = id;
-    this.dots = [];
+    this.things = [];
     this.color = "white";
     this.x = null;
     this.y = null;
   }
 
-  add(dot) {
-    dot.selected = true;
-    this.color = dot.color;
-    this.dots.push(dot);
+  add(thing) {
+    thing.selected = true;
+    this.color = thing.color;
+    this.things.push(thing);
   }
 
   remove() {
-    this.dots.pop().selected = false;
+    this.things.pop().selected = false;
   }
 
   end() {
-    let dot;
-    while ((dot = this.dots.pop()) !== undefined)
-      dot.selected = false;
-      dotSelections[this.id] = undefined;
+    let thing;
+    while ((thing = this.things.pop()) !== undefined)
+      thing.selected = false;
+      selections[this.id] = undefined;
   }
 
   draw() {
-    if (this.dots.length == 0)
+    if (this.things.length == 0)
       return;
 
     context.strokeStyle = this.color;
     context.lineCap = "round";
-    context.lineWidth = this.dots[0].board.dotSize / 2;
+    context.lineWidth = this.things[0].board.thingSize / 2;
     context.lineJoin = "round";
     context.beginPath();
-    context.moveTo(this.dots[0].x, this.dots[0].y);
-    for (let i in this.dots) {
-      context.lineTo(this.dots[i].x, this.dots[i].y);
+    context.moveTo(this.things[0].x, this.things[0].y);
+    for (let i in this.things) {
+      context.lineTo(this.things[i].x, this.things[i].y);
     }
     if (this.y !== null && this.x !== null)
       context.lineTo(this.x, this.y);
@@ -130,14 +195,14 @@ class DotSelection {
   }
 
   get last() {
-    return this.dots[this.dots.length - 1];
+    return this.things[this.things.length - 1];
   }
 
   validate() {
-    for (var i = 1; i < this.dots.length; i++)
-      if (!this.dots[i - 1].connection(this.dots[i]) || !inRange(this.dots[i - 1], this.dots[i]))
-        return false;
-    return true;
+    for (var i = 1; i < this.things.length; i++)
+      if (this.things[i - 1].connection(this, this.things[i]))
+        return true;
+    return false;
   }
 
   resize() {
@@ -151,11 +216,11 @@ class Board {
 
     this.rows = rows;
     this.cols = cols;
-    this.dots = [];
+    this.things = [];
     for (let col = 0; col < this.cols; col++) {
-      this.dots[col] = [];
+      this.things[col] = [];
       for (let row = 0; row < this.rows; row++)
-        this.dots[col][row] = null;
+        this.things[col][row] = null;
     }
     this.animations = [];
 
@@ -163,27 +228,27 @@ class Board {
   }
 
   calculateDimensions() {
-    this.dotSize = Math.min(canvas.width / (this.cols * 2), canvas.height / (this.rows * 2));
-    this.width = this.cols * this.dotSize * 2;
-    this.height = this.rows * this.dotSize * 2;
+    this.thingSize = Math.min(canvas.width / (this.cols * 2), canvas.height / (this.rows * 2));
+    this.width = this.cols * this.thingSize * 2;
+    this.height = this.rows * this.thingSize * 2;
     this.x = canvas.width / 2 - this.width / 2;
     this.y = canvas.height / 2 - this.height / 2;
   }
 
   gravity(row, col) {
     for (let row2 = row - 1; row2 >= 0; row2--)
-      if (this.dots[col][row2] != null) {
-        this.dots[col][row2].moveTo(row, col);
+      if (this.things[col][row2] != null) {
+        this.things[col][row2].moveTo(row, col);
         return;
       }
   }
 
   fill(col) {
-    for (var row = 0; row < this.dots[col].length; row++) {
-      if (this.dots[col][row] == null) {
-        let dot = new ColorDot(this, row, col, randomColor());
-        new Animation(dot, "y", -(this.height + this.y) + dot.y + dot.size / 2,
-            dot.y, 700, 0, null);
+    for (var row = 0; row < this.things[col].length; row++) {
+      if (this.things[col][row] == null) {
+        let thing = new ColorRing(this, row, col, randomColor());
+        new Animation(thing, "y", -(this.height + this.y) + thing.y + thing.size / 2,
+            thing.y, 700, 0, null);
       } else return;
     }
   }
@@ -205,16 +270,16 @@ class Board {
            y > this.y && y < this.y + this.height;
   }
 
-  dotAtPosition(x, y) {
+  thingAtPosition(x, y) {
     if (!this.atPosition(x, y))
       return false;
-    let col = Math.floor((x - this.x) / (this.dotSize * 2));
-    let row = Math.floor((y - this.y) / (this.dotSize * 2));
-    let dot = this.dots[col][row];
-    let a = x - dot.x;
-    let b = y - dot.y;
-    if ((Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2))) <= this.dotSize * 0.75)
-      return dot;
+    let col = Math.floor((x - this.x) / (this.thingSize * 2));
+    let row = Math.floor((y - this.y) / (this.thingSize * 2));
+    let thing = this.things[col][row];
+    let a = x - thing.x;
+    let b = y - thing.y;
+    if ((Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2))) <= this.thingSize * 0.75)
+      return thing;
     else return false;
   }
 }
@@ -370,58 +435,59 @@ function removeFromDrawList(thing) {
   return;
 }
 
-function inRange(dot1, dot2) {
-  return Math.abs(dot1.row - dot2.row) <= 1 && Math.abs(dot1.col - dot2.col) <= 1;
+function inRange(thing1, thing2) {
+  return Math.abs(thing1.row - thing2.row) <= 1 && Math.abs(thing1.col - thing2.col) <= 1;
 }
 
 function startMove(id, x, y) {
-  if (dotSelections[id] == undefined &&
-     (dot = board.dotAtPosition(x, y)) && !dot.selected) {
-    dotSelections[id] = new DotSelection(id);
-    dotSelections[id].add(dot);
+  if (selections[id] == undefined &&
+     (thing = board.thingAtPosition(x, y)) && !thing.selected) {
+    selections[id] = new Selection(id);
+    selections[id].add(thing);
   }
 }
 
 function move(id, x, y) {
-  if (dotSelections[id] == undefined)
+  if (selections[id] == undefined)
     return;
-  dotSelections[id].x = x;
-  dotSelections[id].y = y;
-  if (dotSelections[id].dots.length > 0 && (dot = board.dotAtPosition(x, y)))
-    if (!dot.selected && inRange(dotSelections[id].last, dot) && dotSelections[id].last.connection(dot))
-      dotSelections[id].add(dot);
-    else if (dot == dotSelections[id].dots[dotSelections[id].dots.length - 2])
-      dotSelections[id].remove();
+  selections[id].x = x;
+  selections[id].y = y;
+  if (selections[id].things.length > 0 && (thing = board.thingAtPosition(x, y)))
+    if (thing == selections[id].things[selections[id].things.length - 2])
+      selections[id].remove();
+    else if (selections[id].last.connection(thing))
+      selections[id].add(thing);
 }
 
 function endMove(id, x, y) {
-  if (dotSelections[id] == undefined)
+  if (selections[id] == undefined)
     return;
-  if (dotSelections[id].dots.length > 1)
-    for (let i = 0; i < dotSelections[id].dots.length; i++) {
-      let dot = dotSelections[id].dots[i];
+  if (selections[id].things.length > 1)
+    for (let i = 0; i < selections[id].things.length; i++) {
+      let thing = selections[id].things[i];
       setTimeout(function () {
-        board.dots[dot.col][dot.row] = null;
-        dot.destroy();
+        if (thing == board.things[thing.col][thing.row])
+         board.things[thing.col][thing.row] = null;
+        thing.destroy();
       }, i * 25);
     }
-  for (let ds = 0; ds < dotSelections.length; ds++)
-    if (dotSelections[ds] != null && !dotSelections[ds].validate())
-      dotSelections[ds].end();
-  dotSelections[id].end();
+  selections[id].end();
+  for (let ds = 0; ds < selections.length; ds++)
+    if (selections[ds] != null && !selections[ds].validate())
+      selections[ds].end();
 }
 
 function cancelMove(id, x, y) {
-  for (var i = 0; i < dotSelections.length; i++)
-    dotSelections[i].end();
+  for (var i = 0; i < selections.length; i++)
+    selections[i].end();
 }
 
 function tick() {
   let flag;
-  for (var col = 0; col < board.dots.length; col++) {
+  for (var col = 0; col < board.things.length; col++) {
     flag = false;
-    for (var row = board.dots[col].length - 1; row >= 0; row--)
-      if (board.dots[col][row] == null) {
+    for (var row = board.things[col].length - 1; row >= 0; row--)
+      if (board.things[col][row] == null) {
         flag = true;
         board.gravity(row, col);
       }
