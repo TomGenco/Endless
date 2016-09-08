@@ -8,12 +8,13 @@ var mouseY = null;
 
 const canvas = document.getElementsByTagName("canvas")[0];
 const context = canvas.getContext("2d");
+const boardColor = "#333";
 
 // --------------------------- Classes
 
 class Thing {
   constructor(board, row, col) {
-    addToDrawList(this, 1);
+    addToDrawList(this, 2);
 
     this.size = board.thingSize;
     this.board = board;
@@ -107,7 +108,6 @@ class SuperDot extends Dot {
 class Ring extends Thing {
   constructor(board, row, col, color) {
     super(board, row, col);
-    this.drawSize = this.size / 2 - this.size / 10;
     console.log(this.drawSize);
   }
 
@@ -115,9 +115,12 @@ class Ring extends Thing {
     super.draw();
 
     context.beginPath();
-    context.arc(this.x, this.y, this.drawSize, 0, 2 * Math.PI);
-    context.lineWidth = this.size / 6;
-    context.stroke();
+    context.arc(this.x, this.y, this.size / 2, 0, 2 * Math.PI);
+    context.fill();
+    context.beginPath();
+    context.arc(this.x, this.y, this.size / 3, 0, 2 * Math.PI);
+    context.fillStyle = boardColor;
+    context.fill();
   }
 
   connection(thing) {
@@ -139,7 +142,7 @@ class ColorRing extends Ring {
   }
 
   draw() {
-    context.strokeStyle = this.color;
+    context.fillStyle = this.color;
     super.draw();
   }
 
@@ -150,7 +153,7 @@ class ColorRing extends Ring {
 
 class Selection {
   constructor(id) {
-    addToDrawList(this, 2);
+    addToDrawList(this, 1);
 
     this.id = id;
     this.things = [];
@@ -254,7 +257,7 @@ class Board {
   }
 
   draw() {
-    context.fillStyle = "#333";
+    context.fillStyle = boardColor;
     context.fillRect(
       this.x, this.y,
       this.width, this.height
