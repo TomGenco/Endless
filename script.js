@@ -14,7 +14,7 @@ const boardColor = "#333";
 
 class Thing {
   constructor(board, row, col) {
-    addToDrawList(this, 2);
+    addToDrawList(this, 1);
 
     this.size = board.thingSize;
     this.board = board;
@@ -108,7 +108,6 @@ class SuperDot extends Dot {
 class Ring extends Thing {
   constructor(board, row, col, color) {
     super(board, row, col);
-    console.log(this.drawSize);
   }
 
   draw() {
@@ -153,7 +152,7 @@ class ColorRing extends Ring {
 
 class Selection {
   constructor(id) {
-    addToDrawList(this, 1);
+    addToDrawList(this, 2);
 
     this.id = id;
     this.things = [];
@@ -185,16 +184,23 @@ class Selection {
 
     context.strokeStyle = this.color;
     context.lineCap = "round";
-    context.lineWidth = this.things[0].board.thingSize / 2;
+    context.lineWidth = this.things[0].board.thingSize / 1.5;
     context.lineJoin = "round";
     context.beginPath();
     context.moveTo(this.things[0].x, this.things[0].y);
-    for (let i in this.things) {
+    for (let i = 0; i < this.things.length; i++)
       context.lineTo(this.things[i].x, this.things[i].y);
-    }
     if (this.y !== null && this.x !== null)
       context.lineTo(this.x, this.y);
     context.stroke();
+
+    for (let i = 0; i < this.things.length; i++)
+      if (this.things[i] instanceof Ring) {
+        context.beginPath();
+        context.arc(this.things[i].x, this.things[i].y, board.thingSize / 3, 0, 2 * Math.PI);
+        context.fillStyle = boardColor;
+        context.fill();
+      }
   }
 
   get last() {
