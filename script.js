@@ -1,3 +1,4 @@
+var debug = true;
 var board = null;
 var selections = [];
 var drawList = [];
@@ -9,6 +10,7 @@ var mouseY = null;
 const canvas = document.getElementsByTagName("canvas")[0];
 const context = canvas.getContext("2d");
 const boardColor = "#333";
+const backgroundColor = "#292929";
 
 // --------------------------- Classes
 
@@ -17,6 +19,7 @@ class Thing {
     addToDrawList(this, 1);
 
     this.size = board.thingSize;
+    this.enabled = true;
     this.board = board;
     this.row = row;
     this.col = col;
@@ -32,6 +35,16 @@ class Thing {
       if (this.animations[i].finished)
         delete this.animations[i];
       else this.animations[i].update()
+
+  }
+
+  drawInfo() {
+    context.fillStyle = "white";
+    context.fillText("(" + this.col + ", " + this.row + ")", this.x + this.size / 2, this.y - this.size / 2);
+    context.fillText("x: " + Math.floor(this.x) + ", y: " + Math.floor(this.y), this.x + this.size / 2, this.y - this.size / 2 + 12);
+    context.fillText("size: " + Math.floor(this.size), this.x + this.size / 2, this.y - this.size / 2 + 24);
+    context.fillText(this.selected ? "selected" : !this.enabled ? "disabled" : "", this.x + this.size / 2, this.y - this.size / 2 + 48);
+
   }
 
   calculatePosition() {
@@ -89,6 +102,11 @@ class ColorDot extends Dot {
     super.draw();
   }
 
+  drawInfo() {
+    super.drawInfo();
+    context.fillText("color: " + this.color, this.x + this.size / 2, this.y - this.size / 2 + 36);
+  }
+
   connection(thing) {
     return super.connection(thing) && this.color == thing.color || thing instanceof SuperDot;
   }
@@ -113,13 +131,10 @@ class Ring extends Thing {
   draw() {
     super.draw();
 
+    context.lineWidth = this.size / 10;
     context.beginPath();
-    context.arc(this.x, this.y, this.size / 2, 0, 2 * Math.PI);
-    context.fill();
-    context.beginPath();
-    context.arc(this.x, this.y, this.size / 3, 0, 2 * Math.PI);
-    context.fillStyle = boardColor;
-    context.fill();
+    context.arc(this.x, this.y, this.size / 2.25, 0, 2 * Math.PI);
+    context.stroke();
   }
 
   connection(thing) {
@@ -141,8 +156,14 @@ class ColorRing extends Ring {
   }
 
   draw() {
-    context.fillStyle = this.color;
+    context.strokeStyle = this.color;
     super.draw();
+  }
+
+  drawInfo() {
+    super.drawInfo();
+    let re = //
+    context.fillText("hue: " + this.color.match(/\d+/), this.x + this.size / 2, this.y - this.size / 2 + 36);
   }
 
   connection(thing) {
@@ -176,6 +197,7 @@ class Selection {
     while ((thing = this.things.pop()) !== undefined)
       thing.selected = false;
       selections[this.id] = undefined;
+      removeFromDrawList(this);
   }
 
   draw() {
@@ -193,14 +215,6 @@ class Selection {
     if (this.y !== null && this.x !== null)
       context.lineTo(this.x, this.y);
     context.stroke();
-
-    for (let i = 0; i < this.things.length; i++)
-      if (this.things[i] instanceof Ring) {
-        context.beginPath();
-        context.arc(this.things[i].x, this.things[i].y, board.thingSize / 3, 0, 2 * Math.PI);
-        context.fillStyle = boardColor;
-        context.fill();
-      }
   }
 
   get last() {
@@ -268,6 +282,16 @@ class Board {
       this.x, this.y,
       this.width, this.height
     );
+  }
+
+  drawInfo() {
+    context.fillStyle = "white";
+    context.fillText("dimensions: " + this.cols + "x" + this.rows, 2, 10);
+    context.fillText("thingSize: " + Math.floor(this.thingSize), 2, 22);
+    context.fillText("width: " + Math.floor(this.width), 2, 34);
+    context.fillText("height: " + Math.floor(this.height), 2, 46);
+    context.fillText("x: " + Math.floor(this.x) + ", y: " + Math.floor(this.y), 2, 58);
+
   }
 
   resize() {
@@ -353,7 +377,6 @@ function loadingText(show) {
       return;
     const header = document.createElement("h1");
     const text = document.createTextNode("Loading...");
-    header.style = "position:fixed;top: 5px;left: 5px;margin: 0;color:white";
     header.appendChild(text);
     body.appendChild(header);
   } else body.removeChild(document.getElementsByTagName("h1")[0]);
@@ -379,7 +402,7 @@ function setupEventHandlers() {
 }
 
 function drawBackground() {
-  context.fillStyle = "#292929";
+  context.fillStyle = backgroundColor;
   context.fillRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -390,10 +413,19 @@ function randomColor() {
 function draw() {
   drawBackground();
 
-  if (drawing)
+  if (drawing) {
     for (let i = 0; i < drawTable.length; i++)
       for (var j = 0; j < drawTable[i].length; j++)
         drawTable[i][j].draw();
+    if (debug) {
+      for (let i = 0; i < drawTable.length; i++)
+        for (var j = 0; j < drawTable[i].length; j++)
+          if (drawTable[i][j].drawInfo)
+            drawTable[i][j].drawInfo()
+
+
+    }
+  }
 
   window.requestAnimationFrame(draw);
 }
@@ -450,7 +482,7 @@ function inRange(thing1, thing2) {
 
 function startMove(id, x, y) {
   if (selections[id] == undefined &&
-     (thing = board.thingAtPosition(x, y)) && !thing.selected) {
+     (thing = board.thingAtPosition(x, y)) && !thing.selected && thing.enabled) {
     selections[id] = new Selection(id);
     selections[id].add(thing);
   }
@@ -464,7 +496,7 @@ function move(id, x, y) {
   if (selections[id].things.length > 0 && (thing = board.thingAtPosition(x, y)))
     if (thing == selections[id].things[selections[id].things.length - 2])
       selections[id].remove();
-    else if (selections[id].last.connection(thing))
+    else if (selections[id].last.connection(thing) && thing.enabled)
       selections[id].add(thing);
 }
 
@@ -474,6 +506,7 @@ function endMove(id, x, y) {
   if (selections[id].things.length > 1)
     for (let i = 0; i < selections[id].things.length; i++) {
       let thing = selections[id].things[i];
+      thing.enabled = false;
       setTimeout(function () {
         if (thing == board.things[thing.col][thing.row])
          board.things[thing.col][thing.row] = null;
