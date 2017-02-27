@@ -23,7 +23,7 @@ class Thing {
     this.board = board;
     this.row = row;
     this.col = col;
-    this.selected = false;
+    this.selections = 0;
     this.animations = {};
 
     this.board.things[this.col][this.row] = this;
@@ -43,7 +43,7 @@ class Thing {
     context.fillText("(" + this.col + ", " + this.row + ")", this.x + this.size / 2, this.y - this.size / 2);
     context.fillText("x: " + Math.floor(this.x) + ", y: " + Math.floor(this.y), this.x + this.size / 2, this.y - this.size / 2 + 12);
     context.fillText("size: " + Math.floor(this.size), this.x + this.size / 2, this.y - this.size / 2 + 24);
-    context.fillText(this.selected ? "selected" : !this.enabled ? "disabled" : "", this.x + this.size / 2, this.y - this.size / 2 + 48);
+    context.fillText(this.selections ? "selections: " + this.selections : !this.enabled ? "disabled" : "", this.x + this.size / 2, this.y - this.size / 2 + 48);
 
   }
 
@@ -87,7 +87,7 @@ class Dot extends Thing {
   }
 
   connection(thing) {
-    return !thing.selected && inRange(this, thing);
+    return !thing.selections && inRange(this, thing);
   }
 }
 
@@ -138,7 +138,7 @@ class Ring extends Thing {
   }
 
   connection(thing) {
-    if (thing.selected)
+    if (thing.selections)
       for (var i = 0; i < selections.length; i++)
         for (var j = 0; j < selections[i].things.length; j++)
           if (thing == selections[i].things[j] &&
@@ -183,19 +183,19 @@ class Selection {
   }
 
   add(thing) {
-    thing.selected = true;
+    thing.selections++;
     this.color = thing.color;
     this.things.push(thing);
   }
 
   remove() {
-    this.things.pop().selected = false;
+    this.things.pop().selections--;
   }
 
   end() {
     let thing;
     while ((thing = this.things.pop()) !== undefined)
-      thing.selected = false;
+      thing.selections--;
       selections[this.id] = undefined;
       removeFromDrawList(this);
   }
@@ -482,7 +482,7 @@ function inRange(thing1, thing2) {
 
 function startMove(id, x, y) {
   if (selections[id] == undefined &&
-     (thing = board.thingAtPosition(x, y)) && !thing.selected && thing.enabled) {
+     (thing = board.thingAtPosition(x, y)) && !thing.selections && thing.enabled) {
     selections[id] = new Selection(id);
     selections[id].add(thing);
   }
