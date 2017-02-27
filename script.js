@@ -4,8 +4,6 @@ var selections = [];
 var drawList = [];
 var drawTable = [[], [], []];
 var drawing = true;
-var mouseX = null;
-var mouseY = null;
 
 const canvas = document.getElementsByTagName("canvas")[0];
 const context = canvas.getContext("2d");
@@ -15,14 +13,15 @@ const backgroundColor = "#292929";
 // --------------------------- Classes
 
 class Thing {
-  constructor(board, row, col) {
+  constructor(board, row, col, color) {
     addToDrawList(this, 1);
 
-    this.size = board.thingSize;
-    this.enabled = true;
     this.board = board;
     this.row = row;
     this.col = col;
+    this.color = color;
+    this.enabled = true;
+    this.size = board.thingSize;
     this.selections = 0;
     this.animations = {};
 
@@ -34,17 +33,17 @@ class Thing {
     for (let i in this.animations)
       if (this.animations[i].finished)
         delete this.animations[i];
-      else this.animations[i].update()
-
+      else this.animations[i].update();
   }
 
   drawInfo() {
     context.fillStyle = "white";
-    context.fillText("(" + this.col + ", " + this.row + ")", this.x + this.size / 2, this.y - this.size / 2);
-    context.fillText("x: " + Math.floor(this.x) + ", y: " + Math.floor(this.y), this.x + this.size / 2, this.y - this.size / 2 + 12);
-    context.fillText("size: " + Math.floor(this.size), this.x + this.size / 2, this.y - this.size / 2 + 24);
-    context.fillText(this.selections ? "selections: " + this.selections : !this.enabled ? "disabled" : "", this.x + this.size / 2, this.y - this.size / 2 + 48);
-
+    context.fillText(this.constructor.name, this.x + this.size / 2 + 2, this.y - this.size / 2 + 12);
+    context.fillText("(" + this.col + ", " + this.row + ")", this.x + this.size / 2 + 2, this.y - this.size / 2 + 24);
+    context.fillText("x: " + Math.floor(this.x) + ", y: " + Math.floor(this.y), this.x + this.size / 2 + 2, this.y - this.size / 2 + 36);
+    context.fillText("size: " + Math.floor(this.size), this.x + this.size / 2 + 2, this.y - this.size / 2 + 48);
+    context.fillText("hue: " + this.color.match(/\d+/), this.x + this.size / 2 + 2, this.y - this.size / 2 + 60);
+    context.fillText(this.selections ? "selections: " + this.selections : !this.enabled ? "disabled" : "", this.x + this.size / 2 + 2, this.y - this.size / 2 + 72);
   }
 
   calculatePosition() {
@@ -52,19 +51,29 @@ class Thing {
     this.y = this.board.y + this.size + this.size * this.row * 2;
   }
 
+  inRange(thing) {
+    return Math.abs(this.row - thing.row) <= 1 && Math.abs(this.col - thing.col) <= 1;
+  }
+
   connection(thing) {
-    return false;
+    return this.inRange(thing)
+           && this.color == thing.color
+           && thing != this;
   }
 
   moveTo(row, col) {
-    this.board.things[col][row] = this;
     this.board.things[this.col][this.row] = null;
+    if (this.board.things[col][row])
+      this.board.things[col][row].moveTo(this.row, this.col);
+    this.board.things[col][row] = this;
     this.row = row;
     this.col = col;
 
     let oldY = this.y;
+    let oldX = this.x;
     this.calculatePosition();
     new Animation(this, "y", oldY, this.y, 400, 0, null);
+    new Animation(this, "x", oldX, this.x, 400, 0, null);
   }
 
   destroy() {
@@ -80,61 +89,52 @@ class Thing {
 class Dot extends Thing {
   draw() {
     super.draw();
-
+    context.fillStyle = this.color;
     context.beginPath();
     context.arc(this.x, this.y, this.size / 2, 0, 2 * Math.PI);
     context.fill();
   }
 
   connection(thing) {
-    return !thing.selections && inRange(this, thing);
-  }
-}
-
-class ColorDot extends Dot {
-  constructor(board, row, col, color) {
-    super(board, row, col);
-    this.color = color;
-  }
-
-  draw() {
-    context.fillStyle = this.color;
-    super.draw();
-  }
-
-  drawInfo() {
-    super.drawInfo();
-    context.fillText("color: " + this.color, this.x + this.size / 2, this.y - this.size / 2 + 36);
-  }
-
-  connection(thing) {
-    return super.connection(thing) && this.color == thing.color || thing instanceof SuperDot;
-  }
-}
-
-class SuperDot extends Dot {
-  draw() {
-    context.fillStyle = "white";
-    super.draw();
-  }
-
-  connection(thing) {
-    return true;
+    return !thing.selections && super.connection(thing);
   }
 }
 
 class Ring extends Thing {
-  constructor(board, row, col, color) {
-    super(board, row, col);
-  }
-
   draw() {
     super.draw();
-
+    context.strokeStyle = this.color;
     context.lineWidth = this.size / 10;
     context.beginPath();
     context.arc(this.x, this.y, this.size / 2.25, 0, 2 * Math.PI);
     context.stroke();
+  }
+
+  connection(thing) {
+    // This block checks if this connection has already been made. It's clunky and can probably be improved upon
+    if (thing.selections)
+      for (var i = 0; i < selections.length; i++)
+        for (var j = 0; j < selections[i].things.length; j++)
+          if (thing == selections[i].things[j] &&
+              (this == selections[i].things[j - 1] ||
+              this == selections[i].things[j + 1]))
+            return false;
+    return super.connection(thing);
+  }
+}
+
+class Square extends Thing {
+  draw() {
+    super.draw();
+    context.strokeStyle = this.color;
+    context.lineWidth = this.size / 10;
+    context.beginPath();
+    context.rect(this.x - this.size / 2.25, this.y - this.size / 2.25, this.size / 1.125, this.size / 1.125);
+    context.stroke();
+  }
+
+  inRange(thing) {
+    return Math.abs(this.row - thing.row) + Math.abs(this.col - thing.col) == 1;
   }
 
   connection(thing) {
@@ -145,29 +145,7 @@ class Ring extends Thing {
               (this == selections[i].things[j - 1] ||
               this == selections[i].things[j + 1]))
             return false;
-    return inRange(this, thing);
-  }
-}
-
-class ColorRing extends Ring {
-  constructor(board, row, col, color) {
-    super(board, row, col);
-    this.color = color;
-  }
-
-  draw() {
-    context.strokeStyle = this.color;
-    super.draw();
-  }
-
-  drawInfo() {
-    super.drawInfo();
-    let re = //
-    context.fillText("hue: " + this.color.match(/\d+/), this.x + this.size / 2, this.y - this.size / 2 + 36);
-  }
-
-  connection(thing) {
-    return super.connection(thing) && (thing != this && this.color == thing.color) || thing instanceof SuperDot;
+    return super.connection(thing);
   }
 }
 
@@ -268,8 +246,9 @@ class Board {
 
   fill(col) {
     for (var row = 0; row < this.things[col].length; row++) {
+      let thing = null;
       if (this.things[col][row] == null) {
-        let thing = new ColorRing(this, row, col, randomColor());
+        let thing = getThing(this, row, col, randomColor());
         new Animation(thing, "y", -(this.height + this.y) + thing.y + thing.size / 2,
             thing.y, 700, 0, null);
       } else return;
@@ -286,12 +265,11 @@ class Board {
 
   drawInfo() {
     context.fillStyle = "white";
-    context.fillText("dimensions: " + this.cols + "x" + this.rows, 2, 10);
+    context.fillText(this.constructor.name + " (" + this.cols + "x" + this.rows + ")", 2, 10);
     context.fillText("thingSize: " + Math.floor(this.thingSize), 2, 22);
     context.fillText("width: " + Math.floor(this.width), 2, 34);
     context.fillText("height: " + Math.floor(this.height), 2, 46);
     context.fillText("x: " + Math.floor(this.x) + ", y: " + Math.floor(this.y), 2, 58);
-
   }
 
   resize() {
@@ -410,6 +388,19 @@ function randomColor() {
   return "hsla(" + (Math.floor(Math.random() * 5) * 72 + 60) + ",60%,60%,1)";
 }
 
+function getThing(board, row, col, color) {
+  let number = Math.floor(Math.random() * 100);
+
+  if (number < 10)
+    return new Square(board, row, col, color);
+  if (number < 45)
+    return new Ring(board, row, col, color);
+  else return new Dot(board, row, col, color);
+}
+
+var drawStartTime = Date.now();
+var drawTime = 0;
+
 function draw() {
   drawBackground();
 
@@ -421,10 +412,15 @@ function draw() {
       for (let i = 0; i < drawTable.length; i++)
         for (var j = 0; j < drawTable[i].length; j++)
           if (drawTable[i][j].drawInfo)
-            drawTable[i][j].drawInfo()
-
-
+            drawTable[i][j].drawInfo();
+      context.fillText("ticks per second: " + Math.floor(1000 / tickTime), 2, canvas.height - 2);
+      context.fillText("frames per second: " + Math.floor(1000 / drawTime), 2, canvas.height - 14);
     }
+  }
+
+  if (debug) {
+    drawTime = Date.now() - drawStartTime;
+    drawStartTime = Date.now();
   }
 
   window.requestAnimationFrame(draw);
@@ -476,10 +472,6 @@ function removeFromDrawList(thing) {
   return;
 }
 
-function inRange(thing1, thing2) {
-  return Math.abs(thing1.row - thing2.row) <= 1 && Math.abs(thing1.col - thing2.col) <= 1;
-}
-
 function startMove(id, x, y) {
   if (selections[id] == undefined &&
      (thing = board.thingAtPosition(x, y)) && !thing.selections && thing.enabled) {
@@ -524,8 +516,12 @@ function cancelMove(id, x, y) {
     selections[i].end();
 }
 
+var tickStartTime = Date.now();
+var tickTime = 0;
+
 function tick() {
   let flag;
+
   for (var col = 0; col < board.things.length; col++) {
     flag = false;
     for (var row = board.things[col].length - 1; row >= 0; row--)
@@ -535,6 +531,11 @@ function tick() {
       }
     if (flag)
       board.fill(col);
+  }
+
+  if (debug) {
+    tickTime = Date.now() - tickStartTime;
+    tickStartTime = Date.now();
   }
 }
 
@@ -598,7 +599,7 @@ function setup() {
 
   board = new Board(6, 5);
   window.requestAnimationFrame(draw);
-  var ticker = setInterval(tick, 80);
+  var ticker = setInterval(tick, 100);
 
   loadingText(false);
 }
